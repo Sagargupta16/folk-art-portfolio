@@ -51,12 +51,12 @@ const logoUrl = `${import.meta.env.BASE_URL}${brand.logo}`;
 
   {/* Mobile nav -- full-width row beneath the top bar. Hidden on sm+. */}
   <nav aria-label="Primary mobile" class="border-t border-[var(--color-line)] sm:hidden">
-    <ul class="container-x flex items-center justify-around gap-2 overflow-x-auto py-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <ul class="container-x flex items-center justify-between gap-1 overflow-x-auto py-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {nav.map((item) => (
         <li class="shrink-0">
           <a
             href={item.href}
-            class="t-meta tracking-[0.16em] text-[var(--color-muted)] transition hover:text-[var(--color-accent)]"
+            class="font-body text-[0.7rem] uppercase tracking-[0.06em] text-[var(--color-muted)] transition hover:text-[var(--color-accent)]"
           >
             {item.label}
           </a>

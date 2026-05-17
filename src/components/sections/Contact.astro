@@ -15,7 +15,7 @@ const items = [contact.instagram, contact.whatsapp, contact.email];
 const c = sections.contact;
 ---
 <Section id="contact" eyebrow={c.eyebrow} title={c.title} lead={c.lead}>
-  <ul class="stagger divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
+  <ul class="stagger mx-auto max-w-3xl divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
     {
       items.map((it) => {
         const Icon = ICON_MAP[it.label as keyof typeof ICON_MAP];

@@ -5,10 +5,10 @@ interface Props {
   title: string;
   lead?: string;
   class?: string;
-  /** 'left' (editorial default) or 'center' (CTA-style sections like Custom Orders). */
+  /** 'center' (default, symmetric) or 'left' (editorial). */
   align?: 'left' | 'center';
 }
-const { id, eyebrow, title, lead, class: className = '', align = 'left' } = Astro.props;
+const { id, eyebrow, title, lead, class: className = '', align = 'center' } = Astro.props;
 const headerAlign =
   align === 'center' ? 'mx-auto text-center' : '';
 ---

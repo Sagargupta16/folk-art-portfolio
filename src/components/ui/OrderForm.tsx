@@ -171,11 +171,11 @@ export default function OrderForm({
         />
       </label>
 
-      <div className="flex flex-col gap-3 pt-1 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col items-center gap-3 pt-1 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="submit"
           disabled={!isReady}
-          className="t-meta inline-flex items-center justify-center gap-2 border border-[var(--color-ink)] bg-[var(--color-ink)] px-6 py-3 text-[var(--color-bg)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--color-ink)] disabled:hover:bg-[var(--color-ink)]"
+          className="t-meta inline-flex w-full items-center justify-center gap-2 border border-[var(--color-ink)] bg-[var(--color-ink)] px-6 py-3 text-[var(--color-bg)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--color-ink)] disabled:hover:bg-[var(--color-ink)] sm:w-auto"
         >
           {submitLabel} -&gt;
         </button>

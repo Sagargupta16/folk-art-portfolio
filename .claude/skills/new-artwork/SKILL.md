@@ -9,9 +9,9 @@ Adding a new artwork is the recurring task on this site. This skill makes it a o
 
 ## Steps
 
-1. **Receive source image** from the client (path or attachment). Higher resolution is better -- Astro handles downscaling and AVIF/WebP generation at build.
+1. **Receive source image** from the client (path or attachment). Higher resolution is better -- the build's image optimizer downscales to 400/800/1200 widths and emits AVIF + WebP, so a single high-res JPEG is the right input.
 2. **Pick a slug.** kebab-case, descriptive of subject not style (e.g. `peacock-pair`, not `madhubani-7`). Must be unique within `src/data/artworks.json`.
-3. **Place the image** at `public/artworks/<slug>.jpg`. Always `.jpg` (the build pipeline handles format conversion).
+3. **Place the image** at `public/artworks/<slug>.jpg`. Always `.jpg`. The committed original serves both as the `<picture>` JPEG fallback and as the canonical URL for `og:image` / JSON-LD; the build script ([`scripts/optimize-images.mjs`](../../../scripts/optimize-images.mjs)) generates AVIF + WebP variants into `public/_opt/artworks/` (gitignored, regenerated each build).
 4. **Append a catalog entry** to [`src/data/artworks.json`](../../../src/data/artworks.json) `items` array:
 
    ```json

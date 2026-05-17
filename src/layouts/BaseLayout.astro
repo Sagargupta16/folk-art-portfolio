@@ -4,19 +4,27 @@ import Header from '@/components/layout/Header.astro';
 import Footer from '@/components/layout/Footer.astro';
 import ThemeScript from '@/components/layout/ThemeScript.astro';
 import RevealController from '@/components/layout/RevealController.astro';
-import ImageLoadController from '@/components/layout/ImageLoadController.astro';
 import { brand } from '@/lib/site';
 
 interface Props {
   title?: string;
   description?: string;
+  jsonLd?: unknown;
+  preloadImage?: string;
 }
-const { title = brand.title, description = brand.description } = Astro.props;
-const fullTitle = title === brand.title ? `${brand.title} -- ${brand.tagline}` : `${title} | ${brand.title}`;
+const { title = brand.title, description = brand.description, jsonLd, preloadImage } = Astro.props;
+// Public-facing brand identity leads in the tab title and share cards.
+// brand.title (the artist's real name) stays in JSON-LD Person.name for SEO.
+const fullTitle = title === brand.title
+  ? `${brand.publicName} -- ${brand.tagline}`
+  : `${title} | ${brand.publicName}`;
 const base = import.meta.env.BASE_URL;
 const logoUrl = `${base}${brand.logo}`;
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url).toString();
-const absoluteLogoUrl = new URL(logoUrl, Astro.site ?? Astro.url).toString();
+const appleIconUrl = `${base}logo-180.png`;
+// Astro.site is configured in astro.config.mjs (https://sagargupta.online).
+const SITE = Astro.site!;
+const canonicalUrl = new URL(Astro.url.pathname, SITE).toString();
+const absoluteLogoUrl = new URL(logoUrl, SITE).toString();
 ---
 <!doctype html>
 <html lang="en">
@@ -25,20 +33,24 @@ const absoluteLogoUrl = new URL(logoUrl, Astro.site ?? Astro.url).toString();
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#faf8f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#15110d" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href={logoUrl} type="image/jpeg" />
-    <link rel="apple-touch-icon" href={logoUrl} />
+    <link rel="apple-touch-icon" sizes="180x180" href={appleIconUrl} />
     <link rel="canonical" href={canonicalUrl} />
+    {preloadImage && (
+      <link rel="preload" as="image" href={preloadImage} fetchpriority="high" />
+    )}
     <meta property="og:type" content="website" />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={absoluteLogoUrl} />
     <meta property="og:url" content={canonicalUrl} />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={fullTitle} />
-    <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={absoluteLogoUrl} />
     <title>{fullTitle}</title>
     <ThemeScript />
+    {jsonLd && (
+      <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    )}
   </head>
   <body id="top" class="font-body">
     <a
@@ -53,6 +65,5 @@ const absoluteLogoUrl = new URL(logoUrl, Astro.site ?? Astro.url).toString();
     </main>
     <Footer />
     <RevealController />
-    <ImageLoadController />
   </body>
 </html>

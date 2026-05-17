@@ -2,6 +2,43 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/) -- bump rules in [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases".
 
+## 1.1.0 -- 2026-05-17
+
+Discoverability + performance pass. Site now ships with build-time image optimization, full SEO infrastructure (sitemap, structured data, share-card metadata, canonical URL), and a handful of code-health and accessibility improvements. No content changes; the artwork catalog is unchanged at 21 pieces.
+
+### Discoverability (SEO)
+
+- **Open Graph metadata** in [`src/layouts/BaseLayout.astro`](src/layouts/BaseLayout.astro). WhatsApp link previews, Instagram DM previews, mail-client previews now render a card with title, description, and image instead of a bare URL.
+- **Canonical URL** emitted on every page. `astro.config.mjs` `site` now points at the primary domain (`https://sagargupta.online`) via a single `SITE` constant; the GitHub Pages mirror at `Sagargupta16.github.io` continues to serve the same build but search engines are told to consolidate ranking signals at the primary domain.
+- **Sitemap + robots.txt.** [`@astrojs/sitemap`](https://docs.astro.build/en/guides/integrations-guide/sitemap/) auto-generates `sitemap-index.xml` + `sitemap-0.xml` at build. [`public/robots.txt`](public/robots.txt) allows all crawlers and points at the canonical sitemap.
+- **JSON-LD structured data** via new [`src/lib/structured-data.ts`](src/lib/structured-data.ts) helper. Each homepage build emits a 23-entity `@graph`: 1 `Person` + `VisualArtist` (artist with `sameAs` → Instagram + WhatsApp, `knowsAbout` for each folk-art tradition, address in IN), 1 `WebSite`, 21 `VisualArtwork` entries (one per piece, with `artform`, `artMedium`, absolute image URL, and `creator` reference).
+- **Image alt text** in [`Hero.astro`](src/components/sections/Hero.astro) + [`Work.astro`](src/components/sections/Work.astro) now uses each artwork's `description` field as primary alt source (rich, screen-reader friendly, image-search-indexable). Hero uses natural prose ("Fish family, Madhubani painting by Megha Seth") instead of the previous "Title · Style" middle-dot string.
+
+### Performance
+
+- **Build-time image optimizer** at [`scripts/optimize-images.mjs`](scripts/optimize-images.mjs). Generates AVIF (q82) + WebP (q90) variants at 400/800/1200 widths from `public/artworks/`, output to `public/_opt/artworks/` (gitignored). Idempotent (mtime-aware) so warm builds skip cached variants in milliseconds. Wired into the `build` script chain (`pnpm run optimize:images && astro build`) -- runs automatically on every build, no extra step.
+- **`<picture>` rendering** via new [`src/components/ui/ArtworkImage.astro`](src/components/ui/ArtworkImage.astro). Emits a multi-format `<source srcset>` chain (AVIF first, WebP fallback) at all three widths plus the original JPEG as the `<img>` fallback for browsers without modern format support. Browser picks the smallest format-width pair its viewport actually needs. Used by both Hero and Work; the legacy plain `<img>` path stays only for the deterministic SVG-placeholder fallback when an artwork has no `image` field.
+- **LCP preload + priority hints.** Hero image is now preloaded via `<link rel="preload" as="image" fetchpriority="high">` in `<head>`, with `fetchpriority="high"` on the `<img>` itself. The browser's preload scanner discovers and starts fetching the LCP image during head parse instead of waiting for body discovery.
+- **Per-user image weight (real-world).** Initial paint dropped from ~5 MB to ~1 MB. Full-gallery scroll dropped from ~25 MB to ~5-7 MB. Quality stays pristine at the chosen AVIF/WebP qualities -- Madhubani hatching and Gond dot patterns reproduce without visible artifacts.
+- **Removed the fade-in / skeleton machinery.** With optimized images painting near-instantly, the JS-managed `.img-fade` opacity gate and `.skel` shimmer overlay added a stale flash and broke under the new `<picture>` DOM (parent walk no longer reached the `[data-loaded]` wrapper). Deleted the CSS, the markup, and the [`ImageLoadController`](src/components/layout/ImageLoadController.astro) component. Images render directly on first paint.
+
+### Accessibility
+
+- **`<meta name="theme-color">`** for both light and dark color schemes in [`BaseLayout.astro`](src/layouts/BaseLayout.astro). Mobile browser address bar now blends with the page palette in either theme.
+- **Hero parallax script** in [`Hero.astro`](src/components/sections/Hero.astro) now selects shadow + image-wrapper divs by `[data-shadow]` / `[data-inner]` attributes instead of `frame.children[0]` / `[1]`. Adding child elements (captions, badges, decorations) won't silently break the tilt anymore.
+
+### Code health
+
+- **Removed dead [`Reveal.astro`](src/components/layout/Reveal.astro) component.** Wrapper that just added `class="reveal"` to a div -- no section ever imported it; the `delay` prop was already superseded by the CSS `.stagger > .reveal:nth-child(n)` auto-stagger pattern.
+- **Removed CI's duplicate `upload-pages-artifact` step** from [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Was uploading the build to Pages on push to main, but [`deploy.yml`](.github/workflows/deploy.yml) does the same upload before deploying. CI now does only its job (typecheck + build); deploy handles deployment. Saves ~30s per push.
+- **Removed inline `onload="..."` handlers** from gallery and hero `<img>` tags. Briefly replaced with a consolidated [`ImageLoadController`](src/components/layout/ImageLoadController.astro) that attached load listeners centrally; then removed entirely along with the fade-in machinery. Final state: zero inline event handlers in the rendered HTML, CSP-clean.
+
+### Documentation
+
+- [`README.md`](README.md) now reflects the actual image pipeline (build-time `sharp`, `<picture>` with srcset), the SEO infrastructure (sitemap, JSON-LD, OG, canonical), and the updated project layout (`scripts/`, `public/_opt/`, new `ArtworkImage` component, new `lib/structured-data.ts`).
+- [`CLAUDE.md`](CLAUDE.md) gains an Image-pipeline + SEO bullet under Stack, refreshed Key files list, and a corrected Gotchas entry that no longer claims "Astro generates AVIF + WebP" (it doesn't -- the build script does).
+- [`.claude/skills/new-artwork/SKILL.md`](.claude/skills/new-artwork/SKILL.md) updated to describe the actual optimizer flow (drop file → build runs `optimize:images` → `<picture>` ships AVIF + WebP + JPEG fallback automatically).
+
 ## 1.0.0 -- 2026-05-17
 
 First public release. The site is live, content-complete with 21 artworks, light + dark themes, mobile-tested, JSON-driven, and deployed to GitHub Pages.

@@ -180,89 +180,36 @@ body {
   }
 }
 
-/* 3D tilt frame for gallery cards */
-.tilt-stage {
-  perspective: 1200px;
-}
-.tilt-card {
-  transition: transform 350ms var(--ease-out-soft);
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-@media (prefers-reduced-motion: reduce) {
-  .tilt-card {
-    transform: none !important;
-    transition: none;
-  }
-}
-
-/* Touch / coarse-pointer: don't try to tilt on tap, and reveal hover-only overlays */
+/* Touch / coarse-pointer: reveal hover-only overlays so they're usable on tap. */
 @media (hover: none) {
-  .tilt-card {
-    transform: none !important;
-  }
   .touch-show {
     opacity: 1 !important;
     transform: none !important;
   }
 }
 
-/* Hero parallax frame */
+/* Hero parallax frame -- user-driven tilt only, no autonomous animation. */
 .parallax-frame {
   transform-style: preserve-3d;
   will-change: transform;
   transition: transform 220ms var(--ease-out-soft);
 }
 
-/* Continuous motion on the hero artwork: a slow Ken Burns zoom layered with a gentle float.
-   Two animations on different elements so they don't fight, and the user-driven parallax tilt
-   stays separate. */
+/* Hero artwork -- a single very slow scale "breathe" so the painting feels alive
+   without competing with itself. No translate dance, no float, no glow halo. */
 .motion-kenburns {
-  animation: kenburns 14s ease-in-out infinite alternate;
+  animation: kenburns 22s ease-in-out infinite alternate;
   will-change: transform;
   transform-origin: 50% 50%;
 }
-.motion-float {
-  animation: float 6s ease-in-out infinite;
-  will-change: transform;
-}
-.motion-glow {
-  position: relative;
-}
-.motion-glow::after {
-  content: '';
-  position: absolute;
-  inset: -8px;
-  border-radius: inherit;
-  background: radial-gradient(
-    circle at 30% 20%,
-    color-mix(in srgb, var(--color-accent) 35%, transparent),
-    transparent 65%
-  );
-  filter: blur(8px);
-  animation: pulse-glow 5s ease-in-out infinite;
-  pointer-events: none;
-  z-index: -1;
-}
 
 @keyframes kenburns {
-  0% { transform: scale(1) translate(0, 0); }
-  50% { transform: scale(1.12) translate(2%, -1%); }
-  100% { transform: scale(1.18) translate(-2.5%, -2.5%); }
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-22px); }
-}
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.45; transform: scale(0.98); }
-  50% { opacity: 0.95; transform: scale(1.04); }
+  from { transform: scale(1); }
+  to   { transform: scale(1.06); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .motion-kenburns,
-  .motion-float,
-  .motion-glow::after {
+  .motion-kenburns {
     animation: none;
   }
 }
@@ -339,48 +286,4 @@ body {
 .field-select option {
   background-color: var(--color-bg);
   color: var(--color-ink);
-}
-
-/* Skeleton shimmer.
-   Layered behind any <img class="img-fade">. Image starts at opacity 0; once
-   it loads, JS adds .is-loaded which fades it in and hides the skeleton via
-   the [data-loaded] attribute on the wrapper. Falls back gracefully if JS is
-   off -- the image's natural display still happens, just without the fade. */
-.skel {
-  position: absolute;
-  inset: 0;
-  background-color: var(--color-bg-soft);
-  background-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    color-mix(in srgb, var(--color-accent) 18%, transparent) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  background-repeat: no-repeat;
-  animation: skel-shimmer 1.4s ease-in-out infinite;
-  pointer-events: none;
-}
-[data-loaded='true'] > .skel {
-  opacity: 0;
-  animation: none;
-  transition: opacity 320ms var(--ease-out-soft);
-}
-
-.img-fade {
-  opacity: 0;
-  transition: opacity 480ms var(--ease-out-soft);
-}
-.img-fade.is-loaded {
-  opacity: 1;
-}
-
-@keyframes skel-shimmer {
-  0% { background-position: 150% 0; }
-  100% { background-position: -50% 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skel { animation: none; }
-  .img-fade { transition: none; }
 }

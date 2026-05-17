@@ -2,8 +2,9 @@
 import { getCollection } from 'astro:content';
 import Section from '@/components/layout/Section.astro';
 import { placeholderDataUri } from '@/lib/placeholder';
-import { artworkUrl, type Artwork } from '@/lib/images';
+import { type Artwork } from '@/lib/images';
 import { sections, styles } from '@/lib/site';
+import ArtworkImage from '@/components/ui/ArtworkImage.astro';
 
 const all = await getCollection('artworks');
 const baseUrl = import.meta.env.BASE_URL;
@@ -19,8 +20,9 @@ const items = all
       medium: art.medium,
       year: art.year ?? null,
       aspectRatio: art.aspectRatio,
-      image: art.image
-        ? artworkUrl(art, baseUrl)
+      filename: art.image || null,
+      placeholder: art.image
+        ? null
         : placeholderDataUri({
             title: art.title,
             style: art.style,
@@ -28,6 +30,7 @@ const items = all
             height: Math.round(600 / art.aspectRatio),
           }),
       description: art.description ?? null,
+      alt: art.description ?? `${art.title}, ${art.style} painting in ${art.medium}.`,
       order: art.order,
     };
   })
@@ -37,15 +40,14 @@ const filters = ['All', ...styles] as const;
 ---
 <Section id="work" eyebrow={w.eyebrow} title={w.title} lead={w.lead}>
   <div data-gallery data-active="All">
-    <div role="tablist" aria-label="Filter by style" class="mb-10 flex flex-wrap gap-2">
+    <div role="group" aria-label="Filter by style" class="mb-10 flex flex-wrap justify-center gap-2">
       {filters.map((f, i) => (
         <button
           type="button"
-          role="tab"
           data-filter={f}
-          aria-selected={i === 0 ? 'true' : 'false'}
+          aria-pressed={i === 0 ? 'true' : 'false'}
           class:list={[
-            'gallery-pill rounded-full border px-4 py-1.5 text-xs uppercase tracking-[0.16em] transition',
+            'gallery-pill rounded-full border px-4 py-2.5 text-xs uppercase tracking-[0.16em] transition',
             i === 0
               ? 'pill-active border-[var(--color-ink)]'
               : 'border-[var(--color-line)] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]',
@@ -56,7 +58,7 @@ const filters = ['All', ...styles] as const;
       ))}
     </div>
 
-    <ul class="tilt-stage stagger grid gap-[var(--grid-gap)] sm:grid-cols-2 lg:grid-cols-3">
+    <ul class="stagger grid gap-[var(--grid-gap)] sm:grid-cols-2 lg:grid-cols-3">
       {items.map((it) => (
         <li
           class="gallery-item reveal"
@@ -64,18 +66,24 @@ const filters = ['All', ...styles] as const;
         >
           <article class="group flex flex-col gap-4">
             <div
-              class="tilt-card relative grid w-full place-items-center overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg-soft)] aspect-[3/4]"
-              data-loaded="false"
+              class="relative grid w-full place-items-center overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg-soft)] aspect-[3/4] transition motion-safe:duration-500 motion-safe:ease-out hover:border-[var(--color-accent)]"
             >
-              <span class="skel" aria-hidden="true"></span>
-              <img
-                src={it.image}
-                alt={it.title}
-                loading="lazy"
-                decoding="async"
-                class="img-fade max-h-full max-w-full object-contain transition duration-700 group-hover:scale-[1.02]"
-                onload="this.classList.add('is-loaded'); this.parentElement.dataset.loaded='true';"
-              />
+              {it.filename ? (
+                <ArtworkImage
+                  filename={it.filename}
+                  alt={it.alt}
+                  baseUrl={baseUrl}
+                  imgClass="max-h-full max-w-full object-contain transition duration-700 group-hover:scale-[1.02]"
+                />
+              ) : (
+                <img
+                  src={it.placeholder!}
+                  alt={it.alt}
+                  loading="lazy"
+                  decoding="async"
+                  class="max-h-full max-w-full object-contain transition duration-700 group-hover:scale-[1.02]"
+                />
+              )}
               <span class="touch-show pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-[var(--color-ink)]/85 to-transparent p-3 text-xs text-[var(--color-bg)] opacity-0 transition duration-500 group-hover:translate-y-0 group-hover:opacity-100 sm:p-4 sm:text-sm">
                 {it.description ?? `${it.style} · ${it.medium}`}
               </span>
@@ -92,7 +100,7 @@ const filters = ['All', ...styles] as const;
       ))}
     </ul>
 
-    <p data-empty class="t-body mt-6 hidden text-[var(--color-muted)]">
+    <p data-empty aria-live="polite" class="t-body mt-6 hidden text-[var(--color-muted)]">
       No pieces in this style yet.
     </p>
   </div>
@@ -116,7 +124,7 @@ const filters = ['All', ...styles] as const;
       if (empty) empty.classList.toggle('hidden', visible > 0);
       pills.forEach((p) => {
         const active = p.getAttribute('data-filter') === filter;
-        p.setAttribute('aria-selected', active ? 'true' : 'false');
+        p.setAttribute('aria-pressed', active ? 'true' : 'false');
         p.classList.toggle('pill-active', active);
         p.classList.toggle('border-[var(--color-ink)]', active);
         p.classList.toggle('border-[var(--color-line)]', !active);
@@ -129,30 +137,6 @@ const filters = ['All', ...styles] as const;
 
     pills.forEach((p) => {
       p.addEventListener('click', () => apply(p.getAttribute('data-filter')));
-    });
-  })();
-
-  // Tilt-on-hover for gallery cards (no React)
-  (function () {
-    if (typeof window === 'undefined') return;
-    if (window.matchMedia('(hover: none)').matches) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const cards = document.querySelectorAll('[data-gallery] .tilt-card');
-    cards.forEach((card) => {
-      let raf = 0;
-      card.addEventListener('mousemove', (e) => {
-        const r = card.getBoundingClientRect();
-        const x = (e.clientX - r.left) / r.width - 0.5;
-        const y = (e.clientY - r.top) / r.height - 0.5;
-        cancelAnimationFrame(raf);
-        raf = requestAnimationFrame(() => {
-          card.style.transform = `perspective(900px) rotateX(${(-y * 5).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg) translateZ(0)`;
-        });
-      });
-      card.addEventListener('mouseleave', () => {
-        cancelAnimationFrame(raf);
-        card.style.transform = '';
-      });
     });
   })();
 </script>

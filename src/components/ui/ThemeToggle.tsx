@@ -34,7 +34,7 @@ export default function ThemeToggle() {
       aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
       aria-pressed={isDark}
       title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-      className="group relative inline-grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-[var(--color-line)] bg-transparent text-[var(--color-ink)] transition duration-300 ease-out hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+      className="group relative inline-grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border border-[var(--color-line)] bg-transparent text-[var(--color-ink)] transition duration-300 ease-out hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] sm:h-9 sm:w-9"
     >
       <span
         aria-hidden="true"

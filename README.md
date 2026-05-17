@@ -18,6 +18,8 @@ A static, JSON-driven, light-and-dark single-page site -- artwork-forward typogr
 | Styling | Tailwind 4 via `@tailwindcss/vite`, theme tokens in `@theme` |
 | Fonts | Self-hosted Cormorant Garamond, Inter, Tiro Devanagari Hindi (`@fontsource(-variable)`) |
 | Content | JSON files validated by Zod, loaded as Astro content collections |
+| Images | Build-time `sharp` pass: AVIF + WebP at 400/800/1200 widths, original JPEG as fallback |
+| SEO | `@astrojs/sitemap`, JSON-LD (Person, VisualArtist, VisualArtwork), Open Graph, canonical URL |
 | Deploy | GitHub Pages via Actions, OIDC auth |
 
 No CDN font calls. No analytics. No tracking. The static build is everything.
@@ -49,7 +51,7 @@ Schemas are enforced by Zod in [`src/content.config.ts`](src/content.config.ts) 
 
 ### Add a new artwork
 
-1. Drop the image at `public/artworks/<slug>.jpg` (Astro generates AVIF + WebP at build).
+1. Drop the image at `public/artworks/<slug>.jpg` (the build runs `scripts/optimize-images.mjs` to generate AVIF + WebP variants automatically).
 2. Append an entry to [`src/data/artworks.json`](src/data/artworks.json) with `image: "<slug>.jpg"`.
 3. `pnpm build` to verify.
 
@@ -62,18 +64,22 @@ The [`new-artwork`](.claude/skills/new-artwork/SKILL.md) skill automates this en
 ```text
 src/
   pages/index.astro          single-page composition
-  layouts/BaseLayout.astro   HTML shell, theme script, header/footer
+  layouts/BaseLayout.astro   HTML shell, theme script, OG + JSON-LD, header/footer
   components/
     layout/                  Header, Footer, Section wrapper, Reveal controller
-    sections/                Hero, About, Work, Workshops, Contact
-    ui/                      Card, Pill, IconButton, ThemeToggle (TSX), icons/
+    sections/                Hero, About, Work, Workshops, Custom Orders, Contact
+    ui/                      Card, Pill, IconButton, ThemeToggle (TSX), ArtworkImage, icons/
   content.config.ts          Zod schemas for the JSON collections
   data/                      site.json, artworks.json -- single sources of truth
-  lib/                       artworkUrl, deterministic SVG placeholders
+  lib/                       artworkUrl, deterministic SVG placeholders, structured-data
   styles/globals.css         Tailwind + theme tokens + design-system utilities
+scripts/
+  optimize-images.mjs        prebuild: generate AVIF/WebP variants from public/artworks/
 public/
-  artworks/                  one <slug>.jpg per piece
+  artworks/                  one <slug>.jpg per piece (committed, also serves as fallback)
+  _opt/artworks/             AVIF/WebP variants at 400/800/1200 widths (gitignored, regenerated)
   favicon.svg
+  robots.txt                 allow-all, points at the sitemap
 ```
 
 Path alias `@/*` -> `src/*`. Always import via the alias.
@@ -85,7 +91,7 @@ Path alias `@/*` -> `src/*`. Always import via the alias.
 - **Theme.** Light + dark, warm off-white and charcoal palette, single terracotta accent. Tokens declared with Tailwind 4 `@theme` -- no hardcoded hex in components. No-FOUC inline script in `<head>` reads `localStorage` and `prefers-color-scheme` before paint.
 - **Typography.** Italic Cormorant Garamond for display, Inter for body, Tiro Devanagari Hindi for the `म` accent in the hero.
 - **Motion.** Single site-wide `IntersectionObserver` reveals `.reveal` elements; auto-stagger via CSS `nth-child` delays. Hero uses Ken Burns + float + glow + mouse-parallax in four independent layers. Every animation respects `prefers-reduced-motion`; tilt is suppressed on `(hover: none)`.
-- **Images.** Astro generates AVIF + WebP variants. Native `loading="lazy"` for the gallery grid.
+- **Images.** A build-time `sharp` script ([`scripts/optimize-images.mjs`](scripts/optimize-images.mjs)) generates AVIF (q82) + WebP (q90) variants at 400/800/1200 widths. The [`ArtworkImage.astro`](src/components/ui/ArtworkImage.astro) helper emits a `<picture>` with multi-format `<source srcset>` chains and the original JPEG as a `<img>` fallback. Native `loading="lazy"` for the gallery grid; the hero is preloaded with `fetchpriority="high"`.
 - **Iconography.** Inline SVGs that inherit `currentColor`. No icon-library dependency.
 
 ---

@@ -59,6 +59,9 @@ CLAUDE.local.md
 /*.png
 !public/**/*.png
 
+# Generated artwork variants (regenerated on every build via scripts/optimize-images.mjs)
+public/_opt/
+
 # Client assets staging area (raw originals, never commit)
 /_raw-art/
 /_originals/

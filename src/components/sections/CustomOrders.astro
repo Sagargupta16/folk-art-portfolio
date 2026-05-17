@@ -6,8 +6,8 @@ import { contact, sections, styles } from '@/lib/site';
 const c = sections.customOrders;
 const whatsappNumber = contact.whatsapp.url.replace(/^https:\/\/wa\.me\//, '');
 ---
-<Section id="custom-orders" eyebrow={c.eyebrow} title={c.title} lead={c.lead}>
-  <div class="reveal max-w-2xl">
+<Section id="custom-orders" eyebrow={c.eyebrow} title={c.title} lead={c.lead} align="center">
+  <div class="reveal mx-auto max-w-2xl">
     <OrderForm
       client:visible
       styles={styles}

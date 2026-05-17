@@ -1,0 +1,36 @@
+---
+import { getCollection } from 'astro:content';
+import Section from '@/components/layout/Section.astro';
+import { contact, sections } from '@/lib/site';
+
+const all = await getCollection('workshops');
+const items = all.map((e) => e.data).sort((a, b) => a.order - b.order);
+const w = sections.workshops;
+---
+<Section id="workshops" eyebrow={w.eyebrow} title={w.title} lead={w.lead}>
+  <ul class="stagger grid gap-[var(--grid-gap)] md:grid-cols-2">
+    {
+      items.map((item) => (
+        <li class="reveal">
+          <article class="card h-full">
+            <h3 class="t-display text-2xl text-[var(--color-ink)]">{item.title}</h3>
+            <p class="t-body text-[var(--color-muted)]">{item.blurb}</p>
+            <div class="mt-auto flex items-center justify-between pt-2">
+              {item.durationHours ? (
+                <span class="t-meta">{item.durationHours}h session</span>
+              ) : (
+                <span />
+              )}
+              <a
+                class="t-meta text-[var(--color-accent)] transition hover:underline"
+                href={contact.email.url}
+              >
+                Enquire ->
+              </a>
+            </div>
+          </article>
+        </li>
+      ))
+    }
+  </ul>
+</Section>

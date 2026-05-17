@@ -17,24 +17,47 @@ build/
 .env.*
 !.env.example
 *.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+credentials.json
 
 # Logs
 *.log
 npm-debug.log*
 pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # OS / editor
 .DS_Store
 Thumbs.db
+desktop.ini
+*~
+*.swp
+*.swo
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
 .idea/
+.history/
 
 # Cache
 .cache/
 .eslintcache
 .turbo/
+.playwright-mcp/
+
+# Claude / per-user (never commit)
+.claude/settings.local.json
+.claude/.cache/
+.claude/.local/
+CLAUDE.local.md
+
+# Temp screenshots from dev / Playwright runs
+/*.png
+!public/**/*.png
 
 # Client assets staging area (raw originals, never commit)
 /_raw-art/

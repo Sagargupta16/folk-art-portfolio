@@ -1,0 +1,43 @@
+---
+import Section from '@/components/layout/Section.astro';
+import { contact, sections } from '@/lib/site';
+import Instagram from '@/components/ui/icons/Instagram.astro';
+import Whatsapp from '@/components/ui/icons/Whatsapp.astro';
+import Mail from '@/components/ui/icons/Mail.astro';
+
+const ICON_MAP = {
+  Instagram,
+  WhatsApp: Whatsapp,
+  Email: Mail,
+} as const;
+
+const items = [contact.instagram, contact.whatsapp, contact.email];
+const c = sections.contact;
+---
+<Section id="contact" eyebrow={c.eyebrow} title={c.title} lead={c.lead}>
+  <ul class="stagger divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
+    {
+      items.map((it) => {
+        const Icon = ICON_MAP[it.label as keyof typeof ICON_MAP];
+        return (
+          <li class="reveal">
+            <a
+              class="group flex flex-wrap items-baseline justify-between gap-3 py-5 transition motion-safe:duration-300 hover:text-[var(--color-accent)] sm:gap-6 sm:py-6"
+              href={it.url}
+              target={it.url.startsWith('http') ? '_blank' : undefined}
+              rel={it.url.startsWith('http') ? 'noopener noreferrer' : undefined}
+            >
+              <span class="t-meta inline-flex items-center gap-2">
+                {Icon && <Icon class="text-[var(--color-muted)] transition group-hover:text-[var(--color-accent)]" />}
+                {it.label}
+              </span>
+              <span class="t-display break-all text-xl text-[var(--color-ink)] transition group-hover:text-[var(--color-accent)] sm:text-2xl md:text-3xl">
+                {it.display}
+              </span>
+            </a>
+          </li>
+        );
+      })
+    }
+  </ul>
+</Section>

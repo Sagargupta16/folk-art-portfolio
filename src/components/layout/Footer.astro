@@ -1,0 +1,43 @@
+---
+import { brand, contact } from '@/lib/site';
+import Instagram from '@/components/ui/icons/Instagram.astro';
+import Whatsapp from '@/components/ui/icons/Whatsapp.astro';
+import Mail from '@/components/ui/icons/Mail.astro';
+const year = new Date().getFullYear();
+---
+<footer class="border-t border-[var(--color-line)]">
+  <div class="container-x flex flex-col items-start justify-between gap-4 py-10 sm:flex-row sm:items-center">
+    <p class="t-display text-xl text-[var(--color-ink)]">{brand.title}</p>
+    <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+      <a
+        class="t-meta inline-flex items-center gap-2 transition hover:text-[var(--color-accent)]"
+        href={contact.instagram.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Instagram"
+      >
+        <Instagram size={16} />
+        <span>Instagram</span>
+      </a>
+      <a
+        class="t-meta inline-flex items-center gap-2 transition hover:text-[var(--color-accent)]"
+        href={contact.whatsapp.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="WhatsApp"
+      >
+        <Whatsapp size={16} />
+        <span>WhatsApp</span>
+      </a>
+      <a
+        class="t-meta inline-flex items-center gap-2 transition hover:text-[var(--color-accent)]"
+        href={contact.email.url}
+        aria-label="Email"
+      >
+        <Mail size={16} />
+        <span>Email</span>
+      </a>
+      <span class="t-meta">© {year}</span>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,23 @@
+---
+import Section from '@/components/layout/Section.astro';
+import { brand, sections } from '@/lib/site';
+const a = sections.about;
+---
+<Section id="about" eyebrow={a.eyebrow} title={a.title}>
+  <div class="grid gap-10 md:grid-cols-12">
+    <div class="stagger space-y-5 md:col-span-8">
+      {a.paragraphs.map((p) => (
+        <p class="t-body reveal">{p}</p>
+      ))}
+      <blockquote class="reveal mt-8 border-l-2 border-[var(--color-accent)] pl-5">
+        <p class="t-display text-2xl text-[var(--color-accent)] sm:text-3xl">{a.pullQuote}</p>
+      </blockquote>
+    </div>
+    <aside class="stagger space-y-3 md:col-span-4">
+      <p class="t-meta reveal">Based in</p>
+      <p class="t-body reveal">{brand.location}</p>
+      <p class="t-meta reveal mt-6">{a.asideHeading}</p>
+      <p class="t-body reveal">{a.asideBody}</p>
+    </aside>
+  </div>
+</Section>

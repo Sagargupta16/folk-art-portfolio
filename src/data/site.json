@@ -18,6 +18,7 @@
     { "label": "Work", "href": "#work" },
     { "label": "About", "href": "#about" },
     { "label": "Workshops", "href": "#workshops" },
+    { "label": "Commissions", "href": "#commissions" },
     { "label": "Contact", "href": "#contact" }
   ],
   "styles": ["Madhubani", "Pichwai", "Lippan", "Gond", "Texture", "Mixed Media"],
@@ -64,6 +65,35 @@
       "eyebrow": "Contact",
       "title": "Commissions, workshops, and conversations",
       "lead": "The fastest reply is on Instagram or WhatsApp. Email is best for longer briefs."
+    },
+    "commissions": {
+      "eyebrow": "Custom orders",
+      "title": "Commission a piece for your wall",
+      "lead": "Tell me about the painting you have in mind. The form opens WhatsApp with your brief pre-filled -- no email back-and-forth.",
+      "sizes": [
+        "A4 -- 8 x 12 inches",
+        "A3 -- 11 x 16 inches",
+        "Square -- 12 x 12 inches",
+        "Square -- 18 x 18 inches",
+        "Large -- 24 x 36 inches",
+        "Custom (mention in notes)"
+      ],
+      "budgets": [
+        "Under ₹5,000",
+        "₹5,000 -- ₹10,000",
+        "₹10,000 -- ₹20,000",
+        "₹20,000 -- ₹50,000",
+        "₹50,000+",
+        "Open / not sure"
+      ],
+      "timelines": [
+        "No rush",
+        "Within a month",
+        "Within 2 weeks",
+        "Specific date (mention in notes)"
+      ],
+      "submitLabel": "Send brief on WhatsApp",
+      "fallbackEmailLabel": "Or email the brief instead"
     }
   },
   "workshops": [

@@ -7,26 +7,16 @@ import { artworkUrl, type Artwork } from '@/lib/images';
 const all = await getCollection('artworks');
 const baseUrl = import.meta.env.BASE_URL;
 
-/* Sort by 'order' so featured pieces come first; then walk all so the carousel cycles every piece. */
-const slides = all
-  .map((entry) => entry.data as Artwork)
-  .sort((a, b) => {
-    if (a.featured !== b.featured) return a.featured ? -1 : 1;
-    return a.order - b.order;
-  })
-  .map((art) => ({
-    title: art.title,
-    style: art.style,
-    image: art.image
-      ? artworkUrl(art, baseUrl)
-      : placeholderDataUri({ title: art.title, style: art.style, width: 720, height: 900 }),
-  }));
+const featured = (all.find((e) => (e.data as Artwork).featured)?.data ??
+  all[0]?.data) as Artwork | undefined;
 
-const fallback = slides[0] ?? {
-  title: brand.title,
-  style: 'Madhubani' as const,
-  image: placeholderDataUri({ title: brand.title, style: 'Madhubani', width: 720, height: 900 }),
-};
+const heroImage = featured
+  ? (featured.image
+      ? artworkUrl(featured, baseUrl)
+      : placeholderDataUri({ title: featured.title, style: featured.style, width: 720, height: 900 }))
+  : placeholderDataUri({ title: brand.title, style: 'Madhubani', width: 720, height: 900 });
+
+const heroLabel = featured ? `${featured.title} · ${featured.style}` : '';
 ---
 <section class="relative overflow-hidden border-b border-[var(--color-line)]">
   <div class="container-x grid gap-10 py-16 sm:gap-12 sm:py-24 md:grid-cols-12 md:items-center md:gap-10 md:py-32">
@@ -47,111 +37,22 @@ const fallback = slides[0] ?? {
     </div>
 
     <div class="md:col-span-5">
-      <div
-        id="hero-frame"
-        data-carousel
-        class="parallax-frame relative mx-auto aspect-[3/4] w-full max-w-md md:max-w-none"
-      >
+      <div id="hero-frame" class="parallax-frame relative mx-auto aspect-[3/4] w-full max-w-md md:max-w-none">
         <div
           class="absolute inset-0 border border-[var(--color-line)] bg-[var(--color-bg-soft)]"
           style="transform: translate(-1rem, 1rem) translateZ(-30px);"
         ></div>
-
-        <div class="relative h-full w-full overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg-soft)]">
-          {slides.map((s, i) => (
-            <img
-              src={s.image}
-              alt={`${s.title}, ${s.style}`}
-              loading={i === 0 ? 'eager' : 'lazy'}
-              decoding="async"
-              data-slide
-              data-index={i}
-              class="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-out"
-              style={`opacity:${i === 0 ? 1 : 0}`}
-            />
-          ))}
-        </div>
-
-        <div class="absolute -bottom-7 left-0 right-0 flex items-center justify-between gap-4">
-          <p class="t-meta truncate text-[var(--color-muted)]" data-caption>
-            {fallback.title} · {fallback.style}
-          </p>
-          <div class="flex items-center gap-1.5" aria-hidden="true">
-            {slides.slice(0, Math.min(slides.length, 8)).map((_, i) => (
-              <span
-                data-dot
-                data-index={i}
-                class={`h-1 transition-all duration-500 ${i === 0 ? 'w-6 bg-[var(--color-accent)]' : 'w-2 bg-[var(--color-line)]'}`}
-              />
-            ))}
-          </div>
-        </div>
+        <img
+          src={heroImage}
+          alt={heroLabel || 'Hero artwork'}
+          class="relative h-full w-full object-cover"
+          loading="eager"
+          decoding="async"
+        />
+        {heroLabel && <p class="t-meta absolute -bottom-6 right-0">{heroLabel}</p>}
       </div>
     </div>
   </div>
-
-  <script is:inline>
-    (function () {
-      if (typeof window === 'undefined') return;
-      const root = document.querySelector('[data-carousel]');
-      if (!root) return;
-      const slides = Array.from(root.querySelectorAll('[data-slide]'));
-      const dots = Array.from(root.querySelectorAll('[data-dot]'));
-      const caption = root.querySelector('[data-caption]');
-      if (slides.length <= 1) return;
-
-      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      let index = 0;
-      let timer = 0;
-      const INTERVAL = 4500;
-      const dotsLen = dots.length;
-
-      function show(i) {
-        slides.forEach((s, n) => {
-          s.style.opacity = n === i ? '1' : '0';
-        });
-        if (caption) {
-          caption.textContent = slides[i].alt;
-        }
-        if (dotsLen > 0) {
-          const activeDot = i % dotsLen;
-          dots.forEach((d, n) => {
-            const on = n === activeDot;
-            d.className = `h-1 transition-all duration-500 ${on ? 'w-6 bg-[var(--color-accent)]' : 'w-2 bg-[var(--color-line)]'}`;
-          });
-        }
-        index = i;
-      }
-
-      function tick() {
-        show((index + 1) % slides.length);
-      }
-
-      function start() {
-        if (reduceMotion) return;
-        stop();
-        timer = window.setInterval(tick, INTERVAL);
-      }
-
-      function stop() {
-        if (timer) {
-          window.clearInterval(timer);
-          timer = 0;
-        }
-      }
-
-      root.addEventListener('mouseenter', stop);
-      root.addEventListener('mouseleave', start);
-
-      // Pause when tab is hidden (no point cycling unwatched)
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) stop();
-        else start();
-      });
-
-      start();
-    })();
-  </script>
 
   <script is:inline>
     (function () {
@@ -160,8 +61,8 @@ const fallback = slides[0] ?? {
       if (window.matchMedia('(hover: none)').matches) return;
       const frame = document.getElementById('hero-frame');
       if (!frame) return;
-      const inner = frame.querySelector('div.relative');
-      const shadow = frame.querySelector('div.absolute.inset-0');
+      const inner = frame.querySelector('img');
+      const shadow = frame.querySelector('div');
       if (!inner || !shadow) return;
       let raf = 0;
       function onMove(e) {

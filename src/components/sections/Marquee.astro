@@ -1,0 +1,78 @@
+---
+import { getCollection } from 'astro:content';
+import { artworkUrl, type Artwork } from '@/lib/images';
+import { placeholderDataUri } from '@/lib/placeholder';
+
+const all = await getCollection('artworks');
+const baseUrl = import.meta.env.BASE_URL;
+
+const items = all
+  .map((entry) => entry.data as Artwork)
+  .sort((a, b) => a.order - b.order)
+  .map((art) => ({
+    title: art.title,
+    style: art.style,
+    image: art.image
+      ? artworkUrl(art, baseUrl)
+      : placeholderDataUri({ title: art.title, style: art.style, width: 400, height: 500 }),
+  }));
+
+/* Duplicate the list so the CSS animation can loop seamlessly:
+   the visible track goes from translateX(0) to translateX(-50%) and snaps back. */
+const track = [...items, ...items];
+---
+<section
+  aria-label="Artwork preview band"
+  class="border-y border-[var(--color-line)] bg-[var(--color-bg-soft)]/40"
+>
+  <div class="marquee group relative overflow-hidden py-10 sm:py-14">
+    <ul class="marquee-track flex gap-6 sm:gap-8" data-marquee-track>
+      {track.map((it, i) => (
+        <li
+          class="relative shrink-0 overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg-soft)]"
+          style="width:14rem;height:18rem"
+          aria-hidden={i >= items.length ? 'true' : 'false'}
+        >
+          <img
+            src={it.image}
+            alt={i < items.length ? `${it.title}, ${it.style}` : ''}
+            loading="lazy"
+            decoding="async"
+            class="h-full w-full object-contain transition duration-700 hover:scale-[1.03]"
+          />
+          <span class="t-meta absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-[var(--color-ink)]/80 to-transparent p-2 text-[var(--color-bg)] sm:p-3">
+            {it.title}
+          </span>
+        </li>
+      ))}
+    </ul>
+
+    <!-- Edge fades for a soft "into the distance" look -->
+    <div class="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[var(--color-bg)] to-transparent sm:w-24"></div>
+    <div class="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[var(--color-bg)] to-transparent sm:w-24"></div>
+  </div>
+</section>
+
+<style>
+  .marquee-track {
+    width: max-content;
+    animation: marquee-scroll 60s linear infinite;
+    will-change: transform;
+  }
+
+  .marquee:hover .marquee-track,
+  .marquee:focus-within .marquee-track {
+    animation-play-state: paused;
+  }
+
+  @keyframes marquee-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track {
+      animation: none;
+    }
+  }
+</style>

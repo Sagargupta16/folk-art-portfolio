@@ -2,71 +2,77 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/) -- bump rules in [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases".
 
-## [Unreleased]
+## 1.0.0 -- 2026-05-17
 
-### Added
+First public release. The site is live, content-complete with 21 artworks, light + dark themes, mobile-tested, JSON-driven, and deployed to GitHub Pages.
 
-- Repo scaffold: `CLAUDE.md`, `.claude/skills/new-artwork/`, `.gitignore`, `.env.example`, `LICENSE`, `README.md`.
-- `MEMORY.md` for repo-level facts (client role, locked decisions, pending decisions, content inventory).
-- Branching, release, and tech-posture rules in `CLAUDE.md`.
-- This `CHANGELOG.md`.
-- Astro 6 + React 19 + TypeScript + Tailwind 4 site scaffold with light/dark theme.
-- Single-page layout: Hero, Selected work (filterable gallery), About, Workshops, Contact.
-- Self-hosted Fraunces, Inter, and Tiro Devanagari Hindi fonts via `@fontsource-variable`.
-- Typed content collections for `artworks` and `workshops` (`src/content.config.ts`).
-- 9 artwork stubs and 5 workshop entries with placeholder content.
-- `ThemeToggle` React island with no-FOUC inline script and `localStorage` persistence, with crossfade icon animation.
-- GitHub Pages base/site config in `astro.config.mjs`.
+### Stack and architecture
 
-### Changed
+- **Astro 6** + **React 19** islands + **TypeScript** strict + **Tailwind 4** via `@tailwindcss/vite`.
+- Self-hosted **Cormorant Garamond** (display serif), **Inter** (body), and **Tiro Devanagari Hindi** (accent) via `@fontsource(-variable)`. No CDN font calls.
+- Astro content collections load from JSON (no Markdown files for display data).
+- Project-wide TS strict via `astro/tsconfigs/strict`. Path alias `@/*` -> `src/*`.
 
-- Swapped Fraunces for Cormorant Garamond as the display serif (more editorial, classical fit for folk-art subject matter).
-- Locked design system: typographic roles (`t-display` / `t-lead` / `t-body` / `t-meta` / `t-eyebrow`), spacing rhythm (`--section-py`, `--container-px`, `--grid-gap`), unified card pattern.
-- Warmer base palette in both themes (`#faf8f3` / `#15110d`) plus a soft surface tier and per-style accents.
-- Sections now render with scroll-reveal (IntersectionObserver, single controller, respects `prefers-reduced-motion`).
-- Gallery cards have CSS 3D tilt on hover with hardware-accelerated transforms.
-- Hero artwork frame has mouse-parallax with layered drop shadow.
-- Distinctive SVG placeholder generator per style (deterministic, palette-matched) replaces grey placeholder panels.
-- Imported real artworks into [public/artworks/](public/artworks/) with slug-based filenames. Audited and deduped: 21 unique pieces in the final catalog (two duplicates of the same painting at different resolutions removed; one file mislabeled as "devi-on-lion" was renamed to "tree-with-elephants" to match its actual content).
-- All display data centralized in [src/data/site.json](src/data/site.json) -- brand, nav, contact, styles list, every section's eyebrow / title / lead / paragraphs / pull quote, and the workshops collection. Sections, layout, and components read from the JSON; no hardcoded copy.
-- Dropped the Markdown-based workshops collection (replaced by the JSON catalog).
-- Removed hardcoded artwork count from [MEMORY.md](MEMORY.md) -- the catalog is the source of truth and grows freely.
+### Content model
 
-### Mobile + responsive
+- [`src/data/site.json`](src/data/site.json) -- single source of truth for brand, nav, contact, styles list, and every section's copy + the workshops list.
+- [`src/data/artworks.json`](src/data/artworks.json) -- canonical artwork catalog. Each entry: slug, title, style, medium, aspect ratio, featured flag, order, description, image filename.
+- [`public/artworks/`](public/artworks/) -- one `<slug>.jpg` per piece. Astro generates AVIF + WebP at build.
+- [`src/content.config.ts`](src/content.config.ts) -- Zod schemas enforce both collections. Adding a piece is "drop file + append entry"; the type system rejects bad data at build time.
+- [`src/lib/images.ts`](src/lib/images.ts) -- `artworkUrl(art, baseUrl)` builds public URLs.
+- [`src/lib/placeholder.ts`](src/lib/placeholder.ts) -- deterministic per-style SVG placeholders for any piece without an image (5 pattern variants × 6 style palettes).
 
-- Hero scales smoothly from `text-5xl` -> `text-7rem` -> `text-7.5rem` across breakpoints; smaller padding, gap, and Devanagari-mark margin on mobile.
-- Hero parallax frame is centered with `max-w-md` on mobile, full width on desktop. Mouse-tilt skipped on touch devices via `(hover: none)` query.
-- Header nav becomes a horizontally-scrollable scrollbar-hidden list on small screens (no hamburger menu) so all sections stay one tap away.
-- Gallery card hover overlay now always visible on touch devices via `.touch-show` (descriptions never hidden when there's no hover state).
-- Contact rows wrap with `break-all` so long emails don't overflow narrow viewports.
-- Tilt animation disabled on `(hover: none)` to avoid odd offsets after taps.
-- New canonical catalog [src/data/artworks.json](src/data/artworks.json) with title, style, medium, aspect ratio, and `image` (filename under `public/artworks/`) for every piece.
-- New [src/lib/images.ts](src/lib/images.ts) helper builds the public URL for an artwork given the site's `BASE_URL`.
-- Replaced Markdown-stub artwork collection with a JSON-driven content collection ([src/content.config.ts](src/content.config.ts) -> `file()` loader).
-- Gallery section now server-renders all artwork cards in HTML (no React island for the grid). Filter pills toggle visibility via a tiny inline script and CSS. First paint shows content; only off-screen images defer via `loading="lazy"`.
-- Tilt-on-hover for gallery cards moved to a vanilla inline script; Gallery React island removed.
-- New-artwork skill unstubbed -- now describes the actual JSON-driven flow (drop image into `public/artworks/`, append catalog entry, verify, commit).
+### Layout
+
+- Single page composing `Hero`, `Marquee`, `Work`, `About`, `Workshops`, `Contact`. Sticky thin top nav with theme toggle. Footer with iconified social links.
+- All section copy comes from `site.json`; no hardcoded English in section components.
+- Section wrapper, header, footer, theme script, and reveal controller live under [`src/components/layout/`](src/components/layout/).
+- Reusable UI primitives -- `IconButton.astro`, `Pill.astro`, `Card.astro` -- live under [`src/components/ui/`](src/components/ui/) so design tokens stay consistent.
+
+### Theme system
+
+- Light + dark themes with warm off-white / charcoal palette and a single terracotta accent. Dark mode samples a slightly warmer accent for legibility on dark.
+- Tokens defined with Tailwind 4 `@theme` in [`src/styles/globals.css`](src/styles/globals.css). Components reference `var(--color-*)` -- no hardcoded hex.
+- Theme toggle: lined style (hairline border, transparent fill, accent on hover). Sun/moon glyphs crossfade with rotate+translate transition.
+- No-FOUC inline `<head>` script reads `localStorage` and `prefers-color-scheme` before paint.
+
+### Hero and gallery
+
+- Hero -- typographic-led: italic display name with a Devanagari `म` accent, tagline, description, style pills, and a parallax-tilted artwork frame with layered drop shadow.
+- **Marquee band** -- continuously scrolling animated strip of every artwork (CSS `@keyframes`, 60s loop, edge fades, pauses on hover, respects `prefers-reduced-motion`). Sits between Hero and Work for ambient discovery.
+- Gallery -- server-rendered cards (no React island for the grid). Uniform 3:4 frames with `object-contain` so full folk-art borders show. Filter pills toggle visibility via a tiny inline script + CSS attribute matching. Native `loading="lazy"` for off-screen images.
+- 3D card tilt on hover via vanilla rAF-coalesced transform. Skipped on `(hover: none)` and `prefers-reduced-motion`.
+
+### Iconography
+
+- Inline SVG icons in [`src/components/ui/icons/`](src/components/ui/icons/): `Instagram.astro`, `Whatsapp.astro`, `Mail.astro`. Stroke uses `currentColor` so they theme automatically. Used in Contact rows and Footer. No icon library dependency.
+
+### Motion
+
+- Single site-wide `IntersectionObserver` reveals `.reveal` elements as they enter view.
+- `.stagger > .reveal:nth-child(n)` auto-ladders transition-delays via CSS so sections never hand-code per-element delays.
+- All motion respects `prefers-reduced-motion` (animations disabled, transitions zeroed) and `(hover: none)` (no tilt on touch).
+
+### Responsive design
+
+- Hero typography scales `text-5xl` -> `text-7.5rem`; gap, padding, and Devanagari-mark margin all reduce on mobile.
+- Header nav becomes a horizontally-scrollable scrollbar-hidden list on small screens (no hamburger needed).
+- Gallery -- 1 column mobile, 2 cols `sm`, 3 cols `lg`. Hover overlays stay visible on touch via `.touch-show`.
+- Contact rows use `break-all` so long emails don't overflow narrow viewports.
 
 ### CI / CD
 
-- GitHub Actions `ci.yml` -- typecheck + build on every PR and push to main, frozen-lockfile.
-- GitHub Actions `deploy.yml` -- builds and deploys to GitHub Pages on push to main, OIDC-based auth, queue-don't-cancel concurrency.
-
-### Polish
-
-- Theme toggle redesigned to "lined" style: hairline border on `--color-line`, transparent background, accent color on hover. Same visual weight as filter pills and contact dividers.
-- Header layout simplified -- toggle is now a direct flex child (no nested wrapper), so it never gets squeezed by overflowing nav on narrow viewports.
-- Reusable Astro primitives in [src/components/ui/](src/components/ui/): `IconButton.astro`, `Pill.astro`, `Card.astro`. Edit-once, used everywhere.
-- Auto-stagger reveal animation: `.stagger > .reveal:nth-child(n)` ladders transition-delays via CSS so sections no longer hand-code per-element delays inline. Hero, About, Work, Workshops, Contact all use it.
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) -- typecheck + build on every PR and push to `main`. Frozen lockfile.
+- [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) -- builds and deploys to GitHub Pages on push to `main`. OIDC-based auth, queue-don't-cancel concurrency.
 
 ### Hardening
 
-- `.gitignore` tightened: `.claude/settings.local.json`, `CLAUDE.local.md`, secrets (`*.key`, `*.p12`, `secrets.json`, `credentials.json`), root-level `*.png` (dev screenshots), editor noise (`*.swp`, `*~`, `.history/`) all explicitly ignored.
+- `.gitignore` excludes `.claude/settings.local.json`, `CLAUDE.local.md`, secrets (`*.key`, `*.p12`, `secrets.json`, `credentials.json`), root-level `*.png` (dev screenshots), and editor noise (`*.swp`, `*~`, `.history/`).
+- All artwork rights cleared. No PII in the repo (contact details live in `site.json` and are already public on the artist's profiles).
 
-### Hero carousel + icons
+### Documentation
 
-- Hero artwork frame now auto-rotates through every artwork in the catalog -- crossfade transition, 4.5s interval. Pauses on hover and when the tab is hidden. Respects `prefers-reduced-motion` (static fallback to first piece).
-- Hero caption updates to match the active slide; small dot row indicates rotation rhythm.
-- Inline SVG icon components in [src/components/ui/icons/](src/components/ui/icons/): `Instagram.astro`, `Whatsapp.astro`, `Mail.astro`. Stroke uses `currentColor` so they theme automatically. Used in Contact rows and Footer links. No icon library dependency.
-- Hero section now picks a featured artwork from the catalog instead of using a placeholder.
-- Gallery cards now use a uniform 3:4 frame with `object-contain` and centered alignment -- preserves full borders of folk-art panels (vs cropping). Per-piece aspect ratio retained in catalog for future lightbox view.
+- [`CLAUDE.md`](CLAUDE.md) reflects the locked stack, JSON content model, branching rules, and component conventions.
+- [`MEMORY.md`](MEMORY.md) holds locked decisions and pending domain-registration work.
+- [`README.md`](README.md) describes stack, dev commands, content model, and how to add an artwork.
+- [`.claude/skills/new-artwork/SKILL.md`](.claude/skills/new-artwork/SKILL.md) is the unstubbed recurring-task skill: drop file, append entry, verify, commit.

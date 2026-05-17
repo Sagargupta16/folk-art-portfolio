@@ -103,7 +103,7 @@ GitHub Pages from this repo (`Sagargupta16/megha-art-portfolio`). `astro.config.
   - **Patch** (`0.x.Y`): typo, broken link, image swap, CSS tweak, new artwork added.
   - **Minor** (`0.X.0`): new gallery section / page, content model change, stack swap.
   - **Major** (`X.0.0`): reserved -- only after 1.0.0 ships.
-- **CHANGELOG per PR.** Every PR adds an entry under `[Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md). At release time, move `[Unreleased]` to a new dated, versioned section and tag the merge commit (`git tag v0.2.0`). No automation -- bumps and tags are decided manually per merge.
+- **Always version. No `[Unreleased]`.** Every PR opens with a chosen version number in [`CHANGELOG.md`](CHANGELOG.md). On merge to `main`, that version becomes a release -- tag the merge commit (`git tag v1.1.0`) and push the tag. No floating drafts; the changelog always reflects what's in `main`.
 
 ## Tech posture
 

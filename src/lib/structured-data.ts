@@ -31,6 +31,7 @@ export function buildHomepageGraph(opts: BuildOptions) {
     '@type': ['Person', 'VisualArtist'],
     '@id': artistId,
     name: brand.title,
+    alternateName: brand.publicName,
     description: brand.description,
     jobTitle: brand.tagline,
     address: {
@@ -49,7 +50,8 @@ export function buildHomepageGraph(opts: BuildOptions) {
     '@type': 'WebSite',
     '@id': websiteId,
     url: homepageUrl,
-    name: brand.title,
+    name: brand.publicName,
+    alternateName: brand.title,
     description: brand.description,
     inLanguage: 'en-IN',
     publisher: { '@id': artistId },

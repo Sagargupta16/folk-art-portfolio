@@ -5,12 +5,16 @@ interface Props {
   title: string;
   lead?: string;
   class?: string;
+  /** 'left' (editorial default) or 'center' (CTA-style sections like Custom Orders). */
+  align?: 'left' | 'center';
 }
-const { id, eyebrow, title, lead, class: className = '' } = Astro.props;
+const { id, eyebrow, title, lead, class: className = '', align = 'left' } = Astro.props;
+const headerAlign =
+  align === 'center' ? 'mx-auto text-center' : '';
 ---
 <section id={id} class={`section ${className}`}>
   <div class="container-x">
-    <header class="mb-12 max-w-2xl reveal">
+    <header class={`mb-12 max-w-2xl reveal ${headerAlign}`}>
       {eyebrow && <p class="t-eyebrow mb-3">{eyebrow}</p>}
       <h2 class="t-display text-4xl text-[var(--color-ink)] sm:text-5xl">{title}</h2>
       {lead && <p class="t-lead mt-5">{lead}</p>}

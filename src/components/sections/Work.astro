@@ -59,7 +59,7 @@ const filters = ['All', ...styles] as const;
       ))}
     </div>
 
-    <ul class="tilt-stage stagger grid gap-[var(--grid-gap)] sm:grid-cols-2 lg:grid-cols-3">
+    <ul class="stagger grid gap-[var(--grid-gap)] sm:grid-cols-2 lg:grid-cols-3">
       {items.map((it) => (
         <li
           class="gallery-item reveal"
@@ -67,7 +67,7 @@ const filters = ['All', ...styles] as const;
         >
           <article class="group flex flex-col gap-4">
             <div
-              class="tilt-card relative grid w-full place-items-center overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg-soft)] aspect-[3/4]"
+              class="relative grid w-full place-items-center overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg-soft)] aspect-[3/4] transition motion-safe:duration-500 motion-safe:ease-out hover:border-[var(--color-accent)]"
             >
               {it.filename ? (
                 <ArtworkImage
@@ -138,30 +138,6 @@ const filters = ['All', ...styles] as const;
 
     pills.forEach((p) => {
       p.addEventListener('click', () => apply(p.getAttribute('data-filter')));
-    });
-  })();
-
-  // Tilt-on-hover for gallery cards (no React)
-  (function () {
-    if (typeof window === 'undefined') return;
-    if (window.matchMedia('(hover: none)').matches) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const cards = document.querySelectorAll('[data-gallery] .tilt-card');
-    cards.forEach((card) => {
-      let raf = 0;
-      card.addEventListener('mousemove', (e) => {
-        const r = card.getBoundingClientRect();
-        const x = (e.clientX - r.left) / r.width - 0.5;
-        const y = (e.clientY - r.top) / r.height - 0.5;
-        cancelAnimationFrame(raf);
-        raf = requestAnimationFrame(() => {
-          card.style.transform = `perspective(900px) rotateX(${(-y * 5).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg) translateZ(0)`;
-        });
-      });
-      card.addEventListener('mouseleave', () => {
-        cancelAnimationFrame(raf);
-        card.style.transform = '';
-      });
     });
   })();
 </script>

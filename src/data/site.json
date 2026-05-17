@@ -12,13 +12,19 @@
     "devanagariMark": "म",
     "location": "India",
     "logo": "logo.jpg",
-    "logoAlt": "Kalcher by Megha -- Art elevated by belief"
+    "logoAlt": "Kalcher by Megha -- Art elevated by belief",
+    "headline": {
+      "latinPrefix": "Kal",
+      "devanagariCore": "चर",
+      "connector": "by",
+      "suffix": "Megha"
+    }
   },
   "nav": [
     { "label": "Work", "href": "#work" },
     { "label": "About", "href": "#about" },
     { "label": "Workshops", "href": "#workshops" },
-    { "label": "Commissions", "href": "#commissions" },
+    { "label": "Custom Orders", "href": "#custom-orders" },
     { "label": "Contact", "href": "#contact" }
   ],
   "styles": ["Madhubani", "Pichwai", "Lippan", "Gond", "Texture", "Mixed Media"],
@@ -66,10 +72,10 @@
       "title": "Commissions, workshops, and conversations",
       "lead": "The fastest reply is on Instagram or WhatsApp. Email is best for longer briefs."
     },
-    "commissions": {
+    "customOrders": {
       "eyebrow": "Custom orders",
-      "title": "Commission a piece for your wall",
-      "lead": "Tell me about the painting you have in mind. The form opens WhatsApp with your brief pre-filled -- no email back-and-forth.",
+      "title": "Order a custom painting",
+      "lead": "Tell me about the painting you have in mind. The form opens WhatsApp with your details pre-filled -- no email back-and-forth.",
       "sizes": [
         "A4 -- 8 x 12 inches",
         "A3 -- 11 x 16 inches",
@@ -92,8 +98,8 @@
         "Within 2 weeks",
         "Specific date (mention in notes)"
       ],
-      "submitLabel": "Send brief on WhatsApp",
-      "fallbackEmailLabel": "Or email the brief instead"
+      "submitLabel": "Send order on WhatsApp",
+      "fallbackEmailLabel": "Or email the order instead"
     }
   },
   "workshops": [

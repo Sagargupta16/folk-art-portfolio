@@ -29,14 +29,11 @@ const EMPTY: FormState = {
   notes: '',
 };
 
-const FIELD_CLASSES =
-  'mt-1 block w-full rounded-none border-0 border-b border-[var(--color-line)] bg-transparent px-0 py-2 text-base text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent)] focus:ring-0';
-
-const LABEL_CLASSES = 't-eyebrow block text-[var(--color-muted)]';
+const LABEL_CLASSES = 't-eyebrow mb-1.5 block text-[var(--color-muted)]';
 
 function buildMessage(form: FormState): string {
   const lines = [
-    'Hi Megha, I would like to commission a painting.',
+    'Hi Megha, I would like to order a custom painting.',
     '',
     `Name: ${form.name || '--'}`,
     `Style: ${form.style || 'Open to suggestion'}`,
@@ -51,13 +48,14 @@ function buildMessage(form: FormState): string {
 }
 
 function buildEmailUrl(emailUrl: string, form: FormState): string {
-  const subject = `Commission request${form.name ? ` -- ${form.name}` : ''}`;
+  const namePart = form.name ? ` -- ${form.name}` : '';
+  const subject = `Custom order${namePart}`;
   const body = buildMessage(form);
   const params = new URLSearchParams({ subject, body });
   return `${emailUrl}?${params.toString()}`;
 }
 
-export default function CommissionForm({
+export default function OrderForm({
   styles,
   sizes,
   budgets,
@@ -66,7 +64,7 @@ export default function CommissionForm({
   emailUrl,
   submitLabel,
   fallbackEmailLabel,
-}: Props) {
+}: Readonly<Props>) {
   const [form, setForm] = useState<FormState>(EMPTY);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
@@ -83,7 +81,7 @@ export default function CommissionForm({
   const isReady = form.name.trim().length > 0 && form.size.length > 0;
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-6 sm:grid-cols-2">
+    <form onSubmit={onSubmit} className="grid gap-5 sm:grid-cols-2">
       <label className="sm:col-span-2">
         <span className={LABEL_CLASSES}>Your name</span>
         <input
@@ -92,8 +90,8 @@ export default function CommissionForm({
           autoComplete="name"
           value={form.name}
           onChange={(e) => update('name', e.target.value)}
-          className={FIELD_CLASSES}
-          placeholder="Megha S."
+          className="field-input"
+          placeholder="e.g. Priya"
         />
       </label>
 
@@ -102,7 +100,7 @@ export default function CommissionForm({
         <select
           value={form.style}
           onChange={(e) => update('style', e.target.value)}
-          className={FIELD_CLASSES}
+          className="field-select"
         >
           <option value="">Open to suggestion</option>
           {styles.map((s) => (
@@ -119,7 +117,7 @@ export default function CommissionForm({
           required
           value={form.size}
           onChange={(e) => update('size', e.target.value)}
-          className={FIELD_CLASSES}
+          className="field-select"
         >
           <option value="">Choose a size</option>
           {sizes.map((s) => (
@@ -135,7 +133,7 @@ export default function CommissionForm({
         <select
           value={form.budget}
           onChange={(e) => update('budget', e.target.value)}
-          className={FIELD_CLASSES}
+          className="field-select"
         >
           <option value="">Open / not sure</option>
           {budgets.map((b) => (
@@ -151,7 +149,7 @@ export default function CommissionForm({
         <select
           value={form.timeline}
           onChange={(e) => update('timeline', e.target.value)}
-          className={FIELD_CLASSES}
+          className="field-select"
         >
           <option value="">No rush</option>
           {timelines.map((t) => (
@@ -168,12 +166,12 @@ export default function CommissionForm({
           rows={4}
           value={form.notes}
           onChange={(e) => update('notes', e.target.value)}
-          className={`${FIELD_CLASSES} resize-y`}
+          className="field-textarea"
           placeholder="Subject, palette, room it lives in, any reference images you'll share on chat..."
         />
       </label>
 
-      <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 pt-1 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="submit"
           disabled={!isReady}

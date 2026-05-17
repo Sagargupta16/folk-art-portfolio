@@ -23,9 +23,14 @@ const heroLabel = featured ? `${featured.title} · ${featured.style}` : '';
     <div class="stagger md:col-span-7">
       <p class="t-eyebrow reveal mb-4 sm:mb-5">{brand.tagline}</p>
       <h1 class="t-display reveal text-5xl text-[var(--color-ink)] sm:text-6xl md:text-[7rem] md:leading-[0.95] lg:text-[7.5rem]">
-        {brand.title}
-        <span aria-hidden="true" class="ml-2 align-middle font-devanagari text-[0.5em] not-italic text-[var(--color-accent)] sm:ml-3">
-          {brand.devanagariMark}
+        <span class="block">
+          {brand.headline.latinPrefix}<span
+            class="font-devanagari not-italic text-[var(--color-accent)]"
+          >{brand.headline.devanagariCore}</span>
+        </span>
+        <span class="block text-[0.55em] tracking-[var(--tracking-display)] text-[var(--color-muted)] sm:text-[0.5em]">
+          <span class="not-italic">{brand.headline.connector}</span>{' '}
+          <span class="text-[var(--color-ink)]">{brand.headline.suffix}</span>
         </span>
       </h1>
       <p class="t-lead reveal mt-5 max-w-xl sm:mt-7">{brand.description}</p>
@@ -46,13 +51,18 @@ const heroLabel = featured ? `${featured.title} · ${featured.style}` : '';
             class="absolute inset-0 border border-[var(--color-line)] bg-[var(--color-bg-soft)]"
             style="transform: translate(-1rem, 1rem) translateZ(-30px);"
           ></div>
-          <div class="relative h-full w-full overflow-hidden border border-[var(--color-line)]">
+          <div
+            class="relative h-full w-full overflow-hidden border border-[var(--color-line)]"
+            data-loaded="false"
+          >
+            <span class="skel" aria-hidden="true"></span>
             <img
               src={heroImage}
               alt={heroLabel || 'Hero artwork'}
-              class="motion-kenburns h-full w-full object-cover"
+              class="motion-kenburns img-fade h-full w-full object-cover"
               loading="eager"
               decoding="async"
+              onload="this.classList.add('is-loaded'); this.parentElement.dataset.loaded='true';"
             />
           </div>
           {heroLabel && <p class="t-meta absolute -bottom-6 right-0">{heroLabel}</p>}

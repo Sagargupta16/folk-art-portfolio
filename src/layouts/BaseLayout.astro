@@ -4,6 +4,7 @@ import Header from '@/components/layout/Header.astro';
 import Footer from '@/components/layout/Footer.astro';
 import ThemeScript from '@/components/layout/ThemeScript.astro';
 import RevealController from '@/components/layout/RevealController.astro';
+import ImageLoadController from '@/components/layout/ImageLoadController.astro';
 import { brand } from '@/lib/site';
 
 interface Props {
@@ -52,5 +53,6 @@ const absoluteLogoUrl = new URL(logoUrl, Astro.site ?? Astro.url).toString();
     </main>
     <Footer />
     <RevealController />
+    <ImageLoadController />
   </body>
 </html>

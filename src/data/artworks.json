@@ -1,0 +1,240 @@
+{
+  "_notes": [
+    "Single source of truth for artwork metadata. Each entry is one painting.",
+    "'image' is the filename under public/artworks/. Add the file there, then append an entry here.",
+    "Schema is enforced by Zod in src/content.config.ts."
+  ],
+  "items": [
+    {
+      "slug": "radha-krishna",
+      "title": "Radha and Krishna",
+      "style": "Madhubani",
+      "medium": "Acrylic on canvas",
+      "aspectRatio": 0.81,
+      "featured": true,
+      "order": 1,
+      "description": "Radha and Krishna meeting beneath a flowering tree, in classical Madhubani style.",
+      "image": "radha-krishna.jpg"
+    },
+    {
+      "slug": "ganesha-pichwai",
+      "title": "Ganesha on lotus throne",
+      "style": "Pichwai",
+      "medium": "Natural pigments on cloth",
+      "aspectRatio": 0.8,
+      "featured": true,
+      "order": 2,
+      "description": "Ganesha seated under a scalloped arch with a lotus throne, in Pichwai tradition.",
+      "image": "ganesha-pichwai.jpg"
+    },
+    {
+      "slug": "shrinathji",
+      "title": "Shrinathji",
+      "style": "Pichwai",
+      "medium": "Acrylic on canvas, framed",
+      "aspectRatio": 0.76,
+      "featured": true,
+      "order": 3,
+      "description": "Blue-faced Shrinathji bordered by lotuses, in Pichwai-Nathdwara style.",
+      "image": "shrinathji.jpg"
+    },
+    {
+      "slug": "pichwai-cow",
+      "title": "Pichwai cow with lotuses",
+      "style": "Pichwai",
+      "medium": "Acrylic on paper, framed",
+      "aspectRatio": 0.83,
+      "featured": false,
+      "order": 4,
+      "description": "Spotted cow grazing among lotuses under a scalloped arch.",
+      "image": "pichwai-cow.jpg"
+    },
+    {
+      "slug": "tree-of-life-elephants",
+      "title": "Tree of life with elephants",
+      "style": "Madhubani",
+      "medium": "Acrylic on canvas",
+      "aspectRatio": 0.91,
+      "featured": false,
+      "order": 5,
+      "description": "Tree of life surrounded by elephants and lotuses arrayed in concentric arcs.",
+      "image": "tree-of-life-elephants.jpg"
+    },
+    {
+      "slug": "tree-with-elephants",
+      "title": "Tree with elephants",
+      "style": "Madhubani",
+      "medium": "Acrylic on paper",
+      "aspectRatio": 0.9,
+      "featured": false,
+      "order": 6,
+      "description": "Striped tree with two patterned elephants and a wave-line ground, in Madhubani style.",
+      "image": "tree-with-elephants.jpg"
+    },
+    {
+      "slug": "tree-with-figures",
+      "title": "Tree with folk figures",
+      "style": "Madhubani",
+      "medium": "Acrylic on paper",
+      "aspectRatio": 0.9,
+      "featured": false,
+      "order": 7,
+      "description": "Tree with seated figures, fish and birds beneath -- a folk-narrative composition.",
+      "image": "tree-with-figures.jpg"
+    },
+    {
+      "slug": "fish-family",
+      "title": "Fish family",
+      "style": "Madhubani",
+      "medium": "Acrylic on canvas paper",
+      "aspectRatio": 0.74,
+      "featured": true,
+      "order": 8,
+      "description": "Three fish nested within an oval, set against a green field with a patterned border.",
+      "image": "fish-family.jpg"
+    },
+    {
+      "slug": "twin-fish",
+      "title": "Twin fish",
+      "style": "Madhubani",
+      "medium": "Handmade sheet",
+      "aspectRatio": 0.73,
+      "featured": false,
+      "order": 9,
+      "description": "Two layered crimson fish bordered by floral motifs.",
+      "image": "twin-fish.jpg"
+    },
+    {
+      "slug": "mrgayugma",
+      "title": "Mrgayugma",
+      "style": "Madhubani",
+      "medium": "Acrylic on rolled canvas",
+      "aspectRatio": 0.77,
+      "featured": true,
+      "order": 10,
+      "description": "A pair of deer beneath a flowering tree. The Sanskrit title means 'pair of deer'.",
+      "image": "mrgayugma.jpg"
+    },
+    {
+      "slug": "lippan-birds",
+      "title": "Lippan birds and lotus",
+      "style": "Lippan",
+      "medium": "Mud relief and mirror on board",
+      "aspectRatio": 1,
+      "featured": true,
+      "order": 11,
+      "description": "Two birds among lotus blooms in a yellow Lippan mirror panel.",
+      "image": "lippan-birds.jpg"
+    },
+    {
+      "slug": "texture-leaf-circle",
+      "title": "Textured leaf circle",
+      "style": "Texture",
+      "medium": "Tissue and acrylic relief on board",
+      "aspectRatio": 0.81,
+      "featured": false,
+      "order": 12,
+      "description": "Circular relief with a stylized leaf radiating from sun and moon, in raised tissue texture.",
+      "image": "texture-leaf-circle.jpg"
+    },
+    {
+      "slug": "gond-camel",
+      "title": "Gond camel",
+      "style": "Gond",
+      "medium": "Acrylic on paper",
+      "aspectRatio": 0.63,
+      "featured": false,
+      "order": 13,
+      "description": "Red dot-patterned camel and calf under a tree, in Gond style.",
+      "image": "gond-camel.jpg"
+    },
+    {
+      "slug": "gond-elephant",
+      "title": "Gond elephant",
+      "style": "Gond",
+      "medium": "Acrylic on paper",
+      "aspectRatio": 0.78,
+      "featured": false,
+      "order": 14,
+      "description": "Dot-patterned elephant beneath a tree with two birds.",
+      "image": "gond-elephant.jpg"
+    },
+    {
+      "slug": "gond-tree-of-birds",
+      "title": "Gond tree of birds",
+      "style": "Gond",
+      "medium": "Acrylic on handmade paper",
+      "aspectRatio": 0.77,
+      "featured": false,
+      "order": 15,
+      "description": "Striped tree with six dot-patterned birds among red leaves, in Gond technique.",
+      "image": "gond-tree-of-birds.jpg"
+    },
+    {
+      "slug": "lotus-woman",
+      "title": "Lotus woman",
+      "style": "Mixed Media",
+      "medium": "Acrylic and ink on paper",
+      "aspectRatio": 0.89,
+      "featured": false,
+      "order": 16,
+      "description": "Stylized woman in indigo sari with golden halo, holding lotus flowers.",
+      "image": "lotus-woman.jpg"
+    },
+    {
+      "slug": "holi-portrait",
+      "title": "Holi portrait",
+      "style": "Mixed Media",
+      "medium": "Ink and acrylic on paper",
+      "aspectRatio": 0.77,
+      "featured": false,
+      "order": 17,
+      "description": "Portrait of a woman with patterned shawl, presented with a row of Holi color packets.",
+      "image": "holi-portrait.jpg"
+    },
+    {
+      "slug": "lotus-meditation",
+      "title": "Lotus meditation",
+      "style": "Mixed Media",
+      "medium": "Acrylic on canvas",
+      "aspectRatio": 1.26,
+      "featured": false,
+      "order": 18,
+      "description": "Seated figure with lotus aura on a starry indigo ground.",
+      "image": "lotus-meditation.jpg"
+    },
+    {
+      "slug": "couple-modern",
+      "title": "Couple",
+      "style": "Mixed Media",
+      "medium": "Acrylic on sketchbook",
+      "aspectRatio": 0.75,
+      "featured": false,
+      "order": 19,
+      "description": "Modernist study of two figures, one resting on the other's shoulder.",
+      "image": "couple-modern.jpg"
+    },
+    {
+      "slug": "red-portrait",
+      "title": "Portrait in red",
+      "style": "Mixed Media",
+      "medium": "Acrylic on paper",
+      "aspectRatio": 0.8,
+      "featured": false,
+      "order": 20,
+      "description": "Stylized portrait in red and grey with foliage backdrop and floral hair detail.",
+      "image": "red-portrait.jpg"
+    },
+    {
+      "slug": "framed-birds",
+      "title": "Birds in green",
+      "style": "Mixed Media",
+      "medium": "Acrylic on paper, framed",
+      "aspectRatio": 0.81,
+      "featured": false,
+      "order": 21,
+      "description": "Six brightly patterned birds nesting in a green tree, presented in a wooden frame.",
+      "image": "framed-birds.jpg"
+    }
+  ]
+}

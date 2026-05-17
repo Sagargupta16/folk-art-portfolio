@@ -1,0 +1,154 @@
+---
+import { getCollection } from 'astro:content';
+import Section from '@/components/layout/Section.astro';
+import { placeholderDataUri } from '@/lib/placeholder';
+import { artworkUrl, type Artwork } from '@/lib/images';
+import { sections, styles } from '@/lib/site';
+
+const all = await getCollection('artworks');
+const baseUrl = import.meta.env.BASE_URL;
+const w = sections.work;
+
+const items = all
+  .map((entry) => {
+    const art = entry.data as Artwork;
+    return {
+      id: entry.id,
+      title: art.title,
+      style: art.style,
+      medium: art.medium,
+      year: art.year ?? null,
+      aspectRatio: art.aspectRatio,
+      image: art.image
+        ? artworkUrl(art, baseUrl)
+        : placeholderDataUri({
+            title: art.title,
+            style: art.style,
+            width: 600,
+            height: Math.round(600 / art.aspectRatio),
+          }),
+      description: art.description ?? null,
+      order: art.order,
+    };
+  })
+  .sort((a, b) => a.order - b.order);
+
+const filters = ['All', ...styles] as const;
+---
+<Section id="work" eyebrow={w.eyebrow} title={w.title} lead={w.lead}>
+  <div data-gallery data-active="All">
+    <div role="tablist" aria-label="Filter by style" class="mb-10 flex flex-wrap gap-2">
+      {filters.map((f, i) => (
+        <button
+          type="button"
+          role="tab"
+          data-filter={f}
+          aria-selected={i === 0 ? 'true' : 'false'}
+          class:list={[
+            'gallery-pill rounded-full border px-4 py-1.5 text-xs uppercase tracking-[0.16em] transition',
+            i === 0
+              ? 'pill-active border-[var(--color-ink)]'
+              : 'border-[var(--color-line)] text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]',
+          ]}
+        >
+          {f}
+        </button>
+      ))}
+    </div>
+
+    <ul class="tilt-stage grid gap-[var(--grid-gap)] sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((it, i) => (
+        <li
+          class="gallery-item reveal"
+          data-style={it.style}
+          style={`transition-delay:${Math.min(i, 8) * 60}ms`}
+        >
+          <article class="group flex flex-col gap-4">
+            <div class="tilt-card relative grid w-full place-items-center overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg-soft)] aspect-[3/4]">
+              <img
+                src={it.image}
+                alt={it.title}
+                loading="lazy"
+                decoding="async"
+                class="max-h-full max-w-full object-contain transition duration-700 group-hover:scale-[1.02]"
+              />
+              <span class="touch-show pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-[var(--color-ink)]/85 to-transparent p-3 text-xs text-[var(--color-bg)] opacity-0 transition duration-500 group-hover:translate-y-0 group-hover:opacity-100 sm:p-4 sm:text-sm">
+                {it.description ?? `${it.style} · ${it.medium}`}
+              </span>
+            </div>
+            <div class="flex items-baseline justify-between gap-3">
+              <h3 class="t-display text-xl text-[var(--color-ink)]">{it.title}</h3>
+              <span class="t-meta">{it.style}</span>
+            </div>
+            <p class="t-meta normal-case tracking-normal text-[var(--color-muted)]">
+              {it.medium}{it.year ? ` · ${it.year}` : ''}
+            </p>
+          </article>
+        </li>
+      ))}
+    </ul>
+
+    <p data-empty class="t-body mt-6 hidden text-[var(--color-muted)]">
+      No pieces in this style yet.
+    </p>
+  </div>
+</Section>
+
+<script is:inline>
+  (function () {
+    const root = document.querySelector('[data-gallery]');
+    if (!root) return;
+    const items = root.querySelectorAll('.gallery-item');
+    const pills = root.querySelectorAll('[data-filter]');
+    const empty = root.querySelector('[data-empty]');
+
+    function apply(filter) {
+      let visible = 0;
+      items.forEach((el) => {
+        const match = filter === 'All' || el.getAttribute('data-style') === filter;
+        el.style.display = match ? '' : 'none';
+        if (match) visible++;
+      });
+      empty.classList.toggle('hidden', visible > 0);
+      pills.forEach((p) => {
+        const active = p.getAttribute('data-filter') === filter;
+        p.setAttribute('aria-selected', active ? 'true' : 'false');
+        p.classList.toggle('pill-active', active);
+        p.classList.toggle('border-[var(--color-ink)]', active);
+        p.classList.toggle('border-[var(--color-line)]', !active);
+        p.classList.toggle('text-[var(--color-muted)]', !active);
+        p.classList.toggle('hover:border-[var(--color-accent)]', !active);
+        p.classList.toggle('hover:text-[var(--color-accent)]', !active);
+      });
+      root.setAttribute('data-active', filter);
+    }
+
+    pills.forEach((p) => {
+      p.addEventListener('click', () => apply(p.getAttribute('data-filter')));
+    });
+  })();
+
+  // Tilt-on-hover for gallery cards (no React)
+  (function () {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(hover: none)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cards = document.querySelectorAll('[data-gallery] .tilt-card');
+    cards.forEach((card) => {
+      let raf = 0;
+      card.addEventListener('mousemove', (e) => {
+        const r = card.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width - 0.5;
+        const y = (e.clientY - r.top) / r.height - 0.5;
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => {
+          card.style.transform = `perspective(900px) rotateX(${(-y * 5).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg) translateZ(0)`;
+        });
+      });
+      card.addEventListener('mouseleave', () => {
+        cancelAnimationFrame(raf);
+        card.style.transform = '';
+      });
+    });
+  })();
+</script>

@@ -1,0 +1,207 @@
+@import 'tailwindcss';
+
+@import '@fontsource/cormorant-garamond/400.css';
+@import '@fontsource/cormorant-garamond/400-italic.css';
+@import '@fontsource/cormorant-garamond/500.css';
+@import '@fontsource/cormorant-garamond/600-italic.css';
+@import '@fontsource-variable/inter/index.css';
+@import '@fontsource/tiro-devanagari-hindi/400.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Type families */
+  --font-display: 'Cormorant Garamond', ui-serif, Georgia, serif;
+  --font-body: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-devanagari: 'Tiro Devanagari Hindi', ui-serif, serif;
+
+  /* Light palette */
+  --color-bg: #faf8f3;
+  --color-bg-soft: #f3eee4;
+  --color-ink: #14110d;
+  --color-muted: #6b6357;
+  --color-line: #e3dccd;
+  --color-accent: #a0421c;
+  --color-accent-soft: #d8a37e;
+
+  /* Per-style accents (used in placeholders + filter pills if desired) */
+  --style-madhubani: #c0392b;
+  --style-pichwai: #2d6a4f;
+  --style-lippan: #b08968;
+  --style-gond: #283c63;
+  --style-texture: #7d4f50;
+  --style-mixed: #8e735b;
+
+  /* Rhythm */
+  --section-py: clamp(5rem, 8vw, 8.5rem);
+  --container-px: clamp(1.25rem, 4vw, 2rem);
+  --grid-gap: clamp(1.25rem, 2.5vw, 2rem);
+  --tracking-display: -0.015em;
+  --tracking-eyebrow: 0.22em;
+
+  /* Motion */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+:root.dark {
+  --color-bg: #15110d;
+  --color-bg-soft: #1f1a14;
+  --color-ink: #ece4d3;
+  --color-muted: #94897a;
+  --color-line: #2a241d;
+  --color-accent: #d87856;
+  --color-accent-soft: #b56a47;
+}
+
+html {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+/* Typographic roles */
+.t-display {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.05;
+}
+.t-lead {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+.t-body {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+.t-meta {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.t-eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Section + container rhythm */
+.section {
+  padding-top: var(--section-py);
+  padding-bottom: var(--section-py);
+  border-top: 1px solid var(--color-line);
+  scroll-margin-top: 6rem;
+}
+.container-x {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: var(--container-px);
+}
+
+/* Card pattern -- shared between artworks + workshops */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border: 1px solid var(--color-line);
+  background: var(--color-bg-soft);
+  padding: 1.25rem;
+  transition:
+    border-color 400ms var(--ease-out-soft),
+    transform 500ms var(--ease-out-soft),
+    box-shadow 500ms var(--ease-out-soft);
+}
+.card:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px -28px color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+
+/* Reveal on scroll */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 700ms var(--ease-out-soft),
+    transform 700ms var(--ease-out-soft);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* 3D tilt frame for gallery cards */
+.tilt-stage {
+  perspective: 1200px;
+}
+.tilt-card {
+  transition: transform 350ms var(--ease-out-soft);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tilt-card {
+    transform: none !important;
+    transition: none;
+  }
+}
+
+/* Touch / coarse-pointer: don't try to tilt on tap, and reveal hover-only overlays */
+@media (hover: none) {
+  .tilt-card {
+    transform: none !important;
+  }
+  .touch-show {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Hero parallax frame */
+.parallax-frame {
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition: transform 220ms var(--ease-out-soft);
+}
+
+/* Filter pills active ring */
+.pill-active {
+  background: var(--color-ink);
+  color: var(--color-bg);
+  border-color: var(--color-ink);
+}

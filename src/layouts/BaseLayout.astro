@@ -1,0 +1,41 @@
+---
+import '@/styles/globals.css';
+import Header from '@/components/layout/Header.astro';
+import Footer from '@/components/layout/Footer.astro';
+import ThemeScript from '@/components/layout/ThemeScript.astro';
+import RevealController from '@/components/layout/RevealController.astro';
+import { brand } from '@/lib/site';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const { title = brand.title, description = brand.description } = Astro.props;
+const fullTitle = title === brand.title ? `${brand.title} -- ${brand.tagline}` : `${title} | ${brand.title}`;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href={`${import.meta.env.BASE_URL}favicon.svg`} type="image/svg+xml" />
+    <title>{fullTitle}</title>
+    <ThemeScript />
+  </head>
+  <body id="top" class="font-body">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-[var(--color-ink)] focus:px-3 focus:py-2 focus:text-sm focus:text-[var(--color-bg)]"
+    >
+      Skip to content
+    </a>
+    <Header />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+    <RevealController />
+  </body>
+</html>

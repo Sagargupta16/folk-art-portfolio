@@ -1,0 +1,26 @@
+---
+import Section from '@/components/layout/Section.astro';
+import { brand, sections } from '@/lib/site';
+const a = sections.about;
+---
+<Section id="about" eyebrow={a.eyebrow} title={a.title}>
+  <div class="grid gap-10 md:grid-cols-12">
+    <div class="space-y-5 md:col-span-8">
+      {a.paragraphs.map((p, i) => (
+        <p class="t-body reveal" style={`transition-delay:${i * 120}ms`}>{p}</p>
+      ))}
+      <blockquote
+        class="reveal mt-8 border-l-2 border-[var(--color-accent)] pl-5"
+        style={`transition-delay:${a.paragraphs.length * 120}ms`}
+      >
+        <p class="t-display text-2xl text-[var(--color-accent)] sm:text-3xl">{a.pullQuote}</p>
+      </blockquote>
+    </div>
+    <aside class="reveal space-y-3 md:col-span-4" style="transition-delay:300ms">
+      <p class="t-meta">Based in</p>
+      <p class="t-body">{brand.location}</p>
+      <p class="t-meta mt-6">{a.asideHeading}</p>
+      <p class="t-body">{a.asideBody}</p>
+    </aside>
+  </div>
+</Section>

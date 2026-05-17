@@ -35,6 +35,7 @@ Thumbs.db
 .cache/
 .eslintcache
 .turbo/
+.playwright-mcp/
 
 # Client assets staging area (raw originals, never commit)
 /_raw-art/

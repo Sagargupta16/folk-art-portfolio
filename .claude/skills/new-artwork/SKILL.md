@@ -1,35 +1,42 @@
 ---
 name: new-artwork
-description: Use when adding a new artwork piece to the portfolio -- handles image processing, metadata entry, and gallery wiring. STUB until stack is locked.
+description: Use when adding a new artwork piece to the portfolio. Drops the image into public/artworks/ and appends a typed entry to src/data/artworks.json.
 ---
 
 # new-artwork
 
 Adding a new artwork is the recurring task on this site. This skill makes it a one-shot.
 
-## Status
+## Steps
 
-**STUB.** Real steps land after stack and content model are locked. Do not invoke yet -- it has nothing to run.
+1. **Receive source image** from the client (path or attachment). Higher resolution is better -- Astro handles downscaling and AVIF/WebP generation at build.
+2. **Pick a slug.** kebab-case, descriptive of subject not style (e.g. `peacock-pair`, not `madhubani-7`). Must be unique within `src/data/artworks.json`.
+3. **Place the image** at `public/artworks/<slug>.jpg`. Always `.jpg` (the build pipeline handles format conversion).
+4. **Append a catalog entry** to [`src/data/artworks.json`](../../../src/data/artworks.json) `items` array:
 
-## Intended flow (post-stack)
+   ```json
+   {
+     "slug": "<slug>",
+     "title": "<human title>",
+     "style": "Madhubani | Pichwai | Lippan | Gond | Texture | Mixed Media",
+     "medium": "Acrylic on canvas",
+     "aspectRatio": 0.75,
+     "featured": false,
+     "order": 100,
+     "description": "One-sentence subject description.",
+     "image": "<slug>.jpg"
+   }
+   ```
 
-1. **Receive source image** from client (path or attachment).
-2. **Process**:
-   - Resize to gallery dimensions (TBD breakpoints).
-   - Generate WebP + fallback JPG.
-   - Generate thumbnail.
-   - Optional watermark per client policy.
-3. **Place** processed images under the project's image directory (TBD path).
-4. **Create entry** in the content model (TBD: Markdown frontmatter file vs JSON entry vs CMS POST).
-   - Required fields (draft): title, year, medium, dimensions, description, tags.
-5. **Verify** locally: dev server up, gallery renders new piece, image lazy-loads, alt text present.
-6. **Commit** with message `feat: add artwork "<title>"`.
+   - `aspectRatio` = `width / height` of the source image (used for placeholder fallback only -- gallery cards are uniform 3:4).
+   - `order` controls sort within the gallery (lower = earlier). Use 1-50 for featured pieces, 100+ for the rest.
+   - `featured: true` makes a piece eligible for the hero (first featured wins).
+5. **Verify**: `pnpm dev`, navigate to `#work`, confirm the piece renders, filters correctly by style, and the image isn't cropped weirdly.
+6. **Build check**: `pnpm build` -- the Zod schema in [`src/content.config.ts`](../../../src/content.config.ts) will reject bad entries.
+7. **Commit**: `feat: add artwork "<title>"`.
 
-## To-do before unstubbing
+## Notes
 
-- [ ] Lock stack.
-- [ ] Decide content model (Markdown collection / JSON / headless CMS).
-- [ ] Confirm image policy with client (originals vs watermarked exports, max width, format).
-- [ ] Decide whether client edits directly or routes through Sagar.
-
-When all four are answered, replace this STUB block with real, runnable steps.
+- Don't bump any count anywhere -- the catalog is the source of truth, the count derives from `items.length`.
+- If a piece has no usable image, omit the `image` field; the site renders a deterministic SVG placeholder in the style's palette.
+- Removing an artwork: delete the `public/artworks/<slug>.jpg` file AND the entry from `artworks.json`. Both must agree.

@@ -1,0 +1,28 @@
+---
+import { brand, nav } from '@/lib/site';
+import ThemeToggle from '@/components/ui/ThemeToggle';
+---
+<header class="sticky top-0 z-40 border-b border-[var(--color-line)] bg-[var(--color-bg)]/80 backdrop-blur-md">
+  <div class="container-x flex items-center justify-between gap-3 py-3 sm:gap-6 sm:py-4">
+    <a href="#top" class="t-display shrink-0 text-lg text-[var(--color-ink)] transition hover:text-[var(--color-accent)] sm:text-xl">
+      {brand.title}
+    </a>
+    <nav aria-label="Primary" class="min-w-0 flex-1">
+      <ul class="flex items-center justify-end gap-3 overflow-x-auto sm:gap-5 md:gap-7 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {nav.map((item) => (
+          <li class="shrink-0">
+            <a
+              href={item.href}
+              class="t-meta tracking-[0.16em] text-[var(--color-muted)] transition hover:text-[var(--color-accent)]"
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    <div class="flex shrink-0 items-center gap-3">
+      <ThemeToggle client:load />
+    </div>
+  </div>
+</header>

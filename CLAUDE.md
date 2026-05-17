@@ -23,6 +23,8 @@ Locked 2026-05-17. Frontend-only, static deploy.
 - **Tailwind 4** via `@tailwindcss/vite`. Theme tokens defined with `@theme` in [`src/styles/globals.css`](src/styles/globals.css). Light/dark via `class="dark"` on `<html>`.
 - **Self-hosted fonts** -- Cormorant Garamond (display serif, italic-forward), Inter (body), Tiro Devanagari Hindi (accent). All via `@fontsource(-variable)`. No Google Fonts CDN call.
 - **JSON-driven content** -- single source of truth in [`src/data/site.json`](src/data/site.json) (brand, nav, sections, workshops) and [`src/data/artworks.json`](src/data/artworks.json) (artwork catalog). Loaded via Astro content collections in [`src/content.config.ts`](src/content.config.ts). Same model survives a future CMS or backend swap.
+- **Image pipeline** -- build-time `sharp` script at [`scripts/optimize-images.mjs`](scripts/optimize-images.mjs) generates AVIF + WebP variants (400/800/1200 widths) into `public/_opt/artworks/` (gitignored). [`src/components/ui/ArtworkImage.astro`](src/components/ui/ArtworkImage.astro) emits `<picture>` with multi-format `<source srcset>` chains; the original `.jpg` in `public/artworks/` stays as a fallback for non-AVIF browsers and as the canonical URL for `og:image` + JSON-LD.
+- **SEO** -- [`@astrojs/sitemap`](https://docs.astro.build/en/guides/integrations-guide/sitemap/), JSON-LD via [`src/lib/structured-data.ts`](src/lib/structured-data.ts), Open Graph metadata + canonical URL emitted by [`src/layouts/BaseLayout.astro`](src/layouts/BaseLayout.astro), `robots.txt` in `public/`.
 
 Backend hooks left as inert seams (contact form, workshop booking) -- to be activated when needed without restructuring.
 
@@ -57,7 +59,7 @@ Build + typecheck are the current quality gates. Playwright smoke test and Light
 
 ## Deploy
 
-GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`). `astro.config.mjs` is preconfigured with `site: 'https://Sagargupta16.github.io'` and `base: '/folk-art-portfolio/'`. Live at <https://sagargupta16.github.io/folk-art-portfolio/>. When the artist's custom domain lands, drop `base` and update `site`.
+GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`). [`astro.config.mjs`](astro.config.mjs) sets `site` to the primary public origin (`https://sagargupta.online`) -- canonical URLs, sitemap, and OG image URLs all resolve there. The GH Pages mirror at `https://sagargupta16.github.io/folk-art-portfolio/` continues to serve the same build. When the artist's own domain lands, change the `SITE` constant in `astro.config.mjs` (one line).
 
 ## Entry points
 
@@ -71,13 +73,17 @@ GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`). `astro.config.m
 - [`src/data/site.json`](src/data/site.json) -- brand, nav, contact, all section copy, workshops list.
 - [`src/data/artworks.json`](src/data/artworks.json) -- artwork catalog (one entry per piece).
 - [`src/components/layout/`](src/components/layout/) -- `Header`, `Footer`, `Section` wrapper, `ThemeScript`, `RevealController`.
-- [`src/components/sections/`](src/components/sections/) -- `Hero`, `About`, `Work`, `Workshops`, `Contact`. One per page section.
-- [`src/components/ui/`](src/components/ui/) -- React TSX islands. `ThemeToggle`, `Gallery`. Reach for an island only when interactivity is required.
+- [`src/components/sections/`](src/components/sections/) -- `Hero`, `About`, `Work`, `Workshops`, `CustomOrders`, `Contact`. One per page section.
+- [`src/components/ui/`](src/components/ui/) -- React TSX islands + Astro primitives. `ThemeToggle` (TSX), `ArtworkImage` (`<picture>` wrapper), `Card`, `Pill`, `IconButton`, `icons/`. Reach for an island only when interactivity is required.
 - [`src/content.config.ts`](src/content.config.ts) -- Zod schemas for the JSON-loaded `artworks` and `workshops` collections.
 - [`src/lib/images.ts`](src/lib/images.ts) -- `artworkUrl(art, baseUrl)` helper for building public image URLs.
+- [`src/lib/structured-data.ts`](src/lib/structured-data.ts) -- builds the homepage schema.org `@graph` (Person/VisualArtist + WebSite + VisualArtwork list) for JSON-LD.
 - [`src/lib/placeholder.ts`](src/lib/placeholder.ts) -- deterministic SVG placeholders per style (used as fallback if a piece has no `image`).
 - [`src/styles/globals.css`](src/styles/globals.css) -- Tailwind import, theme tokens, font imports, design-system utilities.
-- [`public/artworks/`](public/artworks/) -- one `<slug>.jpg` per piece. Astro generates AVIF + WebP at build.
+- [`scripts/optimize-images.mjs`](scripts/optimize-images.mjs) -- build-time AVIF + WebP variant generator (sharp). Wired into the `build` script via `pnpm run optimize:images && astro build`. Idempotent (mtime-aware), regenerates only changed sources.
+- [`public/artworks/`](public/artworks/) -- one `<slug>.jpg` per piece (committed; serves as the JPEG fallback in `<picture>` and as the canonical URL for `og:image` + JSON-LD).
+- `public/_opt/artworks/` -- generated AVIF + WebP variants at 400/800/1200 widths. Gitignored, regenerated on every build.
+- [`public/robots.txt`](public/robots.txt) -- allow-all, points at the sitemap.
 - [`.claude/skills/new-artwork/SKILL.md`](.claude/skills/new-artwork/SKILL.md) -- recurring task: add a new artwork.
 
 ## Component conventions
@@ -91,8 +97,8 @@ GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`). `astro.config.m
 ## Gotchas
 
 - Client (Megha) does not write code. Update flow is Sagar edits and ships -- no CMS yet. If she ever wants self-edit, the JSON-driven catalog is CMS-ready (Decap, Sanity, etc.) without restructuring.
-- Domain: client wants their own. Registrar / DNS not yet decided -- site is on `Sagargupta16.github.io/folk-art-portfolio/` until then. When DNS lands, drop `base` and set the custom `site` in `astro.config.mjs`.
-- Adding a new artwork: drop `<slug>.jpg` into [`public/artworks/`](public/artworks/), append an entry to [`src/data/artworks.json`](src/data/artworks.json) with matching `image: "<slug>.jpg"`. The site picks it up automatically.
+- Domain: client wants their own. Until DNS lands the site is mirrored on `Sagargupta16.github.io/folk-art-portfolio/` and proxied at `sagargupta.online/folk-art-portfolio/` (current `site` in `astro.config.mjs`). When the artist's domain lands, change the `SITE` constant in `astro.config.mjs` and optionally drop `base` if the new domain serves at root.
+- Adding a new artwork: drop `<slug>.jpg` into [`public/artworks/`](public/artworks/), append an entry to [`src/data/artworks.json`](src/data/artworks.json) with matching `image: "<slug>.jpg"`. The build runs [`scripts/optimize-images.mjs`](scripts/optimize-images.mjs) automatically and the gallery + hero pick it up via [`ArtworkImage.astro`](src/components/ui/ArtworkImage.astro).
 
 ## Branching and releases
 

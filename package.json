@@ -1,12 +1,13 @@
 {
   "name": "folk-art-portfolio",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "Portfolio website for Megha Seth, traditional artist.",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "optimize:images": "node scripts/optimize-images.mjs",
+    "build": "pnpm run optimize:images && astro build",
     "preview": "astro preview",
     "astro": "astro",
     "typecheck": "astro check"
@@ -19,6 +20,7 @@
   "dependencies": {
     "@astrojs/check": "^0.9.9",
     "@astrojs/react": "^5.0.5",
+    "@astrojs/sitemap": "^3.7.2",
     "@fontsource-variable/inter": "^5.2.8",
     "@fontsource/cormorant-garamond": "^5.2.11",
     "@fontsource/tiro-devanagari-hindi": "^5.2.7",
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "sharp": "^0.34.5",
     "typescript": "^6.0.3"
   },
   "pnpm": {

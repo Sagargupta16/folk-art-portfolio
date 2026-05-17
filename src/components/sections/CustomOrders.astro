@@ -1,14 +1,14 @@
 ---
 import Section from '@/components/layout/Section.astro';
-import CommissionForm from '@/components/ui/CommissionForm';
+import OrderForm from '@/components/ui/OrderForm';
 import { contact, sections, styles } from '@/lib/site';
 
-const c = sections.commissions;
+const c = sections.customOrders;
 const whatsappNumber = contact.whatsapp.url.replace(/^https:\/\/wa\.me\//, '');
 ---
-<Section id="commissions" eyebrow={c.eyebrow} title={c.title} lead={c.lead}>
+<Section id="custom-orders" eyebrow={c.eyebrow} title={c.title} lead={c.lead}>
   <div class="reveal max-w-2xl">
-    <CommissionForm
+    <OrderForm
       client:visible
       styles={styles}
       sizes={c.sizes}

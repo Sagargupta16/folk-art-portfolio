@@ -10,7 +10,9 @@
     "tagline": "Folk Artist & Workshop Facilitator",
     "description": "Madhubani, Pichwai, Lippan, Gond and texture art by Megha Seth. Original works and workshops rooted in Indian folk traditions.",
     "devanagariMark": "म",
-    "location": "India"
+    "location": "India",
+    "logo": "logo.jpg",
+    "logoAlt": "Kalcher by Megha -- Art elevated by belief"
   },
   "nav": [
     { "label": "Work", "href": "#work" },

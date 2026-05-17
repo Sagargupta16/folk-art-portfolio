@@ -1,11 +1,27 @@
 ---
 import { brand, nav } from '@/lib/site';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+const logoUrl = `${import.meta.env.BASE_URL}${brand.logo}`;
 ---
 <header class="sticky top-0 z-40 border-b border-[var(--color-line)] bg-[var(--color-bg)]/85 backdrop-blur-md">
-  <div class="container-x flex items-center gap-3 py-3 sm:gap-6 sm:py-4">
-    <a href="#top" class="t-display shrink-0 text-lg text-[var(--color-ink)] transition hover:text-[var(--color-accent)] sm:text-xl">
-      {brand.title}
+  <div class="container-x flex items-center gap-3 py-3 sm:gap-4 sm:py-4">
+    <a
+      href="#top"
+      class="group flex shrink-0 items-center gap-2 transition sm:gap-3"
+      aria-label={brand.logoAlt}
+    >
+      <img
+        src={logoUrl}
+        alt=""
+        width="40"
+        height="40"
+        loading="eager"
+        decoding="async"
+        class="h-8 w-8 rounded-full object-cover ring-1 ring-[var(--color-line)] transition group-hover:ring-[var(--color-accent)] sm:h-10 sm:w-10"
+      />
+      <span class="t-display text-lg leading-none text-[var(--color-ink)] transition group-hover:text-[var(--color-accent)] sm:text-xl">
+        {brand.title}
+      </span>
     </a>
     <nav aria-label="Primary" class="min-w-0 flex-1">
       <ul class="flex items-center justify-end gap-3 overflow-x-auto pr-2 sm:gap-5 md:gap-7 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

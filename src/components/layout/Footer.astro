@@ -4,10 +4,24 @@ import Instagram from '@/components/ui/icons/Instagram.astro';
 import Whatsapp from '@/components/ui/icons/Whatsapp.astro';
 import Mail from '@/components/ui/icons/Mail.astro';
 const year = new Date().getFullYear();
+const logoUrl = `${import.meta.env.BASE_URL}${brand.logo}`;
 ---
 <footer class="border-t border-[var(--color-line)]">
   <div class="container-x flex flex-col items-start justify-between gap-4 py-10 sm:flex-row sm:items-center">
-    <p class="t-display text-xl text-[var(--color-ink)]">{brand.title}</p>
+    <a href="#top" class="group flex items-center gap-3" aria-label={brand.logoAlt}>
+      <img
+        src={logoUrl}
+        alt=""
+        width="48"
+        height="48"
+        loading="lazy"
+        decoding="async"
+        class="h-10 w-10 rounded-full object-cover ring-1 ring-[var(--color-line)] transition group-hover:ring-[var(--color-accent)]"
+      />
+      <span class="t-display text-xl text-[var(--color-ink)] transition group-hover:text-[var(--color-accent)]">
+        {brand.title}
+      </span>
+    </a>
     <div class="flex flex-wrap items-center gap-3 sm:gap-4">
       <a
         class="t-meta inline-flex items-center gap-2 transition hover:text-[var(--color-accent)]"

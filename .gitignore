@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.pnp.*
+
+# Build output
+dist/
+build/
+.output/
+.vercel/
+.netlify/
+.astro/
+.next/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# Cache
+.cache/
+.eslintcache
+.turbo/
+
+# Client assets staging area (raw originals, never commit)
+/_raw-art/
+/_originals/
+*.psd
+*.ai

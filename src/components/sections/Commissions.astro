@@ -1,0 +1,23 @@
+---
+import Section from '@/components/layout/Section.astro';
+import CommissionForm from '@/components/ui/CommissionForm';
+import { contact, sections, styles } from '@/lib/site';
+
+const c = sections.commissions;
+const whatsappNumber = contact.whatsapp.url.replace(/^https:\/\/wa\.me\//, '');
+---
+<Section id="commissions" eyebrow={c.eyebrow} title={c.title} lead={c.lead}>
+  <div class="reveal max-w-2xl">
+    <CommissionForm
+      client:visible
+      styles={styles}
+      sizes={c.sizes}
+      budgets={c.budgets}
+      timelines={c.timelines}
+      whatsappNumber={whatsappNumber}
+      emailUrl={contact.email.url}
+      submitLabel={c.submitLabel}
+      fallbackEmailLabel={c.fallbackEmailLabel}
+    />
+  </div>
+</Section>

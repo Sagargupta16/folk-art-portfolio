@@ -8,7 +8,7 @@ const logoUrl = `${import.meta.env.BASE_URL}${brand.logo}`;
     <a
       href="#top"
       class="group flex shrink-0 items-center gap-2 transition sm:gap-3"
-      aria-label={brand.logoAlt}
+      aria-label={`${brand.logoAlt} -- home`}
     >
       <img
         src={logoUrl}
@@ -19,8 +19,13 @@ const logoUrl = `${import.meta.env.BASE_URL}${brand.logo}`;
         decoding="async"
         class="h-8 w-8 rounded-full object-cover ring-1 ring-[var(--color-line)] transition group-hover:ring-[var(--color-accent)] sm:h-10 sm:w-10"
       />
-      <span class="t-display text-lg leading-none text-[var(--color-ink)] transition group-hover:text-[var(--color-accent)] sm:text-xl">
-        {brand.title}
+      <span
+        class="t-display text-lg leading-none text-[var(--color-ink)] transition group-hover:text-[var(--color-accent)] sm:text-xl"
+        aria-hidden="true"
+      >
+        {brand.headline.latinPrefix}<span
+          class="font-devanagari not-italic text-[var(--color-accent)]"
+        >{brand.headline.devanagariCore}</span>
       </span>
     </a>
     <nav aria-label="Primary" class="min-w-0 flex-1">

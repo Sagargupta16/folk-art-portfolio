@@ -8,7 +8,7 @@ const logoUrl = `${import.meta.env.BASE_URL}${brand.logo}`;
 ---
 <footer class="border-t border-[var(--color-line)]">
   <div class="container-x flex flex-col items-start justify-between gap-4 py-10 sm:flex-row sm:items-center">
-    <a href="#top" class="group flex items-center gap-3" aria-label={brand.logoAlt}>
+    <a href="#top" class="group flex items-center gap-3" aria-label={`${brand.logoAlt} -- back to top`}>
       <img
         src={logoUrl}
         alt=""
@@ -18,8 +18,13 @@ const logoUrl = `${import.meta.env.BASE_URL}${brand.logo}`;
         decoding="async"
         class="h-10 w-10 rounded-full object-cover ring-1 ring-[var(--color-line)] transition group-hover:ring-[var(--color-accent)]"
       />
-      <span class="t-display text-xl text-[var(--color-ink)] transition group-hover:text-[var(--color-accent)]">
-        {brand.title}
+      <span
+        class="t-display text-xl text-[var(--color-ink)] transition group-hover:text-[var(--color-accent)]"
+        aria-hidden="true"
+      >
+        {brand.headline.latinPrefix}<span
+          class="font-devanagari not-italic text-[var(--color-accent)]"
+        >{brand.headline.devanagariCore}</span>
       </span>
     </a>
     <div class="flex flex-wrap items-center gap-3 sm:gap-4">

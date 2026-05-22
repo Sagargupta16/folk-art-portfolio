@@ -2,6 +2,39 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/) -- bump rules in [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases".
 
+## 1.4.0 -- 2026-05-22
+
+Full framework migration from Astro 6 to Vite + React 19. The site is now a single-page React application instead of an Astro static site. Same design system, same CSS, same image pipeline, same deploy target -- the rendering layer moved from server-rendered Astro templates to client-rendered TSX components.
+
+### Stack change
+
+- **Astro 6 removed.** All `.astro` files, `astro.config.mjs`, content collections (`src/content.config.ts`), and Astro dependencies (`@astrojs/check`, `@astrojs/react`, `@astrojs/sitemap`, `astro`) deleted.
+- **Vite 6 + React 19** replaces the Astro build. `vite.config.ts` configures the same `base` path logic (env-driven `DEPLOY_ENV=beta` for staging). `@vitejs/plugin-react` handles JSX transform.
+- **TypeScript 6** strict mode via `tsconfig.json` (no longer extends `astro/tsconfigs/strict`). `baseUrl` removed (deprecated in TS 6); `paths` uses `./src/*` form.
+- **Index HTML** at repo root. Theme-detection script runs inline before React hydrates, preventing FOUC.
+- **`src/main.tsx`** mounts the React tree into `#root`. `src/App.tsx` composes layout + sections.
+
+### Architecture changes
+
+- **Reveal observer** moved from a detached `<script is:inline>` to a `useEffect` hook in `App.tsx`. Same IntersectionObserver logic, now runs after React mount.
+- **Gallery filter** moved from a vanilla JS `<script is:inline>` to React state (`useState` in `Work.tsx`). Filter controls re-render the visible items list; no DOM display-toggling.
+- **Lightbox** moved from imperative DOM manipulation of a single `<dialog>` to a React-controlled `<dialog>` component (`ArtworkLightbox.tsx`). Open/close/navigation driven by state. Arrow-key listeners via `useEffect`.
+- **Hero parallax** moved to a `useEffect` + `useRef` hook in `Hero.tsx`. Same rAF-coalesced transform logic.
+- **Structured data (JSON-LD)** is now a React component (`StructuredData`) rendering a `<script type="application/ld+json">` via `dangerouslySetInnerHTML`.
+- **Icons** consolidated from three `.astro` files into one `icons.tsx` exporting `Instagram`, `Whatsapp`, `Mail` as React components.
+
+### What's preserved
+
+- **CSS unchanged.** `globals.css` and `motion.css` remain the same. All theme tokens, animation keyframes, card/gallery/chromacard/lightbox styles work identically.
+- **Data unchanged.** `src/data/artworks.json` and `src/data/site.json` remain the sole sources of truth. No content model changes.
+- **Image pipeline unchanged.** `scripts/optimize-images.mjs` still runs at build time. `ArtworkImage.tsx` emits the same `<picture>` with AVIF/WebP `<source>` chains.
+- **Deploy unchanged.** CI + deploy workflows still call `pnpm typecheck` / `pnpm build`. Vite outputs to `dist/` with the same base-path structure. GitHub Pages combined-dist workflow works without modification.
+
+### Tradeoff
+
+- **Bundle size up.** Astro shipped ~5 KB of JS (only islands). Vite+React ships ~75 KB gzipped (React runtime + full app). Acceptable for a portfolio with interactive filter/lightbox -- the client rendering unlocks smoother state transitions.
+- **No sitemap.** `@astrojs/sitemap` integration removed. A static `sitemap.xml` can be added to `public/` if needed; or a Vite plugin can generate one at build time.
+
 ## 1.3.0 -- 2026-05-22
 
 Colorful redesign. Site now leans into authentic Madhubani saturation -- ruby, marigold, peacock, indigo, neem -- so the chrome agrees with the work instead of softening it. Each piece carries its own 3-5 swatch palette, drives a chromacard caption + card-hover halo, and tints its style label. Motion budget grew (BlurFade reveals, kinetic Devanagari, aurora backdrop, hero halo, marquee band, native `<dialog>` lightbox) but stays pure CSS -- zero new React islands. All animations honor `prefers-reduced-motion`.

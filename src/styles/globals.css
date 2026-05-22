@@ -349,3 +349,58 @@ body {
   background-color: var(--color-bg);
   color: var(--color-ink);
 }
+
+/* Custom cursor -- hide native cursor when our custom one is active. */
+.custom-cursor-active, .custom-cursor-active * {
+  cursor: none !important;
+}
+
+/* Split-text character animation. Each char fades + lifts in sequence. */
+.split-text {
+  display: inline-block;
+  overflow: hidden;
+}
+.split-char {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(100%) rotateX(-80deg);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  transition-delay: calc(var(--char-index, 0) * 30ms);
+}
+.split-visible .split-char {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .split-char { opacity: 1; transform: none; transition: none; }
+}
+
+/* Image reveal clip-path animation. */
+.img-reveal {
+  overflow: hidden;
+}
+.img-reveal > * {
+  transition: transform 1.2s var(--ease-out-soft), opacity 0.8s var(--ease-out-soft);
+}
+.img-reveal--left > * { transform: translateX(-100%); opacity: 0; }
+.img-reveal--right > * { transform: translateX(100%); opacity: 0; }
+.img-reveal--up > * { transform: translateY(100%); opacity: 0; }
+.img-reveal--down > * { transform: translateY(-100%); opacity: 0; }
+.img-revealed > * { transform: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .img-reveal > * { transform: none; opacity: 1; transition: none; }
+}
+
+/* Lenis smooth scroll body lock */
+html.lenis, html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}

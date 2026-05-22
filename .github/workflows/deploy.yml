@@ -37,6 +37,12 @@ jobs:
           path: beta
 
       - uses: pnpm/action-setup@v4
+        with:
+          # pnpm/action-setup auto-detects from package.json's packageManager field,
+          # but our two-checkout layout has no package.json at the workflow root --
+          # so we pin the version explicitly here. Keep in sync with prod/package.json.
+          version: 10
+          run_install: false
 
       - uses: actions/setup-node@v4
         with:

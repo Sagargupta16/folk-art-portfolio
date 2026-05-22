@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/) -- bump rules in [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases".
 
+## 1.3.0 -- 2026-05-22
+
+Colorful redesign. Site now leans into authentic Madhubani saturation -- ruby, marigold, peacock, indigo, neem -- so the chrome agrees with the work instead of softening it. Each piece carries its own 3-5 swatch palette, drives a chromacard caption + card-hover halo, and tints its style label. Motion budget grew (BlurFade reveals, kinetic Devanagari, aurora backdrop, hero halo, marquee band, native `<dialog>` lightbox) but stays pure CSS -- zero new React islands. All animations honor `prefers-reduced-motion`.
+
+### Color identity
+
+- **Madhubani palette tokens** in [`globals.css`](src/styles/globals.css). Eight saturated pigments (ruby/marigold/peacock/indigo/vermillion/neem/ochre/plum) with light + dark variants. Per-style accents bumped from muted to authentic (Madhubani -> ruby, Pichwai -> jade, Lippan -> ochre, Gond -> indigo, Texture -> terracotta, Mixed -> plum).
+- **Per-artwork palette field.** [`src/content.config.ts`](src/content.config.ts) adds `palette: string[3..5]` (hex regex). [`src/data/artworks.json`](src/data/artworks.json) seeded for all 21 pieces with hand-picked swatches drawn from each painting.
+- **Chromacard component** at [`src/components/ui/Chromacard.astro`](src/components/ui/Chromacard.astro). Zero-JS swatch strip (museum palette caption) under each gallery card and inside the lightbox aside.
+- **Section accent cascade.** [`Section.astro`](src/components/layout/Section.astro) accepts an `accent` prop, sets `--section-accent` inline, drives the eyebrow tint and underline-grow on the section heading.
+- **Per-card hover halo.** [`Work.astro`](src/components/sections/Work.astro) sets `--card-accent` per `<li>` from a style -> color map, so a Pichwai card glows jade-green on hover and a Madhubani card glows ruby. Filter pills paint in the same accent when active.
+
+### Motion
+
+- **BlurFade reveals.** `.reveal` upgraded to `filter: blur(6px) -> blur(0)` alongside opacity + translateY. Magic UI vocabulary, pure CSS.
+- **Kinetic Devanagari.** Hero accent character animates a slow gradient shift through ruby -> marigold -> peacock. `.kinetic-devanagari` in [`globals.css`](src/styles/globals.css).
+- **Aurora backdrop** behind the hero -- two slow-drifting saturated radial blobs via filter blur. Used sparingly (hero only).
+- **Hero halo.** [`Hero.astro`](src/components/sections/Hero.astro) reads the featured artwork's first palette swatch into `--hero-halo`, painting a soft radial pulse behind the parallax frame. Reads as the painting's own light spilling out.
+- **Marquee band** between Hero and Work. New [`src/components/ui/Marquee.astro`](src/components/ui/Marquee.astro) interleaves 14 artwork titles with 7 Devanagari ornaments (कमल / मृग / गाय / मीन / मोर / वृक्ष / सरिता) on a doubled track for a seamless CSS-only loop. Pauses on hover.
+
+### Lightbox
+
+- **Native `<dialog>` lightbox** at [`src/components/ui/ArtworkLightbox.astro`](src/components/ui/ArtworkLightbox.astro). Zero dependencies -- the browser handles focus trap, ESC-to-close, and the `::backdrop` pseudo-element gives us a styled overlay for free. Single dialog in the DOM regardless of catalog size.
+- **Gallery cards as triggers.** Each `<li>` in [`Work.astro`](src/components/sections/Work.astro) is now a `<button data-lightbox-trigger>` carrying the artwork's full payload (slug, title, style, medium, year, description, alt, AVIF + WebP srcsets, palette, accent) on data-attributes. Click delegation in the lightbox script reads the payload and paints content on demand.
+- **Filter-aware navigation.** Prev/next buttons and ArrowLeft/ArrowRight cycle through siblings sharing the gallery's current filter -- a Madhubani filter restricts navigation to Madhubani pieces.
+- **Reuses image variants.** Lightbox `<picture>` builds AVIF + WebP `<source>` chains dynamically from the same 800/1200 wide variants the optimize-images script already generates. No extra build step, no new request types.
+
 ## 1.2.0 -- 2026-05-22
 
 Two-environment setup. `main` continues to ship prod at `/folk-art-portfolio/`; new `dev` branch ships a staging mirror at `/folk-art-portfolio/beta/`. Promotion flow is now `feat/<topic>` -> `dev` (auto-deploys to `/beta/`) -> `main` (auto-deploys to prod), so changes can be verified on a real URL before reaching prod.

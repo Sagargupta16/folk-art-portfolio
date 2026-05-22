@@ -6,6 +6,7 @@ import { type Artwork } from '@/lib/images';
 import { sections, styles } from '@/lib/site';
 import ArtworkImage from '@/components/ui/ArtworkImage.astro';
 import Chromacard from '@/components/ui/Chromacard.astro';
+import ArtworkLightbox from '@/components/ui/ArtworkLightbox.astro';
 
 /* Map each art style to its CSS-variable accent. The card hover state, image
    border, and chromacard fallback all pull from this token, so a Pichwai card
@@ -23,11 +24,25 @@ const all = await getCollection('artworks');
 const baseUrl = import.meta.env.BASE_URL;
 const w = sections.work;
 
+/* Lightbox loads larger variants than the gallery thumbnail; reuse the same
+   widths the optimize-images script generates. */
+const LIGHTBOX_WIDTHS = [800, 1200];
+
 const items = all
   .map((entry) => {
     const art = entry.data as Artwork;
+    const slug = art.image ? art.image.replace(/\.(jpe?g|png)$/i, '') : '';
+    const optBase = slug ? `${baseUrl}_opt/artworks/${slug}` : '';
+    const origUrl = art.image ? `${baseUrl}artworks/${art.image}` : '';
+    const avifSrcset = optBase
+      ? LIGHTBOX_WIDTHS.map((w) => `${optBase}-${w}.avif ${w}w`).join(', ')
+      : '';
+    const webpSrcset = optBase
+      ? LIGHTBOX_WIDTHS.map((w) => `${optBase}-${w}.webp ${w}w`).join(', ')
+      : '';
     return {
       id: entry.id,
+      slug: art.slug,
       title: art.title,
       style: art.style,
       medium: art.medium,
@@ -47,6 +62,9 @@ const items = all
       order: art.order,
       palette: art.palette,
       accentVar: styleAccentVar[art.style] ?? 'var(--color-accent)',
+      origUrl,
+      avifSrcset,
+      webpSrcset,
     };
   })
   .sort((a, b) => a.order - b.order);
@@ -86,8 +104,23 @@ const filters = ['All', ...styles] as const;
           style={`--card-accent:${it.accentVar};`}
         >
           <article class="group flex flex-col gap-4">
-            <div
-              class="gallery-frame relative grid w-full place-items-center overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg-soft)] aspect-[3/4] transition motion-safe:duration-500 motion-safe:ease-out"
+            <button
+              type="button"
+              data-lightbox-trigger
+              data-slug={it.slug}
+              data-title={it.title}
+              data-style={it.style}
+              data-medium={it.medium}
+              data-year={it.year ?? ''}
+              data-description={it.description ?? ''}
+              data-alt={it.alt}
+              data-image={it.origUrl}
+              data-avif-srcset={it.avifSrcset}
+              data-webp-srcset={it.webpSrcset}
+              data-palette={(it.palette ?? []).join('|')}
+              data-accent={it.accentVar}
+              aria-label={`Open ${it.title} in larger view`}
+              class="gallery-frame group/btn relative grid w-full cursor-pointer place-items-center overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg-soft)] aspect-[3/4] p-0 text-left transition motion-safe:duration-500 motion-safe:ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--card-accent)] focus-visible:ring-offset-2"
             >
               {it.filename ? (
                 <ArtworkImage
@@ -108,7 +141,7 @@ const filters = ['All', ...styles] as const;
               <span class="touch-show pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-[var(--color-ink)]/85 to-transparent p-3 text-xs text-[var(--color-bg)] opacity-0 transition duration-500 group-hover:translate-y-0 group-hover:opacity-100 sm:p-4 sm:text-sm">
                 {it.description ?? `${it.style} · ${it.medium}`}
               </span>
-            </div>
+            </button>
             <Chromacard
               palette={it.palette}
               fallback={it.accentVar}
@@ -130,6 +163,8 @@ const filters = ['All', ...styles] as const;
       No pieces in this style yet.
     </p>
   </div>
+
+  <ArtworkLightbox />
 </Section>
 
 <script is:inline>

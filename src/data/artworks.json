@@ -50,7 +50,8 @@
       "featured": false,
       "order": 4,
       "description": "Spotted cow grazing among lotuses under a scalloped arch.",
-      "image": "pichwai-cow.jpg"
+      "image": "pichwai-cow.jpg",
+      "palette": ["#1f6f5a", "#e6a817", "#c0392b", "#f3eee4"]
     },
     {
       "slug": "tree-of-life-elephants",
@@ -61,7 +62,8 @@
       "featured": false,
       "order": 5,
       "description": "Tree of life surrounded by elephants and lotuses arrayed in concentric arcs.",
-      "image": "tree-of-life-elephants.jpg"
+      "image": "tree-of-life-elephants.jpg",
+      "palette": ["#c0392b", "#4a7c2f", "#e6a817", "#2d3a78", "#1f1a14"]
     },
     {
       "slug": "tree-with-elephants",
@@ -72,7 +74,8 @@
       "featured": false,
       "order": 6,
       "description": "Striped tree with two patterned elephants and a wave-line ground, in Madhubani style.",
-      "image": "tree-with-elephants.jpg"
+      "image": "tree-with-elephants.jpg",
+      "palette": ["#c0392b", "#e6a817", "#4a7c2f", "#1f1a14"]
     },
     {
       "slug": "tree-with-figures",
@@ -83,7 +86,8 @@
       "featured": false,
       "order": 7,
       "description": "Tree with seated figures, fish and birds beneath -- a folk-narrative composition.",
-      "image": "tree-with-figures.jpg"
+      "image": "tree-with-figures.jpg",
+      "palette": ["#c0392b", "#e6a817", "#4a7c2f", "#1f6f8f", "#1f1a14"]
     },
     {
       "slug": "fish-family",
@@ -106,7 +110,8 @@
       "featured": false,
       "order": 9,
       "description": "Two layered crimson fish bordered by floral motifs.",
-      "image": "twin-fish.jpg"
+      "image": "twin-fish.jpg",
+      "palette": ["#c0392b", "#e6a817", "#4a7c2f", "#f3eee4"]
     },
     {
       "slug": "mrgayugma",
@@ -141,7 +146,8 @@
       "featured": false,
       "order": 12,
       "description": "Circular relief with a stylized leaf radiating from sun and moon, in raised tissue texture.",
-      "image": "texture-leaf-circle.jpg"
+      "image": "texture-leaf-circle.jpg",
+      "palette": ["#a0421c", "#c98a3b", "#f3eee4", "#1f1a14"]
     },
     {
       "slug": "gond-camel",
@@ -152,7 +158,8 @@
       "featured": false,
       "order": 13,
       "description": "Red dot-patterned camel and calf under a tree, in Gond style.",
-      "image": "gond-camel.jpg"
+      "image": "gond-camel.jpg",
+      "palette": ["#283c63", "#c0392b", "#e6a817", "#4a7c2f"]
     },
     {
       "slug": "gond-elephant",
@@ -163,7 +170,8 @@
       "featured": false,
       "order": 14,
       "description": "Dot-patterned elephant beneath a tree with two birds.",
-      "image": "gond-elephant.jpg"
+      "image": "gond-elephant.jpg",
+      "palette": ["#283c63", "#c0392b", "#e6a817", "#4a7c2f", "#1f1a14"]
     },
     {
       "slug": "gond-tree-of-birds",
@@ -174,7 +182,8 @@
       "featured": false,
       "order": 15,
       "description": "Striped tree with six dot-patterned birds among red leaves, in Gond technique.",
-      "image": "gond-tree-of-birds.jpg"
+      "image": "gond-tree-of-birds.jpg",
+      "palette": ["#283c63", "#c0392b", "#e6a817", "#4a7c2f"]
     },
     {
       "slug": "lotus-woman",
@@ -185,7 +194,8 @@
       "featured": false,
       "order": 16,
       "description": "Stylized woman in indigo sari with golden halo, holding lotus flowers.",
-      "image": "lotus-woman.jpg"
+      "image": "lotus-woman.jpg",
+      "palette": ["#2d3a78", "#e6a817", "#c0392b", "#f3eee4"]
     },
     {
       "slug": "holi-portrait",
@@ -196,7 +206,8 @@
       "featured": false,
       "order": 17,
       "description": "Portrait of a woman with patterned shawl, presented with a row of Holi color packets.",
-      "image": "holi-portrait.jpg"
+      "image": "holi-portrait.jpg",
+      "palette": ["#c0392b", "#6b3e5a", "#e6a817", "#1f6f8f", "#4a7c2f"]
     },
     {
       "slug": "lotus-meditation",
@@ -207,7 +218,8 @@
       "featured": false,
       "order": 18,
       "description": "Seated figure with lotus aura on a starry indigo ground.",
-      "image": "lotus-meditation.jpg"
+      "image": "lotus-meditation.jpg",
+      "palette": ["#2d3a78", "#e6a817", "#c0392b", "#f3eee4"]
     },
     {
       "slug": "couple-modern",
@@ -218,7 +230,8 @@
       "featured": false,
       "order": 19,
       "description": "Modernist study of two figures, one resting on the other's shoulder.",
-      "image": "couple-modern.jpg"
+      "image": "couple-modern.jpg",
+      "palette": ["#6b3e5a", "#c98a3b", "#1f1a14", "#f3eee4"]
     },
     {
       "slug": "red-portrait",
@@ -229,7 +242,8 @@
       "featured": false,
       "order": 20,
       "description": "Stylized portrait in red and grey with foliage backdrop and floral hair detail.",
-      "image": "red-portrait.jpg"
+      "image": "red-portrait.jpg",
+      "palette": ["#c0392b", "#4a7c2f", "#6b6357", "#f3eee4"]
     },
     {
       "slug": "framed-birds",
@@ -240,7 +254,8 @@
       "featured": false,
       "order": 21,
       "description": "Six brightly patterned birds nesting in a green tree, presented in a wooden frame.",
-      "image": "framed-birds.jpg"
+      "image": "framed-birds.jpg",
+      "palette": ["#4a7c2f", "#c0392b", "#e6a817", "#1f6f8f", "#6b3e5a"]
     }
   ]
 }

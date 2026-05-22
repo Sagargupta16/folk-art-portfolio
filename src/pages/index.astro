@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Hero from '@/components/sections/Hero.astro';
+import Marquee from '@/components/ui/Marquee.astro';
 import About from '@/components/sections/About.astro';
 import Work from '@/components/sections/Work.astro';
 import Workshops from '@/components/sections/Workshops.astro';
@@ -25,6 +26,7 @@ const jsonLd = buildHomepageGraph({ artworks, siteUrl, baseUrl });
 ---
 <BaseLayout jsonLd={jsonLd} preloadImage={preloadImage}>
   <Hero />
+  <Marquee />
   <Work />
   <About />
   <Workshops />

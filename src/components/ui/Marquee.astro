@@ -1,0 +1,66 @@
+---
+import { getCollection } from 'astro:content';
+import { type Artwork } from '@/lib/images';
+
+/* A continuously-scrolling band of artwork titles + Devanagari ornaments.
+   Sits between Hero and Work as a kinetic bridge that hints at the catalog
+   without committing to a layout. The scroll is CSS-only (animation +
+   translate); we double the track contents so the loop is seamless.
+   Pauses on hover so titles can be read. */
+const all = await getCollection('artworks');
+const titles = all
+  .map((e) => (e.data as Artwork).title)
+  .slice(0, 14);
+
+/* Devanagari interludes drawn from the Madhubani / folk vocabulary -- not
+   AI-generated, these are the same cultural-symbol words the artist already
+   uses in her practice (lotus, deer, cow, fish, peacock, tree, river). */
+const devanagari = ['कमल', 'मृग', 'गाय', 'मीन', 'मोर', 'वृक्ष', 'सरिता'];
+
+/* Interleave titles and Devanagari so the band reads like a folk-script bead. */
+const items: { text: string; lang?: string }[] = [];
+const max = Math.max(titles.length, devanagari.length);
+for (let i = 0; i < max; i++) {
+  if (titles[i]) items.push({ text: titles[i] });
+  if (devanagari[i]) items.push({ text: devanagari[i], lang: 'hi' });
+}
+---
+<aside
+  class="relative border-y border-[var(--color-line)] bg-[var(--color-bg-soft)] py-7"
+  aria-label="Featured artworks"
+>
+  <div class="marquee">
+    <div class="marquee__track" aria-hidden="false">
+      {items.map((item) => (
+        <span
+          class:list={[
+            'shrink-0 text-3xl sm:text-4xl md:text-[2.6rem]',
+            item.lang
+              ? 'font-devanagari text-[var(--color-accent)] not-italic'
+              : 't-display text-[var(--color-ink)]',
+          ]}
+          lang={item.lang}
+        >
+          {item.text}
+        </span>
+      ))}
+    </div>
+    {/* Duplicate the track so the linear -100% animation loops without a seam.
+        aria-hidden because screen readers should only read the first copy. */}
+    <div class="marquee__track" aria-hidden="true">
+      {items.map((item) => (
+        <span
+          class:list={[
+            'shrink-0 text-3xl sm:text-4xl md:text-[2.6rem]',
+            item.lang
+              ? 'font-devanagari text-[var(--color-accent)] not-italic'
+              : 't-display text-[var(--color-ink)]',
+          ]}
+          lang={item.lang}
+        >
+          {item.text}
+        </span>
+      ))}
+    </div>
+  </div>
+</aside>

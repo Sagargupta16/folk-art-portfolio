@@ -52,6 +52,18 @@ Colorful redesign. Site now leans into authentic Madhubani saturation -- ruby, m
 - **Filter pills hit 40px** ([`Work.astro`](src/components/sections/Work.astro)).
 - **Scroll-cue desktop-only.** [`motion.css`](src/styles/motion.css) `.scroll-cue` hidden under 768px -- it overlapped the artwork plate on phones and the kinetic typography is enough cue.
 
+### Minimal-motion pass
+
+Cut overlapping ambient loops so each remaining animation reads as intentional, not noise. Final motion vocabulary:
+
+- **Hero text zone:** `kinetic-shift` on the Devanagari word (slowed 12s -> 18s).
+- **Hero artwork:** `kenburns` breathe (slowed 22s -> 28s, displacement 6% -> 4%).
+- **Marquee band:** `marquee-scroll` (unchanged -- explicit feature).
+- **Hover-only:** `border-beam` rotation, card-tilt perspective lift.
+- **Event-only:** `confetti-pop` on form-submit success.
+
+Killed the always-on loops that competed with the above: aurora drift, hero-grid drift, scroll-cue pulse, hero-halo pulse, and the touch-only card-float breathe. Each killed effect is replaced with a static rendering of the same shape (aurora as still color, grid as still lattice, halo as still glow, scroll cue at fixed 0.6 opacity). Reveal-on-scroll calmed from translateY 28px / blur 10px / 850ms to 16px / 4px / 600ms; stagger steps tightened from 90ms to 60ms.
+
 ## 1.2.0 -- 2026-05-22
 
 Two-environment setup. `main` continues to ship prod at `/folk-art-portfolio/`; new `dev` branch ships a staging mirror at `/folk-art-portfolio/beta/`. Promotion flow is now `feat/<topic>` -> `dev` (auto-deploys to `/beta/`) -> `main` (auto-deploys to prod), so changes can be verified on a real URL before reaching prod.

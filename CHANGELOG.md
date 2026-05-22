@@ -39,6 +39,19 @@ Colorful redesign. Site now leans into authentic Madhubani saturation -- ruby, m
 - **OrderForm submit + celebration.** [`OrderForm.tsx`](src/components/ui/OrderForm.tsx) submit button now paints in `var(--section-accent)` (saturated vermillion, no longer flat ink). On submit, a CSS-only confetti burst of eight pigment-colored spans bursts behind the button; state resets after 1200ms so a second submit re-fires.
 - **Motion split.** [`globals.css`](src/styles/globals.css) shrunk from 559 lines to 348 by extracting all motion utilities (reveal, stagger, aurora, kinetic-devanagari, marquee, parallax-frame, hero-halo, ken-burns, plus the new card-tilt, border-beam, drop-cap, scroll-cue, hero-grid, celebrate-burst) into [`src/styles/motion.css`](src/styles/motion.css) and importing back. Keeps every source file under the 500-line ceiling.
 
+### Mobile + motion legibility pass
+
+- **2-up gallery on phones.** [`Work.astro`](src/components/sections/Work.astro) drops from a 1-column wall-of-thumbnails into `grid-cols-2` at base. Card title/style sizing tightens at small breakpoints; secondary "medium · year" line hides under `sm` so cards stay scannable in a tight 2-up.
+- **Beefier reveal motion.** `.reveal` displacement bumped from 18px to 28px and blur from 6px to 10px so BlurFade is unmistakable at thumb-distance, not just a CSS-curiosity. Stagger steps widened to 90ms so each child entry registers separately.
+- **Always-on accent ring.** [`motion.css`](src/styles/motion.css) `.border-beam` was hover-only -- mobile users (no hover) never saw it. Now every `.border-beam` card carries a quiet 1px outline tinted in the section accent at rest; the rotating conic beam sweep layers in via `::after` only on hover/focus. Mobile users see pigment, hover users see motion.
+- **Card-shadow breathe on touch.** [`motion.css`](src/styles/motion.css) on `(hover: none)`, `.card-tilt` runs a 7s shadow alternate (no transform) so cards visibly inhale/exhale without misaligning the beam ring. Even-indexed cards offset by half-period so siblings breathe out of phase.
+- **Brighter hero halo on mobile.** [`motion.css`](src/styles/motion.css) `.hero-halo::before` opacity 0.45 -> 0.6, period 8s -> 6s under `768px`. The hero-frame parallax tilt is hover-gated, so on phones the halo is the primary motion of the hero plate; this makes it visible.
+- **Form fields meet iOS / touch-target rules.** [`globals.css`](src/styles/globals.css) bumps `.field-input/.field-select/.field-textarea` to 1rem (16px, kills iOS auto-zoom on focus) and a 48px min-height. [`OrderForm.tsx`](src/components/ui/OrderForm.tsx) submit button `min-h-[48px]`, fallback email link `min-h-[44px]` -- both hit Apple HIG / Material touch-target floors.
+- **Mobile nav fits in 5.** [`Header.astro`](src/components/layout/Header.astro) swaps the horizontal-scroll mobile nav for a 2-row flex-wrap that fits all 5 nav items at 375px without sideways scroll. Each link min-height 40px for thumb comfort.
+- **Hero chip row tightens at base.** [`Hero.astro`](src/components/sections/Hero.astro) style chips drop to `text-[0.65rem]` and `px-2.5` on mobile so all 6 styles fit in two rows without wrapping awkwardly.
+- **Filter pills hit 40px** ([`Work.astro`](src/components/sections/Work.astro)).
+- **Scroll-cue desktop-only.** [`motion.css`](src/styles/motion.css) `.scroll-cue` hidden under 768px -- it overlapped the artwork plate on phones and the kinetic typography is enough cue.
+
 ## 1.2.0 -- 2026-05-22
 
 Two-environment setup. `main` continues to ship prod at `/folk-art-portfolio/`; new `dev` branch ships a staging mirror at `/folk-art-portfolio/beta/`. Promotion flow is now `feat/<topic>` -> `dev` (auto-deploys to `/beta/`) -> `main` (auto-deploys to prod), so changes can be verified on a real URL before reaching prod.

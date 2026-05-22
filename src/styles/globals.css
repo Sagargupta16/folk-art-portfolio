@@ -281,21 +281,24 @@ body {
 }
 
 /* Form controls -- shared shape for input, select, textarea so the order
-   form lines up visually instead of falling back to OS chrome. */
+   form lines up visually instead of falling back to OS chrome. iOS Safari
+   auto-zooms when an input's font-size is below 16px, so we hold at 1rem
+   (16px) to keep the page steady on focus. */
 .field-input,
 .field-select,
 .field-textarea {
   display: block;
   width: 100%;
-  padding: 0.7rem 0.9rem;
+  padding: 0.85rem 0.95rem;
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  font-size: 1rem;
   line-height: 1.4;
   color: var(--color-ink);
   background-color: var(--color-bg-soft);
   border: 1px solid var(--color-line);
   border-radius: 0;
   outline: none;
+  min-height: 48px;
   transition:
     border-color 200ms var(--ease-out-soft),
     box-shadow 200ms var(--ease-out-soft),

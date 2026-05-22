@@ -84,7 +84,7 @@ const filters = ['All', ...styles] as const;
             aria-pressed={i === 0 ? 'true' : 'false'}
             style={`--pill-accent:${pillAccent};`}
             class:list={[
-              'gallery-pill rounded-full border px-4 py-2.5 text-xs uppercase tracking-[0.16em] transition',
+              'gallery-pill min-h-[40px] rounded-full border px-4 py-2.5 text-xs uppercase tracking-[0.16em] transition',
               i === 0
                 ? 'pill-active'
                 : 'border-[var(--color-line)] text-[var(--color-muted)]',
@@ -96,7 +96,7 @@ const filters = ['All', ...styles] as const;
       })}
     </div>
 
-    <ul class="stagger grid gap-[var(--grid-gap)] sm:grid-cols-2 lg:grid-cols-3">
+    <ul class="stagger grid grid-cols-2 gap-3 sm:gap-[var(--grid-gap)] lg:grid-cols-3">
       {items.map((it) => (
         <li
           class="gallery-item reveal"
@@ -147,11 +147,11 @@ const filters = ['All', ...styles] as const;
               fallback={it.accentVar}
               ariaLabel={`Palette for ${it.title}`}
             />
-            <div class="flex items-baseline justify-between gap-3">
-              <h3 class="t-display text-xl text-[var(--color-ink)]">{it.title}</h3>
-              <span class="t-meta" style={`color:${it.accentVar};`}>{it.style}</span>
+            <div class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+              <h3 class="t-display text-base text-[var(--color-ink)] sm:text-xl">{it.title}</h3>
+              <span class="t-meta text-[0.65rem] sm:text-xs" style={`color:${it.accentVar};`}>{it.style}</span>
             </div>
-            <p class="t-meta normal-case tracking-normal text-[var(--color-muted)]">
+            <p class="t-meta hidden text-[0.7rem] normal-case tracking-normal text-[var(--color-muted)] sm:block">
               {it.medium}{it.year ? ` · ${it.year}` : ''}
             </p>
           </article>

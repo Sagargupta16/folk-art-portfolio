@@ -191,7 +191,7 @@ export default function OrderForm({
           <button
             type="submit"
             disabled={!isReady}
-            className="t-meta relative inline-flex w-full items-center justify-center gap-2 border px-6 py-3 transition disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+            className="t-meta relative inline-flex min-h-[48px] w-full items-center justify-center gap-2 border px-6 py-3.5 transition disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
             style={{
               background: 'var(--section-accent, var(--color-ink))',
               borderColor: 'var(--section-accent, var(--color-ink))',
@@ -203,7 +203,7 @@ export default function OrderForm({
         </div>
         <a
           href={buildEmailUrl(emailUrl, form)}
-          className="t-meta text-[var(--color-muted)] transition hover:text-[var(--section-accent)]"
+          className="t-meta inline-flex min-h-[44px] items-center px-2 py-2 text-[var(--color-muted)] transition hover:text-[var(--section-accent)]"
         >
           {fallbackEmailLabel}
         </a>

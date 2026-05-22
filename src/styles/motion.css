@@ -9,180 +9,289 @@
    arrived" -- not a stage entrance. Tuned so the motion registers without
    reading as theatrical. */
 .reveal {
-  opacity: 0;
-  transform: translateY(16px);
-  filter: blur(4px);
-  transition:
-    opacity 600ms var(--ease-out-soft),
-    transform 600ms var(--ease-out-soft),
-    filter 600ms var(--ease-out-soft);
-  will-change: opacity, transform, filter;
+	opacity: 0;
+	transform: translateY(16px);
+	filter: blur(4px);
+	transition:
+		opacity 600ms var(--ease-out-soft),
+		transform 600ms var(--ease-out-soft),
+		filter 600ms var(--ease-out-soft);
+	will-change: opacity, transform, filter;
 }
 .reveal.is-visible {
-  opacity: 1;
-  transform: none;
-  filter: blur(0);
+	opacity: 1;
+	transform: none;
+	filter: blur(0);
 }
 
 /* Auto-stagger: small, tight delays so a row of cards still feels like a row. */
-.stagger > .reveal:nth-child(1) { transition-delay: 0ms; }
-.stagger > .reveal:nth-child(2) { transition-delay: 60ms; }
-.stagger > .reveal:nth-child(3) { transition-delay: 120ms; }
-.stagger > .reveal:nth-child(4) { transition-delay: 180ms; }
-.stagger > .reveal:nth-child(5) { transition-delay: 240ms; }
-.stagger > .reveal:nth-child(n + 6) { transition-delay: 300ms; }
+.stagger > .reveal:nth-child(1) {
+	transition-delay: 0ms;
+}
+.stagger > .reveal:nth-child(2) {
+	transition-delay: 60ms;
+}
+.stagger > .reveal:nth-child(3) {
+	transition-delay: 120ms;
+}
+.stagger > .reveal:nth-child(4) {
+	transition-delay: 180ms;
+}
+.stagger > .reveal:nth-child(5) {
+	transition-delay: 240ms;
+}
+.stagger > .reveal:nth-child(n + 6) {
+	transition-delay: 300ms;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal { opacity: 1; transform: none; filter: none; transition: none; }
-  .stagger > .reveal { transition-delay: 0ms !important; }
+	.reveal {
+		opacity: 1;
+		transform: none;
+		filter: none;
+		transition: none;
+	}
+	.stagger > .reveal {
+		transition-delay: 0ms;
+	}
 }
 
 /* Aurora backdrop -- soft, slow-drifting color blobs behind a section. */
 .aurora {
-  position: absolute; inset: 0;
-  overflow: hidden; pointer-events: none; z-index: 0;
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 0;
 }
-.aurora::before, .aurora::after {
-  content: ''; position: absolute;
-  width: 60vmax; height: 60vmax;
-  border-radius: 50%;
-  filter: blur(80px); opacity: 0.55;
-  will-change: transform;
+.aurora::before,
+.aurora::after {
+	content: "";
+	position: absolute;
+	width: 60vmax;
+	height: 60vmax;
+	border-radius: 50%;
+	filter: blur(80px);
+	opacity: 0.55;
+	will-change: transform;
 }
 .aurora::before {
-  background: radial-gradient(circle at 30% 30%, var(--color-ruby), transparent 60%);
-  top: -20vmax; left: -20vmax;
+	background: radial-gradient(
+		circle at 30% 30%,
+		var(--color-ruby),
+		transparent 60%
+	);
+	top: -20vmax;
+	left: -20vmax;
 }
 .aurora::after {
-  background: radial-gradient(circle at 70% 70%, var(--color-marigold), transparent 55%);
-  bottom: -20vmax; right: -20vmax;
+	background: radial-gradient(
+		circle at 70% 70%,
+		var(--color-marigold),
+		transparent 55%
+	);
+	bottom: -20vmax;
+	right: -20vmax;
 }
-:root.dark .aurora::before, :root.dark .aurora::after { opacity: 0.32; }
+:root.dark .aurora::before,
+:root.dark .aurora::after {
+	opacity: 0.32;
+}
 
 /* Hero structural grid -- static. A faint lattice that grounds the hero
    composition; no autonomous drift (would compete with the kinetic word
    and the kenburns artwork). */
 .hero-grid {
-  position: absolute; inset: 0;
-  pointer-events: none; z-index: 0;
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--color-line) 60%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--color-line) 60%, transparent) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: radial-gradient(ellipse at 50% 35%, #000 25%, transparent 75%);
-  opacity: 0.55;
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 0;
+	background-image:
+		linear-gradient(
+			to right,
+			color-mix(in srgb, var(--color-line) 60%, transparent) 1px,
+			transparent 1px
+		),
+		linear-gradient(
+			to bottom,
+			color-mix(in srgb, var(--color-line) 60%, transparent) 1px,
+			transparent 1px
+		);
+	background-size: 40px 40px;
+	mask-image: radial-gradient(ellipse at 50% 35%, #000 25%, transparent 75%);
+	opacity: 0.55;
 }
-@media (min-width: 640px) { .hero-grid { background-size: 56px 56px; opacity: 0.45; } }
-:root.dark .hero-grid { opacity: 0.35; }
+@media (min-width: 640px) {
+	.hero-grid {
+		background-size: 56px 56px;
+		opacity: 0.45;
+	}
+}
+:root.dark .hero-grid {
+	opacity: 0.35;
+}
 
 /* Scroll-cue at hero base. Clickable jump to #work, with a slow vertical
    pulse so the eye notices it without it shouting. Hidden on phones where
    it would overlap the artwork plate; the kinetic typography is enough cue. */
 .scroll-cue {
-  display: none;
-  position: absolute;
-  left: 50%; bottom: 1.5rem;
-  transform: translateX(-50%);
-  z-index: 5;
-  gap: 0.4rem;
-  color: var(--color-muted);
-  text-decoration: none;
-  transition: color 200ms var(--ease-out-soft);
+	display: none;
+	position: absolute;
+	left: 50%;
+	bottom: 1.5rem;
+	transform: translateX(-50%);
+	z-index: 5;
+	gap: 0.4rem;
+	color: var(--color-muted);
+	text-decoration: none;
+	transition: color 200ms var(--ease-out-soft);
 }
 @media (min-width: 768px) {
-  .scroll-cue { display: grid; }
+	.scroll-cue {
+		display: grid;
+	}
 }
-.scroll-cue:hover { color: var(--color-accent); }
+.scroll-cue:hover {
+	color: var(--color-accent);
+}
 .scroll-cue__line {
-  display: block;
-  width: 1px; height: 36px;
-  margin-inline: auto;
-  background: linear-gradient(to bottom, currentColor, transparent);
-  opacity: 0.6;
+	display: block;
+	width: 1px;
+	height: 36px;
+	margin-inline: auto;
+	background: linear-gradient(to bottom, currentColor, transparent);
+	opacity: 0.6;
 }
 
 /* Kinetic Devanagari -- gradient breathing through ruby/marigold/peacock.
    The single statement-piece motion in the hero text zone. Slow enough to
    read as ambient, not flickery. */
 .kinetic-devanagari {
-  display: inline-block;
-  background: linear-gradient(
-    120deg,
-    var(--color-ruby), var(--color-marigold), var(--color-peacock), var(--color-ruby)
-  );
-  background-size: 300% 300%;
-  -webkit-background-clip: text; background-clip: text;
-  color: transparent;
-  animation: kinetic-shift 18s ease-in-out infinite;
-  will-change: background-position;
+	display: inline-block;
+	background: linear-gradient(
+		120deg,
+		var(--color-ruby),
+		var(--color-marigold),
+		var(--color-peacock),
+		var(--color-ruby)
+	);
+	background-size: 300% 300%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	animation: kinetic-shift 18s ease-in-out infinite;
+	will-change: background-position;
 }
 @keyframes kinetic-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50%      { background-position: 100% 50%; }
+	0%,
+	100% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
 }
 @media (prefers-reduced-motion: reduce) {
-  .kinetic-devanagari { animation: none; background-position: 0% 50%; }
+	.kinetic-devanagari {
+		animation: none;
+		background-position: 0% 50%;
+	}
 }
 
 /* Marquee -- transform animation, pauses on hover, masked edges. */
 .marquee {
-  display: flex; overflow: hidden;
-  user-select: none; gap: 3rem;
-  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+	display: flex;
+	overflow: hidden;
+	user-select: none;
+	gap: 3rem;
+	mask-image: linear-gradient(
+		90deg,
+		transparent,
+		#000 10%,
+		#000 90%,
+		transparent
+	);
 }
 .marquee__track {
-  display: flex; flex-shrink: 0; gap: 3rem;
-  animation: marquee-scroll 38s linear infinite;
-  will-change: transform;
+	display: flex;
+	flex-shrink: 0;
+	gap: 3rem;
+	animation: marquee-scroll 38s linear infinite;
+	will-change: transform;
 }
-.marquee:hover .marquee__track { animation-play-state: paused; }
+.marquee:hover .marquee__track {
+	animation-play-state: paused;
+}
 @keyframes marquee-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-100%); }
+	from {
+		transform: translateX(0);
+	}
+	to {
+		transform: translateX(-100%);
+	}
 }
 @media (prefers-reduced-motion: reduce) {
-  .marquee__track { animation: none; }
+	.marquee__track {
+		animation: none;
+	}
 }
 
 /* Hero parallax frame -- user-driven tilt only, no autonomous animation. */
 .parallax-frame {
-  transform-style: preserve-3d;
-  will-change: transform;
-  transition: transform 220ms var(--ease-out-soft);
+	transform-style: preserve-3d;
+	will-change: transform;
+	transition: transform 220ms var(--ease-out-soft);
 }
 
 /* Hero halo -- static saturated glow sampled from the featured palette via
    --hero-halo. No autonomous pulse; the kenburns inside the frame is the
    only motion in the hero artwork zone. */
-.hero-halo { position: relative; isolation: isolate; }
+.hero-halo {
+	position: relative;
+	isolation: isolate;
+}
 .hero-halo::before {
-  content: ''; position: absolute; inset: -1.5rem;
-  z-index: -1;
-  background: radial-gradient(
-    circle at 50% 55%,
-    var(--hero-halo, var(--color-accent)), transparent 65%
-  );
-  filter: blur(48px); opacity: 0.55;
-  pointer-events: none;
+	content: "";
+	position: absolute;
+	inset: -1.5rem;
+	z-index: -1;
+	background: radial-gradient(
+		circle at 50% 55%,
+		var(--hero-halo, var(--color-accent)),
+		transparent 65%
+	);
+	filter: blur(48px);
+	opacity: 0.55;
+	pointer-events: none;
 }
 @media (min-width: 768px) {
-  .hero-halo::before { opacity: 0.42; }
+	.hero-halo::before {
+		opacity: 0.42;
+	}
 }
-:root.dark .hero-halo::before { opacity: 0.4; }
+:root.dark .hero-halo::before {
+	opacity: 0.4;
+}
 
 /* Hero artwork -- a single, slow breathe. This is the one statement
    motion in the hero zone; everything else around it is static. */
 .motion-kenburns {
-  animation: kenburns 28s ease-in-out infinite alternate;
-  will-change: transform;
-  transform-origin: 50% 50%;
+	animation: kenburns 28s ease-in-out infinite alternate;
+	will-change: transform;
+	transform-origin: 50% 50%;
 }
 @keyframes kenburns {
-  from { transform: scale(1); }
-  to   { transform: scale(1.04); }
+	from {
+		transform: scale(1);
+	}
+	to {
+		transform: scale(1.04);
+	}
 }
 @media (prefers-reduced-motion: reduce) {
-  .motion-kenburns { animation: none; }
+	.motion-kenburns {
+		animation: none;
+	}
 }
 
 /* Card resting state -- static accent shadow that uses the section pigment.
@@ -190,7 +299,12 @@
    surface, the way Apple HIG and NN/g recommend for content cards. The
    pigment identity comes from the always-on .border-beam::before ring. */
 .card-tilt {
-  box-shadow: 0 12px 28px -22px color-mix(in srgb, var(--section-accent, var(--color-accent)) 55%, transparent);
+	box-shadow: 0 12px 28px -22px
+		color-mix(
+			in srgb,
+			var(--section-accent, var(--color-accent)) 55%,
+			transparent
+		);
 }
 
 /* Border-beam -- always-on accent ring. Every card carries its section
@@ -198,302 +312,488 @@
    rest. The earlier rotating-conic ::after sweep was hover-only -- now
    removed for parity across pointer + touch input. */
 .border-beam {
-  position: relative;
-  isolation: isolate;
+	position: relative;
+	isolation: isolate;
 }
 .border-beam::before {
-  content: ''; position: absolute; inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  border: 1px solid color-mix(in srgb, var(--section-accent, var(--color-accent)) 55%, transparent);
-  pointer-events: none;
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	border-radius: inherit;
+	border: 1px solid
+		color-mix(
+			in srgb,
+			var(--section-accent, var(--color-accent)) 55%,
+			transparent
+		);
+	pointer-events: none;
 }
 
 /* Drop-cap for editorial paragraphs (About). */
 .drop-cap::first-letter {
-  font-family: var(--font-display);
-  font-style: italic;
-  float: left;
-  font-size: 3.4rem;
-  line-height: 0.9;
-  padding: 0.35rem 0.6rem 0 0;
-  color: var(--section-accent, var(--color-accent));
+	font-family: var(--font-display);
+	font-style: italic;
+	float: left;
+	font-size: 3.4rem;
+	line-height: 0.9;
+	padding: 0.35rem 0.6rem 0 0;
+	color: var(--section-accent, var(--color-accent));
 }
 
 /* Confetti palette burst -- triggered by adding .is-celebrating to the
    form. Eight tiny squares animate outward + fade. Pure CSS, ~600ms. */
 .celebrate-burst {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: visible;
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	overflow: visible;
 }
 .celebrate-burst > span {
-  position: absolute;
-  left: 50%; top: 50%;
-  width: 8px; height: 8px;
-  border-radius: 1px;
-  opacity: 0;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 8px;
+	height: 8px;
+	border-radius: 1px;
+	opacity: 0;
 }
 .is-celebrating .celebrate-burst > span {
-  animation: confetti-pop 700ms var(--ease-out-soft) forwards;
+	animation: confetti-pop 700ms var(--ease-out-soft) forwards;
 }
-.celebrate-burst > span:nth-child(1) { background: var(--color-ruby);       --cx:  -90px; --cy: -50px; animation-delay: 0ms;  }
-.celebrate-burst > span:nth-child(2) { background: var(--color-marigold);   --cx:   80px; --cy: -70px; animation-delay: 40ms; }
-.celebrate-burst > span:nth-child(3) { background: var(--color-peacock);    --cx: -120px; --cy:  20px; animation-delay: 80ms; }
-.celebrate-burst > span:nth-child(4) { background: var(--color-indigo);     --cx:  130px; --cy:  10px; animation-delay: 60ms; }
-.celebrate-burst > span:nth-child(5) { background: var(--color-vermillion); --cx:  -40px; --cy:  90px; animation-delay: 30ms; }
-.celebrate-burst > span:nth-child(6) { background: var(--color-neem);       --cx:   60px; --cy:  90px; animation-delay: 70ms; }
-.celebrate-burst > span:nth-child(7) { background: var(--color-ochre);      --cx: -150px; --cy: -90px; animation-delay: 20ms; }
-.celebrate-burst > span:nth-child(8) { background: var(--color-plum);       --cx:  150px; --cy: -90px; animation-delay: 90ms; }
+.celebrate-burst > span:nth-child(1) {
+	background: var(--color-ruby);
+	--cx: -90px;
+	--cy: -50px;
+	animation-delay: 0ms;
+}
+.celebrate-burst > span:nth-child(2) {
+	background: var(--color-marigold);
+	--cx: 80px;
+	--cy: -70px;
+	animation-delay: 40ms;
+}
+.celebrate-burst > span:nth-child(3) {
+	background: var(--color-peacock);
+	--cx: -120px;
+	--cy: 20px;
+	animation-delay: 80ms;
+}
+.celebrate-burst > span:nth-child(4) {
+	background: var(--color-indigo);
+	--cx: 130px;
+	--cy: 10px;
+	animation-delay: 60ms;
+}
+.celebrate-burst > span:nth-child(5) {
+	background: var(--color-vermillion);
+	--cx: -40px;
+	--cy: 90px;
+	animation-delay: 30ms;
+}
+.celebrate-burst > span:nth-child(6) {
+	background: var(--color-neem);
+	--cx: 60px;
+	--cy: 90px;
+	animation-delay: 70ms;
+}
+.celebrate-burst > span:nth-child(7) {
+	background: var(--color-ochre);
+	--cx: -150px;
+	--cy: -90px;
+	animation-delay: 20ms;
+}
+.celebrate-burst > span:nth-child(8) {
+	background: var(--color-plum);
+	--cx: 150px;
+	--cy: -90px;
+	animation-delay: 90ms;
+}
 @keyframes confetti-pop {
-  0%   { transform: translate(-50%, -50%) scale(0.5);                        opacity: 0; }
-  10%  { opacity: 1; }
-  100% { transform: translate(calc(-50% + var(--cx)), calc(-50% + var(--cy))) scale(1) rotate(180deg); opacity: 0; }
+	0% {
+		transform: translate(-50%, -50%) scale(0.5);
+		opacity: 0;
+	}
+	10% {
+		opacity: 1;
+	}
+	100% {
+		transform: translate(calc(-50% + var(--cx)), calc(-50% + var(--cy)))
+			scale(1) rotate(180deg);
+		opacity: 0;
+	}
 }
 @media (prefers-reduced-motion: reduce) {
-  .is-celebrating .celebrate-burst > span { animation: none; }
+	.is-celebrating .celebrate-burst > span {
+		animation: none;
+	}
 }
 
 /* 3D card tilt -- activated via JS on hover. The card receives inline
    --rx/--ry from the mouse handler; CSS applies the transform. */
 .tilt-3d {
-  transform-style: preserve-3d;
-  transition: transform 200ms var(--ease-out-soft), box-shadow 300ms var(--ease-out-soft);
+	transform-style: preserve-3d;
+	transition:
+		transform 200ms var(--ease-out-soft),
+		box-shadow 300ms var(--ease-out-soft);
 }
 .tilt-3d:hover {
-  box-shadow:
-    0 25px 50px -20px color-mix(in srgb, var(--card-accent, var(--color-accent)) 40%, transparent),
-    0 8px 16px -8px rgba(0, 0, 0, 0.12);
+	box-shadow:
+		0 25px 50px -20px
+		color-mix(in srgb, var(--card-accent, var(--color-accent)) 40%, transparent),
+		0 8px 16px -8px rgba(0, 0, 0, 0.12);
 }
 
 /* Mesh gradient backdrop -- organic, slowly morphing color blobs.
    Uses three layered radial gradients that drift on independent timelines
    creating a living-color effect behind content sections. */
 .mesh-bg {
-  position: absolute; inset: 0;
-  overflow: hidden; pointer-events: none; z-index: 0;
-  opacity: 0.4;
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 0;
+	opacity: 0.4;
 }
-.mesh-bg::before, .mesh-bg::after {
-  content: ''; position: absolute;
-  width: 80vmax; height: 80vmax;
-  border-radius: 40% 60% 55% 45% / 55% 45% 60% 40%;
-  filter: blur(100px);
-  will-change: transform;
-  animation: mesh-drift 24s ease-in-out infinite alternate;
+.mesh-bg::before,
+.mesh-bg::after {
+	content: "";
+	position: absolute;
+	width: 80vmax;
+	height: 80vmax;
+	border-radius: 40% 60% 55% 45% / 55% 45% 60% 40%;
+	filter: blur(100px);
+	will-change: transform;
+	animation: mesh-drift 24s ease-in-out infinite alternate;
 }
 .mesh-bg::before {
-  background: radial-gradient(circle, var(--color-peacock), transparent 65%);
-  top: -30vmax; right: -20vmax;
-  animation-delay: -8s;
+	background: radial-gradient(circle, var(--color-peacock), transparent 65%);
+	top: -30vmax;
+	right: -20vmax;
+	animation-delay: -8s;
 }
 .mesh-bg::after {
-  background: radial-gradient(circle, var(--color-marigold), transparent 60%);
-  bottom: -30vmax; left: -20vmax;
-  animation-delay: -16s;
+	background: radial-gradient(circle, var(--color-marigold), transparent 60%);
+	bottom: -30vmax;
+	left: -20vmax;
+	animation-delay: -16s;
 }
 .mesh-bg > .mesh-blob {
-  position: absolute;
-  width: 60vmax; height: 60vmax;
-  border-radius: 50% 40% 60% 50% / 45% 55% 45% 55%;
-  background: radial-gradient(circle, var(--color-ruby), transparent 55%);
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  filter: blur(90px);
-  animation: mesh-drift 30s ease-in-out infinite alternate-reverse;
-  animation-delay: -4s;
+	position: absolute;
+	width: 60vmax;
+	height: 60vmax;
+	border-radius: 50% 40% 60% 50% / 45% 55% 45% 55%;
+	background: radial-gradient(circle, var(--color-ruby), transparent 55%);
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	filter: blur(90px);
+	animation: mesh-drift 30s ease-in-out infinite alternate-reverse;
+	animation-delay: -4s;
 }
 @keyframes mesh-drift {
-  0%   { transform: translate(0, 0) rotate(0deg) scale(1); }
-  33%  { transform: translate(5vmax, -3vmax) rotate(15deg) scale(1.05); }
-  66%  { transform: translate(-3vmax, 5vmax) rotate(-10deg) scale(0.95); }
-  100% { transform: translate(2vmax, 2vmax) rotate(8deg) scale(1.02); }
+	0% {
+		transform: translate(0, 0) rotate(0deg) scale(1);
+	}
+	33% {
+		transform: translate(5vmax, -3vmax) rotate(15deg) scale(1.05);
+	}
+	66% {
+		transform: translate(-3vmax, 5vmax) rotate(-10deg) scale(0.95);
+	}
+	100% {
+		transform: translate(2vmax, 2vmax) rotate(8deg) scale(1.02);
+	}
 }
-:root.dark .mesh-bg { opacity: 0.25; }
+:root.dark .mesh-bg {
+	opacity: 0.25;
+}
 @media (prefers-reduced-motion: reduce) {
-  .mesh-bg::before, .mesh-bg::after, .mesh-bg > .mesh-blob { animation: none; }
+	.mesh-bg::before,
+	.mesh-bg::after,
+	.mesh-bg > .mesh-blob {
+		animation: none;
+	}
 }
 
 /* Floating folk-art shapes -- small geometric motifs drifting slowly.
    Each shape is a span positioned absolutely, animated on its own timeline.
    They add depth parallax when combined with scroll. */
 .float-shapes {
-  position: absolute; inset: 0;
-  overflow: hidden; pointer-events: none; z-index: 1;
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 1;
 }
 .float-shapes > span {
-  position: absolute;
-  display: block;
-  border: 1.5px solid;
-  opacity: 0.3;
-  will-change: transform;
-  animation: shape-float 20s ease-in-out infinite;
+	position: absolute;
+	display: block;
+	border: 1.5px solid;
+	opacity: 0.3;
+	will-change: transform;
+	animation: shape-float 20s ease-in-out infinite;
 }
 .float-shapes > span:nth-child(1) {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  border-color: var(--color-ruby);
-  top: 15%; left: 8%;
-  animation-duration: 22s;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	border-color: var(--color-ruby);
+	top: 15%;
+	left: 8%;
+	animation-duration: 22s;
 }
 .float-shapes > span:nth-child(2) {
-  width: 24px; height: 24px;
-  border-color: var(--color-marigold);
-  top: 25%; right: 12%;
-  animation-duration: 18s;
-  animation-delay: -5s;
-  transform: rotate(45deg);
+	width: 24px;
+	height: 24px;
+	border-color: var(--color-marigold);
+	top: 25%;
+	right: 12%;
+	animation-duration: 18s;
+	animation-delay: -5s;
+	transform: rotate(45deg);
 }
 .float-shapes > span:nth-child(3) {
-  width: 32px; height: 32px;
-  border-radius: 50% 0;
-  border-color: var(--color-peacock);
-  bottom: 30%; left: 15%;
-  animation-duration: 25s;
-  animation-delay: -10s;
+	width: 32px;
+	height: 32px;
+	border-radius: 50% 0;
+	border-color: var(--color-peacock);
+	bottom: 30%;
+	left: 15%;
+	animation-duration: 25s;
+	animation-delay: -10s;
 }
 .float-shapes > span:nth-child(4) {
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  border-color: var(--color-indigo);
-  top: 60%; right: 20%;
-  animation-duration: 20s;
-  animation-delay: -3s;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border-color: var(--color-indigo);
+	top: 60%;
+	right: 20%;
+	animation-duration: 20s;
+	animation-delay: -3s;
 }
 .float-shapes > span:nth-child(5) {
-  width: 28px; height: 28px;
-  border-color: var(--color-neem);
-  bottom: 15%; right: 8%;
-  animation-duration: 26s;
-  animation-delay: -12s;
-  transform: rotate(30deg);
+	width: 28px;
+	height: 28px;
+	border-color: var(--color-neem);
+	bottom: 15%;
+	right: 8%;
+	animation-duration: 26s;
+	animation-delay: -12s;
+	transform: rotate(30deg);
 }
 .float-shapes > span:nth-child(6) {
-  width: 18px; height: 18px;
-  border-radius: 50% 50% 0;
-  border-color: var(--color-vermillion);
-  top: 45%; left: 5%;
-  animation-duration: 19s;
-  animation-delay: -7s;
+	width: 18px;
+	height: 18px;
+	border-radius: 50% 50% 0;
+	border-color: var(--color-vermillion);
+	top: 45%;
+	left: 5%;
+	animation-duration: 19s;
+	animation-delay: -7s;
 }
 @keyframes shape-float {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25%  { transform: translateY(-20px) rotate(5deg); }
-  50%  { transform: translateY(-8px) rotate(-3deg); }
-  75%  { transform: translateY(-25px) rotate(4deg); }
+	0%,
+	100% {
+		transform: translateY(0) rotate(0deg);
+	}
+	25% {
+		transform: translateY(-20px) rotate(5deg);
+	}
+	50% {
+		transform: translateY(-8px) rotate(-3deg);
+	}
+	75% {
+		transform: translateY(-25px) rotate(4deg);
+	}
 }
-:root.dark .float-shapes > span { opacity: 0.2; }
+:root.dark .float-shapes > span {
+	opacity: 0.2;
+}
 @media (prefers-reduced-motion: reduce) {
-  .float-shapes > span { animation: none; }
+	.float-shapes > span {
+		animation: none;
+	}
 }
 
 /* Scroll-driven depth -- elements with data-depth shift vertically
    proportional to scroll, creating a parallax layer stack. Applied via JS. */
 .depth-layer {
-  will-change: transform;
-  transition: transform 100ms linear;
+	will-change: transform;
+	transition: transform 100ms linear;
 }
 
 /* 3D rotating lattice -- a cube wireframe that slowly revolves.
    Built from six faces positioned with translateZ, creates an ambient
    rotating geometry in the background. */
 .lattice-3d {
-  position: absolute; inset: 0;
-  pointer-events: none; z-index: 0;
-  perspective: 1200px;
-  overflow: hidden;
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 0;
+	perspective: 1200px;
+	overflow: hidden;
 }
 .lattice-3d__cube {
-  position: absolute;
-  width: 280px; height: 280px;
-  top: 50%; left: 50%;
-  transform-style: preserve-3d;
-  animation: lattice-spin 40s linear infinite;
+	position: absolute;
+	width: 280px;
+	height: 280px;
+	top: 50%;
+	left: 50%;
+	transform-style: preserve-3d;
+	animation: lattice-spin 40s linear infinite;
 }
 .lattice-3d__cube--sm {
-  width: 160px; height: 160px;
-  animation-duration: 55s;
-  animation-direction: reverse;
+	width: 160px;
+	height: 160px;
+	animation-duration: 55s;
+	animation-direction: reverse;
 }
 .lattice-3d__cube--lg {
-  width: 400px; height: 400px;
-  animation-duration: 70s;
+	width: 400px;
+	height: 400px;
+	animation-duration: 70s;
 }
 .lattice-3d__face {
-  position: absolute; inset: 0;
-  border: 1px solid;
-  border-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
-  border-radius: 2px;
+	position: absolute;
+	inset: 0;
+	border: 1px solid;
+	border-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
+	border-radius: 2px;
 }
-.lattice-3d__face:nth-child(1) { transform: translateZ(140px); }
-.lattice-3d__face:nth-child(2) { transform: translateZ(-140px); }
-.lattice-3d__face:nth-child(3) { transform: rotateY(90deg) translateZ(140px); }
-.lattice-3d__face:nth-child(4) { transform: rotateY(90deg) translateZ(-140px); }
-.lattice-3d__face:nth-child(5) { transform: rotateX(90deg) translateZ(140px); }
-.lattice-3d__face:nth-child(6) { transform: rotateX(90deg) translateZ(-140px); }
+.lattice-3d__face:nth-child(1) {
+	transform: translateZ(140px);
+}
+.lattice-3d__face:nth-child(2) {
+	transform: translateZ(-140px);
+}
+.lattice-3d__face:nth-child(3) {
+	transform: rotateY(90deg) translateZ(140px);
+}
+.lattice-3d__face:nth-child(4) {
+	transform: rotateY(90deg) translateZ(-140px);
+}
+.lattice-3d__face:nth-child(5) {
+	transform: rotateX(90deg) translateZ(140px);
+}
+.lattice-3d__face:nth-child(6) {
+	transform: rotateX(90deg) translateZ(-140px);
+}
 
-.lattice-3d__cube--sm .lattice-3d__face:nth-child(1) { transform: translateZ(80px); }
-.lattice-3d__cube--sm .lattice-3d__face:nth-child(2) { transform: translateZ(-80px); }
-.lattice-3d__cube--sm .lattice-3d__face:nth-child(3) { transform: rotateY(90deg) translateZ(80px); }
-.lattice-3d__cube--sm .lattice-3d__face:nth-child(4) { transform: rotateY(90deg) translateZ(-80px); }
-.lattice-3d__cube--sm .lattice-3d__face:nth-child(5) { transform: rotateX(90deg) translateZ(80px); }
-.lattice-3d__cube--sm .lattice-3d__face:nth-child(6) { transform: rotateX(90deg) translateZ(-80px); }
+.lattice-3d__cube--sm .lattice-3d__face:nth-child(1) {
+	transform: translateZ(80px);
+}
+.lattice-3d__cube--sm .lattice-3d__face:nth-child(2) {
+	transform: translateZ(-80px);
+}
+.lattice-3d__cube--sm .lattice-3d__face:nth-child(3) {
+	transform: rotateY(90deg) translateZ(80px);
+}
+.lattice-3d__cube--sm .lattice-3d__face:nth-child(4) {
+	transform: rotateY(90deg) translateZ(-80px);
+}
+.lattice-3d__cube--sm .lattice-3d__face:nth-child(5) {
+	transform: rotateX(90deg) translateZ(80px);
+}
+.lattice-3d__cube--sm .lattice-3d__face:nth-child(6) {
+	transform: rotateX(90deg) translateZ(-80px);
+}
 
-.lattice-3d__cube--lg .lattice-3d__face:nth-child(1) { transform: translateZ(200px); }
-.lattice-3d__cube--lg .lattice-3d__face:nth-child(2) { transform: translateZ(-200px); }
-.lattice-3d__cube--lg .lattice-3d__face:nth-child(3) { transform: rotateY(90deg) translateZ(200px); }
-.lattice-3d__cube--lg .lattice-3d__face:nth-child(4) { transform: rotateY(90deg) translateZ(-200px); }
-.lattice-3d__cube--lg .lattice-3d__face:nth-child(5) { transform: rotateX(90deg) translateZ(200px); }
-.lattice-3d__cube--lg .lattice-3d__face:nth-child(6) { transform: rotateX(90deg) translateZ(-200px); }
+.lattice-3d__cube--lg .lattice-3d__face:nth-child(1) {
+	transform: translateZ(200px);
+}
+.lattice-3d__cube--lg .lattice-3d__face:nth-child(2) {
+	transform: translateZ(-200px);
+}
+.lattice-3d__cube--lg .lattice-3d__face:nth-child(3) {
+	transform: rotateY(90deg) translateZ(200px);
+}
+.lattice-3d__cube--lg .lattice-3d__face:nth-child(4) {
+	transform: rotateY(90deg) translateZ(-200px);
+}
+.lattice-3d__cube--lg .lattice-3d__face:nth-child(5) {
+	transform: rotateX(90deg) translateZ(200px);
+}
+.lattice-3d__cube--lg .lattice-3d__face:nth-child(6) {
+	transform: rotateX(90deg) translateZ(-200px);
+}
 
 @keyframes lattice-spin {
-  from { transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
-  to   { transform: translate(-50%, -50%) rotateX(360deg) rotateY(180deg) rotateZ(90deg); }
+	from {
+		transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+	}
+	to {
+		transform: translate(-50%, -50%) rotateX(360deg) rotateY(180deg)
+			rotateZ(90deg);
+	}
 }
 :root.dark .lattice-3d__face {
-  border-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+	border-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 @media (prefers-reduced-motion: reduce) {
-  .lattice-3d__cube, .lattice-3d__cube--sm, .lattice-3d__cube--lg { animation: none; }
+	.lattice-3d__cube,
+	.lattice-3d__cube--sm,
+	.lattice-3d__cube--lg {
+		animation: none;
+	}
 }
 
 /* 3D orbiting ring -- a circular path with dots orbiting around it. */
 .orbit-ring {
-  position: absolute;
-  pointer-events: none;
-  width: 300px; height: 300px;
-  border: 1px solid color-mix(in srgb, var(--color-peacock) 25%, transparent);
-  border-radius: 50%;
-  transform-style: preserve-3d;
-  animation: orbit-tilt 30s ease-in-out infinite;
+	position: absolute;
+	pointer-events: none;
+	width: 300px;
+	height: 300px;
+	border: 1px solid color-mix(in srgb, var(--color-peacock) 25%, transparent);
+	border-radius: 50%;
+	transform-style: preserve-3d;
+	animation: orbit-tilt 30s ease-in-out infinite;
 }
-.orbit-ring::before, .orbit-ring::after {
-  content: '';
-  position: absolute;
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  top: -4px; left: 50%;
-  animation: orbit-dot 8s linear infinite;
+.orbit-ring::before,
+.orbit-ring::after {
+	content: "";
+	position: absolute;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	top: -4px;
+	left: 50%;
+	animation: orbit-dot 8s linear infinite;
 }
 .orbit-ring::before {
-  background: var(--color-ruby);
-  opacity: 0.6;
+	background: var(--color-ruby);
+	opacity: 0.6;
 }
 .orbit-ring::after {
-  background: var(--color-marigold);
-  opacity: 0.5;
-  animation-delay: -4s;
+	background: var(--color-marigold);
+	opacity: 0.5;
+	animation-delay: -4s;
 }
 @keyframes orbit-tilt {
-  0%, 100% { transform: rotateX(60deg) rotateZ(0deg); }
-  50%      { transform: rotateX(70deg) rotateZ(180deg); }
+	0%,
+	100% {
+		transform: rotateX(60deg) rotateZ(0deg);
+	}
+	50% {
+		transform: rotateX(70deg) rotateZ(180deg);
+	}
 }
 @keyframes orbit-dot {
-  from { transform: rotate(0deg) translateX(150px) rotate(0deg); }
-  to   { transform: rotate(360deg) translateX(150px) rotate(-360deg); }
+	from {
+		transform: rotate(0deg) translateX(150px) rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg) translateX(150px) rotate(-360deg);
+	}
 }
-:root.dark .orbit-ring { border-color: color-mix(in srgb, var(--color-peacock) 15%, transparent); }
+:root.dark .orbit-ring {
+	border-color: color-mix(in srgb, var(--color-peacock) 15%, transparent);
+}
 @media (prefers-reduced-motion: reduce) {
-  .orbit-ring, .orbit-ring::before, .orbit-ring::after { animation: none; }
+	.orbit-ring,
+	.orbit-ring::before,
+	.orbit-ring::after {
+		animation: none;
+	}
 }

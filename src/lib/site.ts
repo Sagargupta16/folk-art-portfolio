@@ -1,4 +1,4 @@
-import siteData from '@/data/site.json';
+import siteData from "@/data/site.json";
 
 export type ArtStyle = (typeof siteData.styles)[number];
 

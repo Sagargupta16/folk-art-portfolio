@@ -7,6 +7,9 @@
 @import '@fontsource-variable/inter/index.css';
 @import '@fontsource/tiro-devanagari-hindi/400.css';
 
+/* Motion + visual-effect utilities live here -- keeps globals.css under the 500-line ceiling. */
+@import './motion.css';
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -206,50 +209,9 @@ body {
   opacity: 1;
 }
 
-/* Reveal on scroll -- BlurFade variant.
-   Adds a subtle blur(6px) on entry that resolves to 0, alongside the existing
-   opacity + translateY. Mimics Magic UI's BlurFade without an island JS cost.
-   Honors prefers-reduced-motion below. */
-.reveal {
-  opacity: 0;
-  transform: translateY(18px);
-  filter: blur(6px);
-  transition:
-    opacity 700ms var(--ease-out-soft),
-    transform 700ms var(--ease-out-soft),
-    filter 700ms var(--ease-out-soft);
-  will-change: opacity, transform, filter;
-}
-.reveal.is-visible {
-  opacity: 1;
-  transform: none;
-  filter: blur(0);
-}
-
-/* Auto-stagger: when several .reveal elements are siblings, each one waits a bit longer.
-   Avoids hand-coding inline transition-delay on every node. Caps at 8 to keep timing tight. */
-.stagger > .reveal:nth-child(1) { transition-delay: 0ms; }
-.stagger > .reveal:nth-child(2) { transition-delay: 80ms; }
-.stagger > .reveal:nth-child(3) { transition-delay: 160ms; }
-.stagger > .reveal:nth-child(4) { transition-delay: 240ms; }
-.stagger > .reveal:nth-child(5) { transition-delay: 320ms; }
-.stagger > .reveal:nth-child(6) { transition-delay: 380ms; }
-.stagger > .reveal:nth-child(7) { transition-delay: 440ms; }
-.stagger > .reveal:nth-child(n + 8) { transition-delay: 500ms; }
-
+/* Reduced-motion: also flatten scroll-behavior. (Reveal/stagger rules live in motion.css.) */
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
-    opacity: 1;
-    transform: none;
-    filter: none;
-    transition: none;
-  }
-  .stagger > .reveal {
-    transition-delay: 0ms !important;
-  }
-  html {
-    scroll-behavior: auto;
-  }
+  html { scroll-behavior: auto; }
 }
 
 /* Section accent system.
@@ -285,184 +247,11 @@ body {
   .section h2.t-display::after { animation: none; }
 }
 
-/* Aurora backdrop -- soft, slow-drifting color blobs behind a section.
-   Built from the saturated palette via gradients + filter blur, so it ships
-   with zero JS. Use sparingly: hero + at most one other section. */
-.aurora {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-}
-.aurora::before,
-.aurora::after {
-  content: '';
-  position: absolute;
-  width: 60vmax;
-  height: 60vmax;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.55;
-  will-change: transform;
-}
-.aurora::before {
-  background: radial-gradient(circle at 30% 30%, var(--color-ruby), transparent 60%);
-  top: -20vmax;
-  left: -20vmax;
-  animation: aurora-drift-a 28s ease-in-out infinite alternate;
-}
-.aurora::after {
-  background: radial-gradient(circle at 70% 70%, var(--color-marigold), transparent 55%);
-  bottom: -20vmax;
-  right: -20vmax;
-  animation: aurora-drift-b 34s ease-in-out infinite alternate;
-}
-:root.dark .aurora::before,
-:root.dark .aurora::after {
-  opacity: 0.32;
-}
-@keyframes aurora-drift-a {
-  from { transform: translate(0, 0) rotate(0deg); }
-  to   { transform: translate(8vmax, 6vmax) rotate(40deg); }
-}
-@keyframes aurora-drift-b {
-  from { transform: translate(0, 0) rotate(0deg); }
-  to   { transform: translate(-7vmax, -8vmax) rotate(-35deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .aurora::before,
-  .aurora::after { animation: none; }
-}
-
-/* Kinetic Devanagari -- a slow, gentle breathing on the accent character in the
-   hero. Color shifts subtly through a Madhubani triad. Distinct from the
-   structural italic display family so it reads as ornamental, not unstable. */
-.kinetic-devanagari {
-  display: inline-block;
-  background: linear-gradient(
-    120deg,
-    var(--color-ruby),
-    var(--color-marigold),
-    var(--color-peacock),
-    var(--color-ruby)
-  );
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: kinetic-shift 12s ease-in-out infinite;
-  will-change: background-position;
-}
-@keyframes kinetic-shift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .kinetic-devanagari {
-    animation: none;
-    background-position: 0% 50%;
-  }
-}
-
-/* Marquee (CSS-only, used between sections for artwork titles + Devanagari).
-   Pure transform animation -- no React, no JS. Pauses on hover so people can read. */
-.marquee {
-  display: flex;
-  overflow: hidden;
-  user-select: none;
-  gap: 3rem;
-  mask-image: linear-gradient(
-    90deg,
-    transparent,
-    #000 10%,
-    #000 90%,
-    transparent
-  );
-}
-.marquee__track {
-  display: flex;
-  flex-shrink: 0;
-  gap: 3rem;
-  animation: marquee-scroll 38s linear infinite;
-  will-change: transform;
-}
-.marquee:hover .marquee__track {
-  animation-play-state: paused;
-}
-@keyframes marquee-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-100%); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .marquee__track { animation: none; }
-}
-
 /* Touch / coarse-pointer: reveal hover-only overlays so they're usable on tap. */
 @media (hover: none) {
   .touch-show {
     opacity: 1 !important;
     transform: none !important;
-  }
-}
-
-/* Hero parallax frame -- user-driven tilt only, no autonomous animation. */
-.parallax-frame {
-  transform-style: preserve-3d;
-  will-change: transform;
-  transition: transform 220ms var(--ease-out-soft);
-}
-
-/* Hero halo -- a saturated glow drawn from the featured artwork's first palette
-   swatch (set inline as --hero-halo). Sits behind the parallax frame so it
-   reads as the painting's own light spilling out. */
-.hero-halo {
-  position: relative;
-  isolation: isolate;
-}
-.hero-halo::before {
-  content: '';
-  position: absolute;
-  inset: -1.5rem;
-  z-index: -1;
-  background: radial-gradient(
-    circle at 50% 55%,
-    var(--hero-halo, var(--color-accent)),
-    transparent 65%
-  );
-  filter: blur(48px);
-  opacity: 0.45;
-  pointer-events: none;
-  animation: halo-pulse 8s ease-in-out infinite alternate;
-}
-:root.dark .hero-halo::before {
-  opacity: 0.32;
-}
-@keyframes halo-pulse {
-  from { opacity: 0.35; transform: scale(0.96); }
-  to   { opacity: 0.55; transform: scale(1.04); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-halo::before { animation: none; }
-}
-
-/* Hero artwork -- a single very slow scale "breathe" so the painting feels alive
-   without competing with itself. No translate dance, no float, no glow halo. */
-.motion-kenburns {
-  animation: kenburns 22s ease-in-out infinite alternate;
-  will-change: transform;
-  transform-origin: 50% 50%;
-}
-
-@keyframes kenburns {
-  from { transform: scale(1); }
-  to   { transform: scale(1.06); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .motion-kenburns {
-    animation: none;
   }
 }
 

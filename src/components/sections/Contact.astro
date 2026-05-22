@@ -14,7 +14,7 @@ const ICON_MAP = {
 const items = [contact.instagram, contact.whatsapp, contact.email];
 const c = sections.contact;
 ---
-<Section id="contact" eyebrow={c.eyebrow} title={c.title} lead={c.lead}>
+<Section id="contact" eyebrow={c.eyebrow} title={c.title} lead={c.lead} accent="var(--color-peacock)">
   <ul class="stagger mx-auto max-w-3xl divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
     {
       items.map((it) => {
@@ -22,16 +22,16 @@ const c = sections.contact;
         return (
           <li class="reveal">
             <a
-              class="group flex flex-wrap items-baseline justify-between gap-3 py-5 transition motion-safe:duration-300 hover:text-[var(--color-accent)] sm:gap-6 sm:py-6"
+              class="contact-row group flex flex-wrap items-baseline justify-between gap-3 py-5 transition motion-safe:duration-300 sm:gap-6 sm:py-6"
               href={it.url}
               target={it.url.startsWith('http') ? '_blank' : undefined}
               rel={it.url.startsWith('http') ? 'noopener noreferrer' : undefined}
             >
               <span class="t-meta inline-flex items-center gap-2">
-                {Icon && <Icon class="text-[var(--color-muted)] transition group-hover:text-[var(--color-accent)]" />}
+                {Icon && <Icon class="text-[var(--color-muted)] transition group-hover:text-[var(--section-accent)]" />}
                 {it.label}
               </span>
-              <span class="t-display break-all text-xl text-[var(--color-ink)] transition group-hover:text-[var(--color-accent)] sm:text-2xl md:text-3xl">
+              <span class="t-display break-all text-xl text-[var(--color-ink)] transition group-hover:text-[var(--section-accent)] sm:text-2xl md:text-3xl">
                 {it.display}
               </span>
             </a>

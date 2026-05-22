@@ -29,6 +29,16 @@ Colorful redesign. Site now leans into authentic Madhubani saturation -- ruby, m
 - **Filter-aware navigation.** Prev/next buttons and ArrowLeft/ArrowRight cycle through siblings sharing the gallery's current filter -- a Madhubani filter restricts navigation to Madhubani pieces.
 - **Reuses image variants.** Lightbox `<picture>` builds AVIF + WebP `<source>` chains dynamically from the same 800/1200 wide variants the optimize-images script already generates. No extra build step, no new request types.
 
+### Section pigment + delight pass
+
+- **Hero rework.** [`Hero.astro`](src/components/sections/Hero.astro) gains an animated grid backdrop (radial-masked, slow drift) layered above the aurora, plus a scroll-cue link with a pulsing line and "scroll" eyebrow that anchors to `#work`.
+- **Workshops glow-up.** [`Workshops.astro`](src/components/sections/Workshops.astro) sets `accent="var(--style-pichwai)"`, replaces flat cards with `card-tilt` + `border-beam`. Cards lift on hover with a subtle perspective tilt; a conic-gradient beam rotates around the border (mask-composite trick, pure CSS). Duration chips and "Enquire" links paint in the section accent.
+- **CustomOrders glow-up.** [`CustomOrders.astro`](src/components/sections/CustomOrders.astro) sets `accent="var(--color-vermillion)"` so the form heading, label tints, submit button, and confetti burst all inherit the warm vermillion automatically.
+- **About ornate frame.** [`About.astro`](src/components/sections/About.astro) sets `accent="var(--color-marigold)"`. First paragraph gets a `.drop-cap` initial in italic display serif. Pull-quote uses the section accent for both the left rule and the quote text. A Devanagari "इति" (closing flourish from classical manuscripts) signs off the bio in muted accent ink, marked `aria-hidden`.
+- **Contact peacock pass.** [`Contact.astro`](src/components/sections/Contact.astro) sets `accent="var(--color-peacock)"`. Each contact row's icon, label, and address shift to the section accent on hover.
+- **OrderForm submit + celebration.** [`OrderForm.tsx`](src/components/ui/OrderForm.tsx) submit button now paints in `var(--section-accent)` (saturated vermillion, no longer flat ink). On submit, a CSS-only confetti burst of eight pigment-colored spans bursts behind the button; state resets after 1200ms so a second submit re-fires.
+- **Motion split.** [`globals.css`](src/styles/globals.css) shrunk from 559 lines to 348 by extracting all motion utilities (reveal, stagger, aurora, kinetic-devanagari, marquee, parallax-frame, hero-halo, ken-burns, plus the new card-tilt, border-beam, drop-cap, scroll-cue, hero-grid, celebrate-burst) into [`src/styles/motion.css`](src/styles/motion.css) and importing back. Keeps every source file under the 500-line ceiling.
+
 ## 1.2.0 -- 2026-05-22
 
 Two-environment setup. `main` continues to ship prod at `/folk-art-portfolio/`; new `dev` branch ships a staging mirror at `/folk-art-portfolio/beta/`. Promotion flow is now `feat/<topic>` -> `dev` (auto-deploys to `/beta/`) -> `main` (auto-deploys to prod), so changes can be verified on a real URL before reaching prod.

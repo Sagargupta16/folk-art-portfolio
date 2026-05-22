@@ -32,6 +32,7 @@ const heroAlt = featured
 ---
 <section class="relative overflow-hidden border-b border-[var(--color-line)]">
   <div class="aurora" aria-hidden="true"></div>
+  <div class="hero-grid" aria-hidden="true"></div>
   <div class="container-x relative z-10 grid gap-10 py-16 sm:gap-12 sm:py-24 md:grid-cols-12 md:items-center md:gap-10 md:py-32">
     <div class="stagger md:col-span-7">
       <p class="t-eyebrow reveal mb-4 sm:mb-5">{brand.tagline}</p>
@@ -136,4 +137,9 @@ const heroAlt = featured
       frame.addEventListener('mouseleave', reset);
     })();
   </script>
+
+  <a href="#work" class="scroll-cue group" aria-label="Scroll to selected work">
+    <span class="t-meta block text-center text-[0.6rem]">Scroll</span>
+    <span class="scroll-cue__line" aria-hidden="true"></span>
+  </a>
 </section>

@@ -7,22 +7,28 @@ const all = await getCollection('workshops');
 const items = all.map((e) => e.data).sort((a, b) => a.order - b.order);
 const w = sections.workshops;
 ---
-<Section id="workshops" eyebrow={w.eyebrow} title={w.title} lead={w.lead}>
+<Section id="workshops" eyebrow={w.eyebrow} title={w.title} lead={w.lead} accent="var(--style-pichwai)">
   <ul class="stagger grid gap-[var(--grid-gap)] md:grid-cols-2">
     {
       items.map((item) => (
         <li class="reveal">
-          <article class="card h-full">
+          <article class="card card-tilt border-beam h-full">
             <h3 class="t-display text-2xl text-[var(--color-ink)]">{item.title}</h3>
             <p class="t-body text-[var(--color-muted)]">{item.blurb}</p>
             <div class="mt-auto flex items-center justify-between pt-2">
               {item.durationHours ? (
-                <span class="t-meta">{item.durationHours}h session</span>
+                <span
+                  class="t-meta rounded-full px-2.5 py-1"
+                  style="background:color-mix(in srgb, var(--section-accent) 14%, transparent); color:var(--section-accent);"
+                >
+                  {item.durationHours}h session
+                </span>
               ) : (
                 <span />
               )}
               <a
-                class="t-meta text-[var(--color-accent)] transition hover:underline"
+                class="t-meta transition hover:underline"
+                style="color:var(--section-accent);"
                 href={contact.email.url}
               >
                 Enquire ->

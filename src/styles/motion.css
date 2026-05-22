@@ -1,0 +1,311 @@
+/* Motion + visual-effect utilities.
+   Split out of globals.css to keep that file under the 500-line ceiling.
+   Imported back from globals.css so the Tailwind layer + theme tokens are in
+   scope when these rules cascade. Everything here is CSS-only -- no JS islands.
+   Every animation has a prefers-reduced-motion override. */
+
+/* Reveal on scroll -- BlurFade variant.
+   Adds a subtle blur(6px) on entry that resolves to 0, alongside the existing
+   opacity + translateY. Mimics Magic UI's BlurFade without an island JS cost. */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  filter: blur(6px);
+  transition:
+    opacity 700ms var(--ease-out-soft),
+    transform 700ms var(--ease-out-soft),
+    filter 700ms var(--ease-out-soft);
+  will-change: opacity, transform, filter;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+  filter: blur(0);
+}
+
+/* Auto-stagger: when several .reveal elements are siblings, each one waits a bit longer.
+   Avoids hand-coding inline transition-delay on every node. Caps at 8 to keep timing tight. */
+.stagger > .reveal:nth-child(1) { transition-delay: 0ms; }
+.stagger > .reveal:nth-child(2) { transition-delay: 80ms; }
+.stagger > .reveal:nth-child(3) { transition-delay: 160ms; }
+.stagger > .reveal:nth-child(4) { transition-delay: 240ms; }
+.stagger > .reveal:nth-child(5) { transition-delay: 320ms; }
+.stagger > .reveal:nth-child(6) { transition-delay: 380ms; }
+.stagger > .reveal:nth-child(7) { transition-delay: 440ms; }
+.stagger > .reveal:nth-child(n + 8) { transition-delay: 500ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; filter: none; transition: none; }
+  .stagger > .reveal { transition-delay: 0ms !important; }
+}
+
+/* Aurora backdrop -- soft, slow-drifting color blobs behind a section. */
+.aurora {
+  position: absolute; inset: 0;
+  overflow: hidden; pointer-events: none; z-index: 0;
+}
+.aurora::before, .aurora::after {
+  content: ''; position: absolute;
+  width: 60vmax; height: 60vmax;
+  border-radius: 50%;
+  filter: blur(80px); opacity: 0.55;
+  will-change: transform;
+}
+.aurora::before {
+  background: radial-gradient(circle at 30% 30%, var(--color-ruby), transparent 60%);
+  top: -20vmax; left: -20vmax;
+  animation: aurora-drift-a 28s ease-in-out infinite alternate;
+}
+.aurora::after {
+  background: radial-gradient(circle at 70% 70%, var(--color-marigold), transparent 55%);
+  bottom: -20vmax; right: -20vmax;
+  animation: aurora-drift-b 34s ease-in-out infinite alternate;
+}
+:root.dark .aurora::before, :root.dark .aurora::after { opacity: 0.32; }
+@keyframes aurora-drift-a {
+  from { transform: translate(0, 0) rotate(0deg); }
+  to   { transform: translate(8vmax, 6vmax) rotate(40deg); }
+}
+@keyframes aurora-drift-b {
+  from { transform: translate(0, 0) rotate(0deg); }
+  to   { transform: translate(-7vmax, -8vmax) rotate(-35deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora::before, .aurora::after { animation: none; }
+}
+
+/* Hero animated grid -- structural lines layered behind the aurora. Two
+   repeating linear-gradients (vertical + horizontal) painted on a pseudo-element,
+   slowly drifted via background-position. Magic UI vocabulary, zero JS. */
+.hero-grid {
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--color-line) 60%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-line) 60%, transparent) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 50% 35%, #000 25%, transparent 75%);
+  opacity: 0.55;
+  animation: grid-drift 24s linear infinite;
+}
+:root.dark .hero-grid { opacity: 0.4; }
+@keyframes grid-drift {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 56px 56px, 56px 56px; }
+}
+@media (prefers-reduced-motion: reduce) { .hero-grid { animation: none; } }
+
+/* Scroll-cue at hero base. Clickable jump to #work, with a slow vertical
+   pulse so the eye notices it without it shouting. */
+.scroll-cue {
+  position: absolute;
+  left: 50%; bottom: 1.5rem;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: grid; gap: 0.4rem;
+  color: var(--color-muted);
+  text-decoration: none;
+  transition: color 200ms var(--ease-out-soft);
+}
+.scroll-cue:hover { color: var(--color-accent); }
+.scroll-cue__line {
+  display: block;
+  width: 1px; height: 36px;
+  margin-inline: auto;
+  background: linear-gradient(to bottom, currentColor, transparent);
+  animation: scroll-cue-pulse 2.4s ease-in-out infinite;
+  transform-origin: top;
+}
+@keyframes scroll-cue-pulse {
+  0%   { transform: scaleY(0.3); opacity: 0.3; }
+  50%  { transform: scaleY(1);   opacity: 1; }
+  100% { transform: scaleY(0.3); opacity: 0.3; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue__line { animation: none; transform: scaleY(1); opacity: 0.6; }
+}
+
+/* Kinetic Devanagari -- gradient breathing through ruby/marigold/peacock. */
+.kinetic-devanagari {
+  display: inline-block;
+  background: linear-gradient(
+    120deg,
+    var(--color-ruby), var(--color-marigold), var(--color-peacock), var(--color-ruby)
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  animation: kinetic-shift 12s ease-in-out infinite;
+  will-change: background-position;
+}
+@keyframes kinetic-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kinetic-devanagari { animation: none; background-position: 0% 50%; }
+}
+
+/* Marquee -- transform animation, pauses on hover, masked edges. */
+.marquee {
+  display: flex; overflow: hidden;
+  user-select: none; gap: 3rem;
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.marquee__track {
+  display: flex; flex-shrink: 0; gap: 3rem;
+  animation: marquee-scroll 38s linear infinite;
+  will-change: transform;
+}
+.marquee:hover .marquee__track { animation-play-state: paused; }
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee__track { animation: none; }
+}
+
+/* Hero parallax frame -- user-driven tilt only, no autonomous animation. */
+.parallax-frame {
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition: transform 220ms var(--ease-out-soft);
+}
+
+/* Hero halo -- saturated glow drawn from the featured palette via --hero-halo. */
+.hero-halo { position: relative; isolation: isolate; }
+.hero-halo::before {
+  content: ''; position: absolute; inset: -1.5rem;
+  z-index: -1;
+  background: radial-gradient(
+    circle at 50% 55%,
+    var(--hero-halo, var(--color-accent)), transparent 65%
+  );
+  filter: blur(48px); opacity: 0.45;
+  pointer-events: none;
+  animation: halo-pulse 8s ease-in-out infinite alternate;
+}
+:root.dark .hero-halo::before { opacity: 0.32; }
+@keyframes halo-pulse {
+  from { opacity: 0.35; transform: scale(0.96); }
+  to   { opacity: 0.55; transform: scale(1.04); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-halo::before { animation: none; }
+}
+
+/* Hero artwork -- single slow scale breathe. */
+.motion-kenburns {
+  animation: kenburns 22s ease-in-out infinite alternate;
+  will-change: transform;
+  transform-origin: 50% 50%;
+}
+@keyframes kenburns {
+  from { transform: scale(1); }
+  to   { transform: scale(1.06); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-kenburns { animation: none; }
+}
+
+/* Tilt-on-hover utility -- applies to .card-tilt; pairs with --section-accent
+   for a subtle 3D lift that uses the section's pigment. Used by Workshops +
+   CustomOrders cards. */
+.card-tilt {
+  transform-style: preserve-3d;
+  transition:
+    transform 400ms var(--ease-out-soft),
+    box-shadow 400ms var(--ease-out-soft),
+    border-color 400ms var(--ease-out-soft);
+  will-change: transform;
+}
+.card-tilt:hover {
+  transform: perspective(900px) rotateX(2deg) rotateY(-2deg) translateY(-4px);
+  box-shadow: 0 28px 60px -32px color-mix(in srgb, var(--section-accent, var(--color-accent)) 70%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-tilt:hover { transform: translateY(-2px); }
+}
+
+/* Border-beam -- a hairline conic gradient sweeping the card border. The
+   pseudo-element sits one pixel outside the card and animates its background
+   rotation. Inspired by Magic UI / Aceternity border-beam. */
+.border-beam {
+  position: relative;
+  isolation: isolate;
+}
+.border-beam::before {
+  content: ''; position: absolute; inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--section-accent, var(--color-accent)) 60deg,
+    transparent 120deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 240ms var(--ease-out-soft);
+  animation: beam-rotate 6s linear infinite;
+}
+.border-beam:hover::before { opacity: 1; }
+@keyframes beam-rotate {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .border-beam::before { animation: none; }
+}
+
+/* Drop-cap for editorial paragraphs (About). */
+.drop-cap::first-letter {
+  font-family: var(--font-display);
+  font-style: italic;
+  float: left;
+  font-size: 3.4rem;
+  line-height: 0.9;
+  padding: 0.35rem 0.6rem 0 0;
+  color: var(--section-accent, var(--color-accent));
+}
+
+/* Confetti palette burst -- triggered by adding .is-celebrating to the
+   form. Eight tiny squares animate outward + fade. Pure CSS, ~600ms. */
+.celebrate-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.celebrate-burst > span {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 8px; height: 8px;
+  border-radius: 1px;
+  opacity: 0;
+}
+.is-celebrating .celebrate-burst > span {
+  animation: confetti-pop 700ms var(--ease-out-soft) forwards;
+}
+.celebrate-burst > span:nth-child(1) { background: var(--color-ruby);       --cx:  -90px; --cy: -50px; animation-delay: 0ms;  }
+.celebrate-burst > span:nth-child(2) { background: var(--color-marigold);   --cx:   80px; --cy: -70px; animation-delay: 40ms; }
+.celebrate-burst > span:nth-child(3) { background: var(--color-peacock);    --cx: -120px; --cy:  20px; animation-delay: 80ms; }
+.celebrate-burst > span:nth-child(4) { background: var(--color-indigo);     --cx:  130px; --cy:  10px; animation-delay: 60ms; }
+.celebrate-burst > span:nth-child(5) { background: var(--color-vermillion); --cx:  -40px; --cy:  90px; animation-delay: 30ms; }
+.celebrate-burst > span:nth-child(6) { background: var(--color-neem);       --cx:   60px; --cy:  90px; animation-delay: 70ms; }
+.celebrate-burst > span:nth-child(7) { background: var(--color-ochre);      --cx: -150px; --cy: -90px; animation-delay: 20ms; }
+.celebrate-burst > span:nth-child(8) { background: var(--color-plum);       --cx:  150px; --cy: -90px; animation-delay: 90ms; }
+@keyframes confetti-pop {
+  0%   { transform: translate(-50%, -50%) scale(0.5);                        opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--cx)), calc(-50% + var(--cy))) scale(1) rotate(180deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-celebrating .celebrate-burst > span { animation: none; }
+}

@@ -66,6 +66,7 @@ export default function OrderForm({
   fallbackEmailLabel,
 }: Readonly<Props>) {
   const [form, setForm] = useState<FormState>(EMPTY);
+  const [isCelebrating, setIsCelebrating] = useState(false);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -75,13 +76,21 @@ export default function OrderForm({
     event.preventDefault();
     const text = encodeURIComponent(buildMessage(form));
     const url = `https://wa.me/${whatsappNumber}?text=${text}`;
+    /* Celebrate the handoff visually -- the form persists so the user can
+       resend if WhatsApp is blocked. The confetti animation runs ~700ms; we
+       reset state at 1.2s so a second submit re-triggers the burst. */
+    setIsCelebrating(true);
+    window.setTimeout(() => setIsCelebrating(false), 1200);
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const isReady = form.name.trim().length > 0 && form.size.length > 0;
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-5 sm:grid-cols-2">
+    <form
+      onSubmit={onSubmit}
+      className={`relative grid gap-5 sm:grid-cols-2${isCelebrating ? ' is-celebrating' : ''}`}
+    >
       <label className="sm:col-span-2">
         <span className={LABEL_CLASSES}>Your name</span>
         <input
@@ -171,17 +180,30 @@ export default function OrderForm({
         />
       </label>
 
-      <div className="flex flex-col items-center gap-3 pt-1 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
-        <button
-          type="submit"
-          disabled={!isReady}
-          className="t-meta inline-flex w-full items-center justify-center gap-2 border border-[var(--color-ink)] bg-[var(--color-ink)] px-6 py-3 text-[var(--color-bg)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--color-ink)] disabled:hover:bg-[var(--color-ink)] sm:w-auto"
-        >
-          {submitLabel} -&gt;
-        </button>
+      <div className="relative flex flex-col items-center gap-3 pt-1 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:w-auto">
+          {/* Saturated submit -- paints in the section accent (vermillion in
+             Custom Orders) so the call-to-action carries the section's warmth.
+             The confetti burst sits behind the button and overflows freely. */}
+          <span className="celebrate-burst" aria-hidden="true">
+            <span /><span /><span /><span /><span /><span /><span /><span />
+          </span>
+          <button
+            type="submit"
+            disabled={!isReady}
+            className="t-meta relative inline-flex w-full items-center justify-center gap-2 border px-6 py-3 transition disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+            style={{
+              background: 'var(--section-accent, var(--color-ink))',
+              borderColor: 'var(--section-accent, var(--color-ink))',
+              color: 'var(--color-bg)',
+            }}
+          >
+            {submitLabel} -&gt;
+          </button>
+        </div>
         <a
           href={buildEmailUrl(emailUrl, form)}
-          className="t-meta text-[var(--color-muted)] transition hover:text-[var(--color-accent)]"
+          className="t-meta text-[var(--color-muted)] transition hover:text-[var(--section-accent)]"
         >
           {fallbackEmailLabel}
         </a>

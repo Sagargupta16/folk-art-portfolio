@@ -74,23 +74,23 @@ function useSmoothScroll() {
 			};
 		};
 
-		const idle = (
-			window as unknown as {
-				requestIdleCallback?: (cb: () => void) => number;
-			}
-		).requestIdleCallback;
-		const handle = idle ? idle(start) : window.setTimeout(start, 200);
+		// Fire-and-forget: smooth scroll is purely cosmetic, so a failed dynamic
+		// import (network blip, ad blocker) just leaves the user with native
+		// scroll. Swallowing here keeps the unhandled-rejection console clean.
+		const kickoff = () => {
+			start().catch(() => {});
+		};
+
+		const hasIdle = typeof window.requestIdleCallback === "function";
+		const handle: number = hasIdle
+			? window.requestIdleCallback(kickoff)
+			: window.setTimeout(kickoff, 200);
 
 		return () => {
 			cancelled = true;
 			if (destroy) destroy();
-			const cancelIdle = (
-				window as unknown as {
-					cancelIdleCallback?: (id: number) => void;
-				}
-			).cancelIdleCallback;
-			if (cancelIdle && idle) cancelIdle(handle as number);
-			else window.clearTimeout(handle as number);
+			if (hasIdle) window.cancelIdleCallback(handle);
+			else window.clearTimeout(handle);
 		};
 	}, []);
 }

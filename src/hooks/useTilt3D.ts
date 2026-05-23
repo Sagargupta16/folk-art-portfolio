@@ -6,11 +6,7 @@ type TiltOptions = {
 	scale?: number;
 };
 
-export function useTilt3D({
-	maxAngle = 8,
-	perspective = 1000,
-	scale = 1.02,
-}: TiltOptions = {}) {
+export function useTilt3D({ maxAngle = 8, perspective = 1000, scale = 1.02 }: TiltOptions = {}) {
 	const ref = useRef<HTMLElement>(null);
 	const rafRef = useRef(0);
 

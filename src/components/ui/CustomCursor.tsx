@@ -47,11 +47,7 @@ export default function CustomCursor() {
 
 		function onOver(e: MouseEvent) {
 			const target = e.target as HTMLElement;
-			if (
-				target.closest(
-					'[data-lightbox-trigger], .gallery-frame, button[type="button"]',
-				)
-			) {
+			if (target.closest('[data-lightbox-trigger], .gallery-frame, button[type="button"]')) {
 				setMode("gallery");
 			} else if (target.closest("a, button")) {
 				setMode("hover");
@@ -82,18 +78,9 @@ export default function CustomCursor() {
 
 	if (!enabled) return null;
 
-	const sizeClass =
-		mode === "gallery"
-			? "w-16 h-16"
-			: mode === "hover"
-				? "w-10 h-10"
-				: "w-3 h-3";
+	const sizeClass = mode === "gallery" ? "w-16 h-16" : mode === "hover" ? "w-10 h-10" : "w-3 h-3";
 	const followerSize =
-		mode === "gallery"
-			? "w-20 h-20"
-			: mode === "hover"
-				? "w-14 h-14"
-				: "w-8 h-8";
+		mode === "gallery" ? "w-20 h-20" : mode === "hover" ? "w-14 h-14" : "w-8 h-8";
 
 	return (
 		<>

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import ArtworkImage from "@/components/ui/ArtworkImage";
 import Chromacard from "@/components/ui/Chromacard";
 import MeshBackground from "@/components/ui/MeshBackground";
@@ -107,18 +107,13 @@ export default function Hero() {
 					<h1 className="t-display reveal text-5xl text-[var(--color-ink)] sm:text-6xl md:text-[7rem] md:leading-[0.95] lg:text-[7.5rem]">
 						<span className="block">
 							{brand.headline.latinPrefix}
-							<span
-								lang="hi"
-								className="kinetic-devanagari font-devanagari not-italic"
-							>
+							<span lang="hi" className="kinetic-devanagari font-devanagari not-italic">
 								{brand.headline.devanagariCore}
 							</span>
 						</span>
 						<span className="block text-[0.55em] tracking-[var(--tracking-display)] text-[var(--color-muted)] sm:text-[0.5em]">
 							<span className="not-italic">{brand.headline.connector}</span>{" "}
-							<span className="text-[var(--color-ink)]">
-								{brand.headline.suffix}
-							</span>
+							<span className="text-[var(--color-ink)]">{brand.headline.suffix}</span>
 						</span>
 					</h1>
 					<p className="t-lead mt-5 max-w-xl sm:mt-7">
@@ -137,14 +132,8 @@ export default function Hero() {
 				</div>
 
 				<div className="md:col-span-5">
-					<div
-						className="mx-auto w-full max-w-md md:max-w-none"
-						style={heroHaloStyle}
-					>
-						<div
-							ref={frameRef}
-							className="parallax-frame hero-halo relative aspect-[3/4] w-full"
-						>
+					<div className="mx-auto w-full max-w-md md:max-w-none" style={heroHaloStyle}>
+						<div ref={frameRef} className="parallax-frame hero-halo relative aspect-[3/4] w-full">
 							<div
 								data-shadow=""
 								className="absolute inset-0 border border-[var(--color-line)] bg-[var(--color-bg-soft)]"
@@ -177,9 +166,7 @@ export default function Hero() {
 									/>
 								)}
 							</div>
-							{heroLabel && (
-								<p className="t-meta absolute -bottom-6 right-0">{heroLabel}</p>
-							)}
+							{heroLabel && <p className="t-meta absolute -bottom-6 right-0">{heroLabel}</p>}
 						</div>
 						{featured?.palette && (
 							<div className="reveal mt-10 flex items-center gap-3">
@@ -194,11 +181,7 @@ export default function Hero() {
 				</div>
 			</div>
 
-			<a
-				href="#work"
-				className="scroll-cue group"
-				aria-label="Scroll to selected work"
-			>
+			<a href="#work" className="scroll-cue group" aria-label="Scroll to selected work">
 				<span className="t-meta block text-center text-[0.6rem]">Scroll</span>
 				<span className="scroll-cue__line" aria-hidden="true" />
 			</a>

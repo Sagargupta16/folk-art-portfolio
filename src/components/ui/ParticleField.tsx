@@ -119,8 +119,7 @@ export default function ParticleField() {
 					const dy = a.sy - b.sy;
 					const dist = Math.sqrt(dx * dx + dy * dy);
 					if (dist < CONNECTION_DIST) {
-						const alpha =
-							(1 - dist / CONNECTION_DIST) * 0.15 * Math.min(a.scale, b.scale);
+						const alpha = (1 - dist / CONNECTION_DIST) * 0.15 * Math.min(a.scale, b.scale);
 						ctx.beginPath();
 						ctx.moveTo(a.sx, a.sy);
 						ctx.lineTo(b.sx, b.sy);

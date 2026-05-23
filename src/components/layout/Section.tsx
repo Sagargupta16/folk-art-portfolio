@@ -19,9 +19,7 @@ export default function Section({
 	align = "left",
 	children,
 }: Props) {
-	const style = accent
-		? ({ "--section-accent": accent } as React.CSSProperties)
-		: undefined;
+	const style = accent ? ({ "--section-accent": accent } as React.CSSProperties) : undefined;
 	const textAlign = align === "center" ? "text-center" : "";
 
 	return (
@@ -35,9 +33,7 @@ export default function Section({
 								{title}
 							</h2>
 						)}
-						{lead && (
-							<p className="t-lead reveal mx-auto mt-4 max-w-2xl">{lead}</p>
-						)}
+						{lead && <p className="t-lead reveal mx-auto mt-4 max-w-2xl">{lead}</p>}
 					</header>
 				)}
 				{children}

@@ -4,11 +4,5 @@ type Props = {
 };
 
 export default function OrbitRing({ className = "", style }: Props) {
-	return (
-		<div
-			className={`orbit-ring ${className}`}
-			style={style}
-			aria-hidden="true"
-		/>
-	);
+	return <div className={`orbit-ring ${className}`} style={style} aria-hidden="true" />;
 }

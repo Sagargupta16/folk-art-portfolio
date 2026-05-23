@@ -51,9 +51,7 @@ const items = (artworksData.items as Artwork[])
 						height: Math.round(600 / art.aspectRatio),
 					}),
 			description: art.description ?? null,
-			alt:
-				art.description ??
-				`${art.title}, ${art.style} painting in ${art.medium}.`,
+			alt: art.description ?? `${art.title}, ${art.style} painting in ${art.medium}.`,
 			order: art.order,
 			palette: art.palette,
 			accentVar: styleAccentVar[art.style] ?? "var(--color-accent)",
@@ -75,16 +73,12 @@ export default function Work() {
 	const [lightboxSlug, setLightboxSlug] = useState<string | null>(null);
 
 	const visibleItems =
-		activeFilter === "All"
-			? items
-			: items.filter((it) => it.style === activeFilter);
+		activeFilter === "All" ? items : items.filter((it) => it.style === activeFilter);
 
 	const openLightbox = useCallback((slug: string) => setLightboxSlug(slug), []);
 	const closeLightbox = useCallback(() => setLightboxSlug(null), []);
 
-	const lightboxItem = lightboxSlug
-		? (items.find((it) => it.slug === lightboxSlug) ?? null)
-		: null;
+	const lightboxItem = lightboxSlug ? (items.find((it) => it.slug === lightboxSlug) ?? null) : null;
 
 	const navigate = useCallback(
 		(delta: number) => {
@@ -107,9 +101,7 @@ export default function Work() {
 				>
 					{filters.map((f) => {
 						const pillAccent =
-							f === "All"
-								? "var(--color-ink)"
-								: (styleAccentVar[f] ?? "var(--color-accent)");
+							f === "All" ? "var(--color-ink)" : (styleAccentVar[f] ?? "var(--color-accent)");
 						const isActive = f === activeFilter;
 						return (
 							<button
@@ -119,9 +111,7 @@ export default function Work() {
 								aria-pressed={isActive ? "true" : "false"}
 								style={{ "--pill-accent": pillAccent } as React.CSSProperties}
 								className={`gallery-pill min-h-[40px] rounded-full border px-4 py-2.5 text-xs uppercase tracking-[0.16em] transition ${
-									isActive
-										? "pill-active"
-										: "border-[var(--color-line)] text-[var(--color-muted)]"
+									isActive ? "pill-active" : "border-[var(--color-line)] text-[var(--color-muted)]"
 								}`}
 							>
 								{f}
@@ -137,10 +127,7 @@ export default function Work() {
 				</ul>
 
 				{visibleItems.length === 0 && (
-					<p
-						className="t-body mt-6 text-[var(--color-muted)]"
-						aria-live="polite"
-					>
+					<p className="t-body mt-6 text-[var(--color-muted)]" aria-live="polite">
 						No pieces in this style yet.
 					</p>
 				)}
@@ -156,13 +143,7 @@ export default function Work() {
 	);
 }
 
-function GalleryCard({
-	item,
-	onOpen,
-}: {
-	item: GalleryItem;
-	onOpen: (slug: string) => void;
-}) {
+function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: (slug: string) => void }) {
 	const { ref, onMouseMove, onMouseLeave } = useTilt3D({
 		maxAngle: 6,
 		scale: 1.03,
@@ -184,12 +165,7 @@ function GalleryCard({
 					className="tilt-3d gallery-frame relative grid w-full cursor-pointer place-items-center overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg-soft)] aspect-[3/4] p-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--card-accent)] focus-visible:ring-offset-2"
 				>
 					<ImageReveal
-						direction={
-							["left", "right", "up"][Math.abs(item.order) % 3] as
-								| "left"
-								| "right"
-								| "up"
-						}
+						direction={["left", "right", "up"][Math.abs(item.order) % 3] as "left" | "right" | "up"}
 					>
 						{item.filename ? (
 							<ArtworkImage
@@ -214,13 +190,8 @@ function GalleryCard({
 					ariaLabel={`Palette for ${item.title}`}
 				/>
 				<div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-					<h3 className="t-display text-base text-[var(--color-ink)] sm:text-xl">
-						{item.title}
-					</h3>
-					<span
-						className="t-meta text-[0.65rem] sm:text-xs"
-						style={{ color: item.accentVar }}
-					>
+					<h3 className="t-display text-base text-[var(--color-ink)] sm:text-xl">{item.title}</h3>
+					<span className="t-meta text-[0.65rem] sm:text-xs" style={{ color: item.accentVar }}>
 						{item.style}
 					</span>
 				</div>

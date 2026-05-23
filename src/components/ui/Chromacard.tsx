@@ -9,8 +9,7 @@ export default function Chromacard({
 	fallback,
 	ariaLabel = "Palette sampled from the artwork",
 }: Props) {
-	const swatches =
-		palette && palette.length > 0 ? palette : fallback ? [fallback] : [];
+	const swatches = palette && palette.length > 0 ? palette : fallback ? [fallback] : [];
 
 	if (swatches.length === 0) return null;
 

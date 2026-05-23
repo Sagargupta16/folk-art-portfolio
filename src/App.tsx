@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
 import About from "@/components/sections/About";
@@ -19,9 +19,9 @@ const NoiseOverlay = lazy(() => import("@/components/ui/NoiseOverlay"));
 function useRevealObserver() {
 	useEffect(() => {
 		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-			document
-				.querySelectorAll(".reveal")
-				.forEach((el) => el.classList.add("is-visible"));
+			document.querySelectorAll(".reveal").forEach((el) => {
+				el.classList.add("is-visible");
+			});
 			return;
 		}
 		const io = new IntersectionObserver(
@@ -35,7 +35,9 @@ function useRevealObserver() {
 			},
 			{ rootMargin: "0px 0px -10% 0px", threshold: 0.08 },
 		);
-		document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+		document.querySelectorAll(".reveal").forEach((el) => {
+			io.observe(el);
+		});
 		return () => io.disconnect();
 	}, []);
 }

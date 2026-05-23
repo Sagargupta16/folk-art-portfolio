@@ -17,16 +17,10 @@ export default function Lattice3D() {
 			<div className="lattice-3d__cube">
 				<CubeFaces />
 			</div>
-			<div
-				className="lattice-3d__cube lattice-3d__cube--sm"
-				style={{ top: "30%", left: "20%" }}
-			>
+			<div className="lattice-3d__cube lattice-3d__cube--sm" style={{ top: "30%", left: "20%" }}>
 				<CubeFaces />
 			</div>
-			<div
-				className="lattice-3d__cube lattice-3d__cube--lg"
-				style={{ top: "60%", left: "70%" }}
-			>
+			<div className="lattice-3d__cube lattice-3d__cube--lg" style={{ top: "60%", left: "70%" }}>
 				<CubeFaces />
 			</div>
 		</div>

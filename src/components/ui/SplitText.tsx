@@ -39,11 +39,7 @@ export default function SplitText({
 	const chars = children.split("");
 
 	return (
-		<Tag
-			ref={ref as React.Ref<never>}
-			className={`split-text ${className}`}
-			aria-label={children}
-		>
+		<Tag ref={ref as React.Ref<never>} className={`split-text ${className}`} aria-label={children}>
 			{chars.map((char, i) => (
 				<span
 					key={i}

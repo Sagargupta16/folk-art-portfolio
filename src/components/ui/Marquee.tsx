@@ -1,9 +1,7 @@
 import artworksData from "@/data/artworks.json";
 import type { Artwork } from "@/lib/images";
 
-const titles = (artworksData.items as Artwork[])
-	.map((a) => a.title)
-	.slice(0, 14);
+const titles = (artworksData.items as Artwork[]).map((a) => a.title).slice(0, 14);
 const devanagari = ["कमल", "मृग", "गाय", "मीन", "मोर", "वृक्ष", "सरिता"];
 
 const items: { text: string; lang?: string }[] = [];

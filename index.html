@@ -40,13 +40,16 @@
     <!--seo-injection-marker-->
 
     <script>
-      (function () {
+      (() => {
+        let theme = "light";
         try {
-          var stored = localStorage.getItem('theme');
-          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          var theme = stored || (prefersDark ? 'dark' : 'light');
-          if (theme === 'dark') document.documentElement.classList.add('dark');
-        } catch (e) {}
+          const stored = localStorage.getItem("theme");
+          const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          theme = stored || (prefersDark ? "dark" : "light");
+        } catch (_e) {
+          // localStorage / matchMedia unavailable -- fall through with default.
+        }
+        if (theme === "dark") document.documentElement.classList.add("dark");
       })();
     </script>
   </head>

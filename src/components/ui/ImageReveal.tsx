@@ -6,11 +6,7 @@ type Props = {
 	className?: string;
 };
 
-export default function ImageReveal({
-	children,
-	direction = "left",
-	className = "",
-}: Props) {
+export default function ImageReveal({ children, direction = "left", className = "" }: Props) {
 	const ref = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -32,10 +28,7 @@ export default function ImageReveal({
 	}, []);
 
 	return (
-		<div
-			ref={ref}
-			className={`img-reveal img-reveal--${direction} ${className}`}
-		>
+		<div ref={ref} className={`img-reveal img-reveal--${direction} ${className}`}>
 			{children}
 		</div>
 	);

@@ -40,6 +40,7 @@ export default function ParticleField() {
 		let w = 0;
 		let h = 0;
 		let angle = 0;
+		let running = true;
 
 		function resize() {
 			const dpr = window.devicePixelRatio || 1;
@@ -91,6 +92,7 @@ export default function ParticleField() {
 		}
 
 		function animate() {
+			if (!running) return;
 			ctx.clearRect(0, 0, w, h);
 			angle += ROTATION_SPEED;
 
@@ -142,7 +144,26 @@ export default function ParticleField() {
 
 		animRef.current = requestAnimationFrame(animate);
 
+		// Pause the RAF loop when the hero (and therefore the canvas) is offscreen.
+		// Saves a real amount of battery on mobile -- the connection-distance check
+		// is O(n^2) over 60 particles every frame.
+		const io = new IntersectionObserver(
+			([entry]) => {
+				if (entry.isIntersecting && !running) {
+					running = true;
+					animRef.current = requestAnimationFrame(animate);
+				} else if (!entry.isIntersecting && running) {
+					running = false;
+					cancelAnimationFrame(animRef.current);
+				}
+			},
+			{ threshold: 0 },
+		);
+		io.observe(canvas);
+
 		return () => {
+			running = false;
+			io.disconnect();
 			cancelAnimationFrame(animRef.current);
 			window.removeEventListener("resize", resize);
 		};

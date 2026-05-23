@@ -1,17 +1,21 @@
-import { useEffect, useRef } from "react";
+import { Suspense, lazy, useEffect, useRef } from "react";
 import ArtworkImage from "@/components/ui/ArtworkImage";
 import Chromacard from "@/components/ui/Chromacard";
-import FloatingShapes from "@/components/ui/FloatingShapes";
-import Lattice3D from "@/components/ui/Lattice3D";
 import MeshBackground from "@/components/ui/MeshBackground";
 import OrbitRing from "@/components/ui/OrbitRing";
-import ParticleField from "@/components/ui/ParticleField";
 import SplitText from "@/components/ui/SplitText";
 import artworksData from "@/data/artworks.json";
 import { useScrollParallax } from "@/hooks/useScrollParallax";
 import type { Artwork } from "@/lib/images";
 import { placeholderDataUri } from "@/lib/placeholder";
 import { brand, styles } from "@/lib/site";
+
+/* Heavy decoratives split into their own chunks. The hero text + image + parallax
+   frame paints from the main bundle; the 3D lattice / particle canvas / floating
+   shapes hydrate after, so the LCP candidate isn't gated on canvas init. */
+const FloatingShapes = lazy(() => import("@/components/ui/FloatingShapes"));
+const Lattice3D = lazy(() => import("@/components/ui/Lattice3D"));
+const ParticleField = lazy(() => import("@/components/ui/ParticleField"));
 
 const all = artworksData.items as Artwork[];
 const featured = all.find((a) => a.featured) ?? all[0];
@@ -75,8 +79,10 @@ export default function Hero() {
 	return (
 		<section className="relative overflow-hidden border-b border-[var(--color-line)]">
 			<MeshBackground />
-			<ParticleField />
-			<Lattice3D />
+			<Suspense fallback={null}>
+				<ParticleField />
+				<Lattice3D />
+			</Suspense>
 			<OrbitRing style={{ top: "20%", right: "10%", position: "absolute" }} />
 			<OrbitRing
 				className="hidden md:block"
@@ -91,7 +97,9 @@ export default function Hero() {
 			<div className="aurora" aria-hidden="true" />
 			<div className="hero-grid" aria-hidden="true" />
 			<div ref={shapesRef} className="depth-layer">
-				<FloatingShapes />
+				<Suspense fallback={null}>
+					<FloatingShapes />
+				</Suspense>
 			</div>
 			<div className="container-x relative z-10 grid gap-10 py-16 sm:gap-12 sm:py-24 md:grid-cols-12 md:items-center md:gap-10 md:py-32">
 				<div className="stagger md:col-span-7">

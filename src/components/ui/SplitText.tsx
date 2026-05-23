@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { prefersReducedMotion } from "@/lib/media";
 
 type Props = {
 	children: string;
@@ -16,7 +17,7 @@ export default function SplitText({
 	const ref = useRef<HTMLElement>(null);
 
 	useEffect(() => {
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+		if (prefersReducedMotion()) {
 			ref.current?.classList.add("split-visible");
 			return;
 		}
@@ -39,14 +40,12 @@ export default function SplitText({
 	const chars = children.split("");
 
 	return (
-		<Tag
-			ref={ref as React.Ref<never>}
-			className={`split-text ${className}`}
-			aria-label={children}
-		>
+		<Tag ref={ref as React.Ref<never>} className={`split-text ${className}`} aria-label={children}>
 			{chars.map((char, i) => (
+				// Position IS the identity for character splits -- the same letter can
+				// appear multiple times in a word and order is what we animate.
 				<span
-					key={i}
+					key={`${i}-${char}`}
 					className="split-char"
 					style={{ "--char-index": i } as React.CSSProperties}
 					aria-hidden="true"

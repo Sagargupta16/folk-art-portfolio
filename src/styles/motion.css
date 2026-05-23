@@ -76,20 +76,12 @@
 	will-change: transform;
 }
 .aurora::before {
-	background: radial-gradient(
-		circle at 30% 30%,
-		var(--color-ruby),
-		transparent 60%
-	);
+	background: radial-gradient(circle at 30% 30%, var(--color-ruby), transparent 60%);
 	top: -20vmax;
 	left: -20vmax;
 }
 .aurora::after {
-	background: radial-gradient(
-		circle at 70% 70%,
-		var(--color-marigold),
-		transparent 55%
-	);
+	background: radial-gradient(circle at 70% 70%, var(--color-marigold), transparent 55%);
 	bottom: -20vmax;
 	right: -20vmax;
 }
@@ -204,13 +196,7 @@
 	overflow: hidden;
 	user-select: none;
 	gap: 3rem;
-	mask-image: linear-gradient(
-		90deg,
-		transparent,
-		#000 10%,
-		#000 90%,
-		transparent
-	);
+	mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
 }
 .marquee__track {
 	display: flex;
@@ -300,11 +286,7 @@
    pigment identity comes from the always-on .border-beam::before ring. */
 .card-tilt {
 	box-shadow: 0 12px 28px -22px
-		color-mix(
-			in srgb,
-			var(--section-accent, var(--color-accent)) 55%,
-			transparent
-		);
+		color-mix(in srgb, var(--section-accent, var(--color-accent)) 55%, transparent);
 }
 
 /* Border-beam -- always-on accent ring. Every card carries its section
@@ -321,12 +303,7 @@
 	inset: 0;
 	z-index: -1;
 	border-radius: inherit;
-	border: 1px solid
-		color-mix(
-			in srgb,
-			var(--section-accent, var(--color-accent)) 55%,
-			transparent
-		);
+	border: 1px solid color-mix(in srgb, var(--section-accent, var(--color-accent)) 55%, transparent);
 	pointer-events: none;
 }
 
@@ -418,8 +395,7 @@
 		opacity: 1;
 	}
 	100% {
-		transform: translate(calc(-50% + var(--cx)), calc(-50% + var(--cy)))
-			scale(1) rotate(180deg);
+		transform: translate(calc(-50% + var(--cx)), calc(-50% + var(--cy))) scale(1) rotate(180deg);
 		opacity: 0;
 	}
 }
@@ -439,8 +415,7 @@
 }
 .tilt-3d:hover {
 	box-shadow:
-		0 25px 50px -20px
-		color-mix(in srgb, var(--card-accent, var(--color-accent)) 40%, transparent),
+		0 25px 50px -20px color-mix(in srgb, var(--card-accent, var(--color-accent)) 40%, transparent),
 		0 8px 16px -8px rgba(0, 0, 0, 0.12);
 }
 
@@ -724,8 +699,7 @@
 		transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
 	}
 	to {
-		transform: translate(-50%, -50%) rotateX(360deg) rotateY(180deg)
-			rotateZ(90deg);
+		transform: translate(-50%, -50%) rotateX(360deg) rotateY(180deg) rotateZ(90deg);
 	}
 }
 :root.dark .lattice-3d__face {

@@ -29,9 +29,7 @@ export default function Contact() {
 								className="contact-row group flex flex-wrap items-baseline justify-between gap-3 py-5 transition motion-safe:duration-300 sm:gap-6 sm:py-6"
 								href={it.url}
 								target={it.url.startsWith("http") ? "_blank" : undefined}
-								rel={
-									it.url.startsWith("http") ? "noopener noreferrer" : undefined
-								}
+								rel={it.url.startsWith("http") ? "noopener noreferrer" : undefined}
 							>
 								<span className="t-meta inline-flex items-center gap-2">
 									{Icon && (

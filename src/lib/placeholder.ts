@@ -1,9 +1,6 @@
 import type { ArtStyle } from "./site";
 
-const STYLE_PALETTE: Record<
-	ArtStyle,
-	{ bg: string; ink: string; accent: string; soft: string }
-> = {
+const STYLE_PALETTE: Record<ArtStyle, { bg: string; ink: string; accent: string; soft: string }> = {
 	Madhubani: {
 		bg: "#f3d2a3",
 		ink: "#7a1f12",
@@ -49,12 +46,7 @@ interface Options {
 	height?: number;
 }
 
-export function placeholderSvg({
-	title,
-	style,
-	width = 600,
-	height = 800,
-}: Options): string {
+export function placeholderSvg({ title, style, width = 600, height = 800 }: Options): string {
 	const palette = STYLE_PALETTE[style];
 	const seed = hash(`${title}|${style}`);
 	const variant = seed % 5;
@@ -89,10 +81,7 @@ export function placeholderDataUri(opts: Options): string {
 function escapeAttr(s: string): string {
 	return s.replace(
 		/[&<>"']/g,
-		(c) =>
-			({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-				c
-			] as string,
+		(c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
 	);
 }
 
@@ -129,8 +118,7 @@ function scallopGrid(
 	for (let y = r; y < h; y += r * 1.4) {
 		for (let x = r; x < w; x += r * 1.4) {
 			s = (s * 1103515245 + 12345) >>> 0;
-			const fill =
-				s % 3 === 0 ? p.accent : s % 3 === 1 ? p.soft : "transparent";
+			const fill = s % 3 === 0 ? p.accent : s % 3 === 1 ? p.soft : "transparent";
 			const stroke = p.ink;
 			out.push(
 				`<path d="M ${x - r} ${y} A ${r} ${r} 0 0 1 ${x + r} ${y}" fill="${fill}" stroke="${stroke}" stroke-opacity="0.35" stroke-width="1.5"/>`,
@@ -140,11 +128,7 @@ function scallopGrid(
 	return out.join("\n  ");
 }
 
-function petalRing(
-	p: { ink: string; accent: string; soft: string },
-	w: number,
-	h: number,
-): string {
+function petalRing(p: { ink: string; accent: string; soft: string }, w: number, h: number): string {
 	const cx = w / 2;
 	const cy = h / 2;
 	const petalR = Math.min(w, h) * 0.22;
@@ -158,12 +142,8 @@ function petalRing(
 			`<ellipse cx="${x}" cy="${y}" rx="${petalR * 0.55}" ry="${petalR * 0.28}" fill="${fill}" opacity="0.78" transform="rotate(${(angle * 180) / Math.PI} ${x} ${y})"/>`,
 		);
 	}
-	out.push(
-		`<circle cx="${cx}" cy="${cy}" r="${petalR * 0.4}" fill="${p.ink}" opacity="0.9"/>`,
-	);
-	out.push(
-		`<circle cx="${cx}" cy="${cy}" r="${petalR * 0.18}" fill="${p.soft}"/>`,
-	);
+	out.push(`<circle cx="${cx}" cy="${cy}" r="${petalR * 0.4}" fill="${p.ink}" opacity="0.9"/>`);
+	out.push(`<circle cx="${cx}" cy="${cy}" r="${petalR * 0.18}" fill="${p.soft}"/>`);
 	return out.join("\n  ");
 }
 
@@ -204,9 +184,7 @@ function tessellatedDots(
 			s = (s * 1103515245 + 12345) >>> 0;
 			const r = 4 + (s % 8);
 			const fill = (x + y) % (step * 2) === 0 ? p.accent : p.soft;
-			out.push(
-				`<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" opacity="0.7"/>`,
-			);
+			out.push(`<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" opacity="0.7"/>`);
 		}
 	}
 	out.push(

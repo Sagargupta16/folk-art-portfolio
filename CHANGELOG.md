@@ -2,6 +2,92 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/) -- bump rules in [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases".
 
+## 1.5.1 -- 2026-05-23
+
+Code-quality patch on top of 1.5.0. No behavior change, no bundle-size change. Targets the kind of smell SonarQube would flag: stringly-typed duplication, vestigial type coercion, unhandled promise paths, anti-pattern React keys, and DRY violations between build scripts.
+
+### Refactors
+
+- **Centralized feature detection.** `"(prefers-reduced-motion: reduce)"`, `"(hover: none)"`, and `"(pointer: coarse)"` were inlined as raw strings in 9 files (App, Hero, CustomCursor, ImageReveal, ParticleField, SplitText, useMagnetic, useScrollParallax, useTilt3D). New [`src/lib/media.ts`](src/lib/media.ts) exposes `prefersReducedMotion()`, `isTouchOnly()`, `hasCoarsePointer()`, and a combined `prefersNoFancyMotion()`. SSR-safe (return false when `window` is undefined). Every consumer now imports from one place.
+- **Typed catalog/workshops re-exports.** `(artworksData.items as Artwork[])` and `(siteData.workshops as Workshop[])` were duplicated across 4 files. [`src/lib/site.ts`](src/lib/site.ts) now exposes `artworks: readonly Artwork[]` and `workshops: readonly Workshop[]`, both pre-sorted by `order`. The `Workshop` type is promoted from local-to-Workshops.tsx to a public export. Hero, Work, Marquee, Workshops drop their casts.
+- **`as unknown as` cast removal in App.tsx.** `requestIdleCallback` and `cancelIdleCallback` were typed via `window as unknown as { requestIdleCallback?: ... }` -- a defensive workaround for a missing lib type. Both signatures have lived in `lib.dom.d.ts` since TypeScript 4. Now uses `typeof window.requestIdleCallback === "function"` for a clean feature check, no coercion.
+- **Lenis import error swallowed cleanly.** The dynamic `await import("lenis")` was invoked fire-and-forget inside the idle callback, so any rejection (network blip, ad blocker, MIME-type issue) surfaced as an unhandled-rejection console error. Now wrapped in a `kickoff` shim that calls `start().catch(() => {})` -- smooth scroll is purely cosmetic, native scroll is the right fallback.
+- **Stable React keys.** Five components used array-index keys where the underlying content has a natural identity:
+  - `Marquee.tsx`: `key={item.text}` (titles + Devanagari ornaments are unique strings).
+  - `ArtworkLightbox.tsx` + `Chromacard.tsx`: `key={hex}` (palette swatches are guaranteed-distinct hex codes per artwork).
+  - `About.tsx`: `key={p.slice(0, 24)}` (paragraph prefix is stable and unique).
+  - `SplitText.tsx`: kept index-based but composed as `key={`${i}-${char}`}` -- for character splits, position genuinely IS the identity (the same letter recurs and animation order is what we tween). Comment added so the choice is explicit.
+- **Shared scripts site-config.** `SITE`, `REPO_NAME`, `BASE`, and `PROD_URL` were duplicated between [`vite.config.ts`](vite.config.ts) and [`scripts/generate-sitemap.mjs`](scripts/generate-sitemap.mjs). New [`scripts/site-config.mjs`](scripts/site-config.mjs) is the single source of truth -- ESM `.mjs` so Node can run it directly and the TS config can import via Vite's resolver. When the artist's domain lands, change one file.
+
+### Verification
+
+`pnpm lint` + `pnpm typecheck` + `pnpm build` all clean. Bundle output identical to 1.5.0: 245.17 kB main, 18.83 kB Lenis chunk (deferred), 5 decorative chunks under 2.3 kB each. `dist/index.html` 13.24 kB with full SEO injection. `dist/sitemap.xml` 6 entries.
+
+## 1.5.0 -- 2026-05-22
+
+Post-migration audit pass. The 1.4.0 Astro -> Vite move shipped fast and left some debt: docs claiming features the new stack didn't have, no sitemap, JSON-LD only client-rendered, decoratives loaded eagerly, no lint config. This release closes the gap between what the README promises and what the build actually ships.
+
+### Documentation sync
+
+- **README.md** rewritten end-to-end. The previous version still described Astro 6, content collections, `BaseLayout.astro`, `astro.config.mjs`, `@astrojs/sitemap`, and "zero JS by default" -- none of which exist in the current build. New version's stack table reflects Vite 6 + React 19 + Tailwind 4 + Biome 2; SEO section describes the build-time plugin; quick-start lists the new lint/format scripts.
+- **MEMORY.md** locked-decisions table: stack row dated 2026-05-22 (Vite SPA, not Astro 6 islands); two-env-deploy row references `vite.config.ts` and the SEO plugin instead of `BaseLayout.astro`; new lint row for Biome 2.
+- **CLAUDE.md** lower half: every reference to `astro.config.mjs`, `BaseLayout.astro`, and `src/lib/structured-data.tsx` swapped for the Vite-plugin reality. `generate-sitemap.mjs` added to the file index.
+- **`src/data/artworks.json`** `_notes` and **`.claude/skills/new-artwork/SKILL.md`** stop pointing at a Zod schema in `src/content.config.ts` (file doesn't exist) and point at the `Artwork` TS type in [`src/lib/images.ts`](src/lib/images.ts) instead.
+- **`public/robots.txt`** sitemap URL switches from `sitemap-index.xml` (the old Astro output filename) to `sitemap.xml`; comment switches from "@astrojs/sitemap" to `scripts/generate-sitemap.mjs`.
+
+### SEO
+
+The single biggest user-visible regression from 1.4.0. The static `index.html` shipped to GitHub Pages had no description, no OG, no Twitter card, no canonical, no sitemap, and the JSON-LD only rendered client-side via React. Now everything crawlers need is in the static document on first byte.
+
+- **`index.html`** carries hand-written `<meta name="description">`, full Open Graph (`og:type`, `og:title`, `og:description`, `og:url`, `og:image`, `og:locale`, `og:site_name`), Twitter Card (`summary_large_image`), `<link rel="canonical">`, `<meta name="robots" content="index, follow">`. A `<!--seo-injection-marker-->` comment in `<head>` is where the build splices the dynamic bits.
+- **Custom Vite plugin** `seoPlugin` in [`vite.config.ts`](vite.config.ts) runs in `transformIndexHtml(order: 'pre')`. Reads [`src/data/site.json`](src/data/site.json) and [`src/data/artworks.json`](src/data/artworks.json) and emits:
+  - **JSON-LD graph**: `Person` / `VisualArtist` + `WebSite` + one `VisualArtwork` per catalog entry, single `<script type="application/ld+json">` in `<head>`.
+  - **Hero preload**: `<link rel="preload" as="image" type="image/webp" imagesrcset="... 800w, ... 1200w" imagesizes="..." fetchpriority="high">` for the featured artwork's WebP variants. The LCP candidate gets fetched before the JS bundle parses.
+  - **Beta noindex**: when `DEPLOY_ENV=beta`, rewrites `<meta name="robots">` to `noindex, nofollow` and the canonical to the prod URL so SEO consolidates at `sagargupta.online/folk-art-portfolio/`.
+- **Sitemap**. New [`scripts/generate-sitemap.mjs`](scripts/generate-sitemap.mjs) emits `dist/sitemap.xml` with the homepage plus each section anchor (`#work`, `#about`, `#workshops`, `#custom-orders`, `#contact`). Skipped on beta. Wired as the last step of `pnpm build`.
+- **`src/lib/structured-data.tsx` deleted.** Was a `dangerouslySetInnerHTML` JSON-LD component rendered inside `<App>`. The static-head version is strictly better; shipping both would duplicate the graph.
+
+### Performance
+
+Main JS bundle drops from 267 kB to 245 kB; another ~25 kB of decorative code now lives in lazy chunks that hydrate after the page is interactive.
+
+- **Decoratives lazy-loaded**. `CustomCursor`, `NoiseOverlay`, `ParticleField`, `Lattice3D`, `FloatingShapes` are all `React.lazy()` chunks behind `<Suspense fallback={null}>` boundaries. They're pure ambient chrome -- the page is fully usable without them, so a `null` fallback is correct.
+- **Lenis dynamic-imported on idle**. Smooth scroll runs through `requestIdleCallback` (200 ms `setTimeout` fallback). The 18.83 kB Lenis bundle no longer blocks the hero paint. Reduce-motion users skip it entirely as before.
+- **ParticleField pauses offscreen**. New `IntersectionObserver` on the canvas toggles a `running` flag; the RAF loop early-returns when offscreen and reattaches when back. The O(n^2) connection-distance sweep over 60 particles every frame previously kept running while the user scrolled the rest of the site -- real battery cost on mobile.
+- **Hero preload link** in `<head>` (see SEO section) -- the LCP candidate is fetched before JS parses, not after.
+
+Final build output:
+
+```
+index-*.js          245.19 kB (gzip 76.29 kB)  -- main bundle
+lenis-*.js           18.83 kB (gzip  5.36 kB)  -- deferred to idle
+ParticleField.js      2.26 kB
+CustomCursor.js       1.98 kB
+Lattice3D.js          0.76 kB
+NoiseOverlay.js       0.54 kB
+FloatingShapes.js     0.26 kB
+```
+
+### Accessibility
+
+Three small but real regressions caught in the audit.
+
+- **`CustomCursor` no longer leaves orphan divs on touch.** Was returning early from its `useEffect` on `(hover: none)` / `prefers-reduced-motion: reduce` but still rendered the two cursor-and-follower `<div>`s, leaving them as empty positioned ringlets at top-0/left-0 of the viewport on phones. Now gates on `(hover: none) || (pointer: coarse) || prefers-reduced-motion` and `return null` from the component before the JSX.
+- **`Marquee` no longer announces itself to screen readers.** Was `aria-label="Featured artworks"` with one of two duplicated tracks set to `aria-hidden="false"`, so AT read all 14 titles + 7 Devanagari ornaments on every page load as a live region. The same titles live in the gallery below; the marquee is pure decoration. Now the entire `<aside>` is `aria-hidden="true"`.
+- **`ScrollProgress` is `aria-hidden` and `pointer-events-none`**. Previously a plain `z-50` div with no a11y semantics, capable of intercepting clicks at the top edge of the viewport.
+- **`ArtworkLightbox` close/prev/next icons** marked `aria-hidden="true"` -- the parent buttons already carry `aria-label`, so the SVGs were doubling up the announcement.
+
+### Tooling
+
+- **Biome 2 config** at [`biome.json`](biome.json). Tab indent (matches existing TSX), double quotes, 100-col line width, trailing commas, organize-imports on save. CSS files excluded from the include glob because Tailwind 4's `@custom-variant` / `@theme` directives confuse Biome's CSS parser. `useKeyWithClickEvents` and `useSemanticElements` off (the existing `role="group"` filter group on `Work.tsx` is intentional).
+- **`pnpm lint` / `pnpm lint:fix` / `pnpm format` scripts** added to [`package.json`](package.json).
+- **CI runs lint** -- new step in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) before typecheck. Job renamed to "lint, typecheck and build".
+- **Tree reformatted** by `biome check --write`. Mostly cosmetic (organize imports, JSX collapses where it fits in 100 cols, drop trailing whitespace, double-quote the inline theme script). Real fixes folded in: `App.tsx` `forEach` callbacks now have brace bodies (no implicit return), `vite.config.ts` uses `node:path` protocol, `index.html` inline theme script uses `let` / `const` instead of `var`-in-`try`.
+
+### Stack
+
+No runtime changes -- React 19, Vite 6, Tailwind 4, TypeScript 6 strict, lenis 1.3.23, sharp 0.34.5, fontsource for Cormorant Garamond / Inter / Tiro Devanagari Hindi all unchanged. Biome 2.4.15 was already in devDeps; this release just adds the config and CI step that activate it.
+
 ## 1.4.0 -- 2026-05-22
 
 Full framework migration from Astro 6 to Vite + React 19. The site is now a single-page React application instead of an Astro static site. Same design system, same CSS, same image pipeline, same deploy target -- the rendering layer moved from server-rendered Astro templates to client-rendered TSX components.

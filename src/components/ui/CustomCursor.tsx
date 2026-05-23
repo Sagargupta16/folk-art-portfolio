@@ -1,13 +1,24 @@
 import { useEffect, useRef, useState } from "react";
+import { hasCoarsePointer, isTouchOnly, prefersReducedMotion } from "@/lib/media";
+
+// True when we should skip the custom cursor entirely. Anything that fakes
+// hover (touch, hybrid devices, reduce-motion) gets the system cursor.
+function prefersNoCursor() {
+	return isTouchOnly() || hasCoarsePointer() || prefersReducedMotion();
+}
 
 export default function CustomCursor() {
 	const cursorRef = useRef<HTMLDivElement>(null);
 	const followerRef = useRef<HTMLDivElement>(null);
 	const [mode, setMode] = useState<"default" | "hover" | "gallery">("default");
+	const [enabled, setEnabled] = useState(false);
 
 	useEffect(() => {
-		if (window.matchMedia("(hover: none)").matches) return;
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		setEnabled(!prefersNoCursor());
+	}, []);
+
+	useEffect(() => {
+		if (!enabled) return;
 
 		if (!cursorRef.current || !followerRef.current) return;
 		const cursor: HTMLDivElement = cursorRef.current;
@@ -33,11 +44,7 @@ export default function CustomCursor() {
 
 		function onOver(e: MouseEvent) {
 			const target = e.target as HTMLElement;
-			if (
-				target.closest(
-					'[data-lightbox-trigger], .gallery-frame, button[type="button"]',
-				)
-			) {
+			if (target.closest('[data-lightbox-trigger], .gallery-frame, button[type="button"]')) {
 				setMode("gallery");
 			} else if (target.closest("a, button")) {
 				setMode("hover");
@@ -64,20 +71,13 @@ export default function CustomCursor() {
 			cancelAnimationFrame(raf);
 			document.documentElement.classList.remove("custom-cursor-active");
 		};
-	}, []);
+	}, [enabled]);
 
-	const sizeClass =
-		mode === "gallery"
-			? "w-16 h-16"
-			: mode === "hover"
-				? "w-10 h-10"
-				: "w-3 h-3";
+	if (!enabled) return null;
+
+	const sizeClass = mode === "gallery" ? "w-16 h-16" : mode === "hover" ? "w-10 h-10" : "w-3 h-3";
 	const followerSize =
-		mode === "gallery"
-			? "w-20 h-20"
-			: mode === "hover"
-				? "w-14 h-14"
-				: "w-8 h-8";
+		mode === "gallery" ? "w-20 h-20" : mode === "hover" ? "w-14 h-14" : "w-8 h-8";
 
 	return (
 		<>

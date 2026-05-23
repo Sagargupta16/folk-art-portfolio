@@ -1,4 +1,5 @@
 import { useCallback, useRef } from "react";
+import { isTouchOnly } from "@/lib/media";
 
 type TiltOptions = {
 	maxAngle?: number;
@@ -6,11 +7,7 @@ type TiltOptions = {
 	scale?: number;
 };
 
-export function useTilt3D({
-	maxAngle = 8,
-	perspective = 1000,
-	scale = 1.02,
-}: TiltOptions = {}) {
+export function useTilt3D({ maxAngle = 8, perspective = 1000, scale = 1.02 }: TiltOptions = {}) {
 	const ref = useRef<HTMLElement>(null);
 	const rafRef = useRef(0);
 
@@ -18,7 +15,7 @@ export function useTilt3D({
 		(e: React.MouseEvent) => {
 			const el = ref.current;
 			if (!el) return;
-			if (window.matchMedia("(hover: none)").matches) return;
+			if (isTouchOnly()) return;
 
 			cancelAnimationFrame(rafRef.current);
 			rafRef.current = requestAnimationFrame(() => {

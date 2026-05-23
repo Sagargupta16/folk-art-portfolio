@@ -22,12 +22,7 @@ type Props = {
 	onNext: () => void;
 };
 
-export default function ArtworkLightbox({
-	item,
-	onClose,
-	onPrev,
-	onNext,
-}: Props) {
+export default function ArtworkLightbox({ item, onClose, onPrev, onNext }: Props) {
 	const dialogRef = useRef<HTMLDialogElement>(null);
 
 	useEffect(() => {
@@ -69,6 +64,7 @@ export default function ArtworkLightbox({
 						className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-[var(--color-line)] bg-[var(--color-bg)] text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
 					>
 						<svg
+							aria-hidden="true"
 							viewBox="0 0 20 20"
 							width="14"
 							height="14"
@@ -84,12 +80,8 @@ export default function ArtworkLightbox({
 
 					<div className="lightbox-image relative flex min-h-[50vh] flex-1 items-center justify-center bg-[var(--color-bg-soft)] md:min-h-[70vh]">
 						<picture className="block h-full w-full">
-							{item.avifSrcset && (
-								<source type="image/avif" srcSet={item.avifSrcset} />
-							)}
-							{item.webpSrcset && (
-								<source type="image/webp" srcSet={item.webpSrcset} />
-							)}
+							{item.avifSrcset && <source type="image/avif" srcSet={item.avifSrcset} />}
+							{item.webpSrcset && <source type="image/webp" srcSet={item.webpSrcset} />}
 							<img
 								src={item.origUrl}
 								alt={item.alt}
@@ -104,6 +96,7 @@ export default function ArtworkLightbox({
 							className="lightbox-nav absolute left-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-[var(--color-line)] bg-[var(--color-bg)]/85 text-[var(--color-ink)] backdrop-blur transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
 						>
 							<svg
+								aria-hidden="true"
 								viewBox="0 0 20 20"
 								width="14"
 								height="14"
@@ -123,6 +116,7 @@ export default function ArtworkLightbox({
 							className="lightbox-nav absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-[var(--color-line)] bg-[var(--color-bg)]/85 text-[var(--color-ink)] backdrop-blur transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
 						>
 							<svg
+								aria-hidden="true"
 								viewBox="0 0 20 20"
 								width="14"
 								height="14"
@@ -148,9 +142,7 @@ export default function ArtworkLightbox({
 							{item.title}
 						</h2>
 						{item.description && (
-							<p className="t-body text-[var(--color-muted)]">
-								{item.description}
-							</p>
+							<p className="t-body text-[var(--color-muted)]">{item.description}</p>
 						)}
 						<dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 pt-2 text-sm">
 							<dt className="t-meta">Medium</dt>
@@ -165,17 +157,9 @@ export default function ArtworkLightbox({
 						{item.palette && item.palette.length > 0 && (
 							<div className="mt-2">
 								<p className="t-meta mb-2">Palette</p>
-								<div
-									className="chromacard"
-									role="img"
-									aria-label="Sampled palette"
-								>
-									{item.palette.map((hex, i) => (
-										<span
-											key={i}
-											style={{ background: hex }}
-											aria-hidden="true"
-										/>
+								<div className="chromacard" role="img" aria-label="Sampled palette">
+									{item.palette.map((hex) => (
+										<span key={hex} style={{ background: hex }} aria-hidden="true" />
 									))}
 								</div>
 							</div>

@@ -1,19 +1,8 @@
 import Section from "@/components/layout/Section";
-import siteData from "@/data/site.json";
 import { useTilt3D } from "@/hooks/useTilt3D";
-import { contact, sections } from "@/lib/site";
+import { contact, sections, type Workshop, workshops } from "@/lib/site";
 
-type Workshop = {
-	slug: string;
-	title: string;
-	blurb: string;
-	durationHours?: number;
-	order: number;
-};
-
-const items = (siteData.workshops as Workshop[]).sort(
-	(a, b) => a.order - b.order,
-);
+const items = workshops;
 const w = sections.workshops;
 
 function WorkshopCard({ item }: { item: Workshop }) {
@@ -29,17 +18,14 @@ function WorkshopCard({ item }: { item: Workshop }) {
 				onMouseLeave={onMouseLeave}
 				className="card card-tilt border-beam tilt-3d h-full"
 			>
-				<h3 className="t-display text-2xl text-[var(--color-ink)]">
-					{item.title}
-				</h3>
+				<h3 className="t-display text-2xl text-[var(--color-ink)]">{item.title}</h3>
 				<p className="t-body text-[var(--color-muted)]">{item.blurb}</p>
 				<div className="mt-auto flex items-center justify-between pt-2">
 					{item.durationHours ? (
 						<span
 							className="t-meta rounded-full px-2.5 py-1"
 							style={{
-								background:
-									"color-mix(in srgb, var(--section-accent) 14%, transparent)",
+								background: "color-mix(in srgb, var(--section-accent) 14%, transparent)",
 								color: "var(--section-accent)",
 							}}
 						>

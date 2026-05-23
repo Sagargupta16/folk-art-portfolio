@@ -2,13 +2,7 @@ import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useMagnetic } from "@/hooks/useMagnetic";
 import { brand, nav } from "@/lib/site";
 
-function MagneticLink({
-	href,
-	children,
-}: {
-	href: string;
-	children: React.ReactNode;
-}) {
+function MagneticLink({ href, children }: { href: string; children: React.ReactNode }) {
 	const { ref, onMouseMove, onMouseLeave } = useMagnetic(0.25);
 	return (
 		<a
@@ -50,10 +44,7 @@ export default function Header() {
 						aria-hidden="true"
 					>
 						{brand.headline.latinPrefix}
-						<span
-							lang="hi"
-							className="font-devanagari not-italic text-[var(--color-accent)]"
-						>
+						<span lang="hi" className="font-devanagari not-italic text-[var(--color-accent)]">
 							{brand.headline.devanagariCore}
 						</span>
 					</span>
@@ -72,10 +63,7 @@ export default function Header() {
 				<ThemeToggle />
 			</div>
 
-			<nav
-				aria-label="Primary mobile"
-				className="border-t border-[var(--color-line)] sm:hidden"
-			>
+			<nav aria-label="Primary mobile" className="border-t border-[var(--color-line)] sm:hidden">
 				<ul className="container-x flex flex-wrap items-center justify-center gap-x-3 gap-y-0 py-1.5">
 					{nav.map((item) => (
 						<li key={item.href} className="shrink-0">

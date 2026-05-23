@@ -1,9 +1,6 @@
-import artworksData from "@/data/artworks.json";
-import type { Artwork } from "@/lib/images";
+import { artworks } from "@/lib/site";
 
-const titles = (artworksData.items as Artwork[])
-	.map((a) => a.title)
-	.slice(0, 14);
+const titles = artworks.map((a) => a.title).slice(0, 14);
 const devanagari = ["कमल", "मृग", "गाय", "मीन", "मोर", "वृक्ष", "सरिता"];
 
 const items: { text: string; lang?: string }[] = [];
@@ -16,9 +13,9 @@ for (let i = 0; i < max; i++) {
 function TrackContent() {
 	return (
 		<>
-			{items.map((item, i) => (
+			{items.map((item) => (
 				<span
-					key={i}
+					key={item.text}
 					className={`shrink-0 text-3xl sm:text-4xl md:text-[2.6rem] ${
 						item.lang
 							? "font-devanagari text-[var(--color-accent)] not-italic"
@@ -37,13 +34,13 @@ export default function Marquee() {
 	return (
 		<aside
 			className="relative border-y border-[var(--color-line)] bg-[var(--color-bg-soft)] py-7"
-			aria-label="Featured artworks"
+			aria-hidden="true"
 		>
 			<div className="marquee">
-				<div className="marquee__track" aria-hidden="false">
+				<div className="marquee__track">
 					<TrackContent />
 				</div>
-				<div className="marquee__track" aria-hidden="true">
+				<div className="marquee__track">
 					<TrackContent />
 				</div>
 			</div>

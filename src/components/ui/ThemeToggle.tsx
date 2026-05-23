@@ -41,9 +41,7 @@ export default function ThemeToggle() {
 				className="absolute inset-0 grid place-items-center text-base leading-none transition-all duration-500 ease-out motion-reduce:transition-none"
 				style={{
 					opacity: isDark ? 0 : 1,
-					transform: isDark
-						? "translateY(-110%) rotate(-90deg)"
-						: "translateY(0) rotate(0)",
+					transform: isDark ? "translateY(-110%) rotate(-90deg)" : "translateY(0) rotate(0)",
 				}}
 			>
 				☀
@@ -53,9 +51,7 @@ export default function ThemeToggle() {
 				className="absolute inset-0 grid place-items-center text-base leading-none transition-all duration-500 ease-out motion-reduce:transition-none"
 				style={{
 					opacity: isDark ? 1 : 0,
-					transform: isDark
-						? "translateY(0) rotate(0)"
-						: "translateY(110%) rotate(90deg)",
+					transform: isDark ? "translateY(0) rotate(0)" : "translateY(110%) rotate(90deg)",
 				}}
 			>
 				☾

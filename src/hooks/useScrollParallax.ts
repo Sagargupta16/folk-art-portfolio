@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
+import { prefersReducedMotion } from "@/lib/media";
 
 export function useScrollParallax(speed = 0.3) {
 	const ref = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		if (prefersReducedMotion()) return;
 		if (!ref.current) return;
 		const el: HTMLDivElement = ref.current;
 

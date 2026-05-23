@@ -28,10 +28,7 @@ export default function Footer() {
 						aria-hidden="true"
 					>
 						{brand.headline.latinPrefix}
-						<span
-							lang="hi"
-							className="font-devanagari not-italic text-[var(--color-accent)]"
-						>
+						<span lang="hi" className="font-devanagari not-italic text-[var(--color-accent)]">
 							{brand.headline.devanagariCore}
 						</span>
 					</span>

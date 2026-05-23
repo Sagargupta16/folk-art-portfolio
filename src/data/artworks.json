@@ -2,7 +2,7 @@
 	"_notes": [
 		"Single source of truth for artwork metadata. Each entry is one painting.",
 		"'image' is the filename under public/artworks/. Add the file there, then append an entry here.",
-		"Schema is enforced by Zod in src/content.config.ts."
+		"Schema is documented in src/lib/images.ts; bad shapes surface as compile errors via `pnpm typecheck`."
 	],
 	"items": [
 		{

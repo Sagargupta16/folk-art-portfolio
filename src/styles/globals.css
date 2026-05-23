@@ -172,11 +172,7 @@ body {
 	border-color: var(--section-accent, var(--color-accent));
 	transform: translateY(-2px);
 	box-shadow: 0 18px 40px -28px
-		color-mix(
-			in srgb,
-			var(--section-accent, var(--color-accent)) 70%,
-			transparent
-		);
+		color-mix(in srgb, var(--section-accent, var(--color-accent)) 70%, transparent);
 }
 
 /* Gallery card frame -- inherits color identity from --card-accent set inline

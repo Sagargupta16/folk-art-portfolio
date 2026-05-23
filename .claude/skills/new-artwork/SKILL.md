@@ -32,7 +32,7 @@ Adding a new artwork is the recurring task on this site. This skill makes it a o
    - `order` controls sort within the gallery (lower = earlier). Use 1-50 for featured pieces, 100+ for the rest.
    - `featured: true` makes a piece eligible for the hero (first featured wins).
 5. **Verify**: `pnpm dev`, navigate to `#work`, confirm the piece renders, filters correctly by style, and the image isn't cropped weirdly.
-6. **Build check**: `pnpm build` -- the Zod schema in [`src/content.config.ts`](../../../src/content.config.ts) will reject bad entries.
+6. **Build check**: `pnpm build` -- `pnpm typecheck` runs first and catches catalog shape errors against the `Artwork` type in [`src/lib/images.ts`](../../../src/lib/images.ts).
 7. **Commit**: `feat: add artwork "<title>"`.
 
 ## Notes

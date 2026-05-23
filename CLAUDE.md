@@ -23,7 +23,7 @@ Migrated 2026-05-22. Frontend-only, static deploy.
 - **Self-hosted fonts** -- Cormorant Garamond (display serif, italic-forward), Inter (body), Tiro Devanagari Hindi (accent). All via `@fontsource(-variable)`. No Google Fonts CDN call.
 - **JSON-driven content** -- single source of truth in [`src/data/site.json`](src/data/site.json) (brand, nav, sections, workshops) and [`src/data/artworks.json`](src/data/artworks.json) (artwork catalog). Imported directly via `resolveJsonModule`. Same model survives a future CMS or backend swap.
 - **Image pipeline** -- build-time `sharp` script at [`scripts/optimize-images.mjs`](scripts/optimize-images.mjs) generates AVIF + WebP variants (400/800/1200 widths) into `public/_opt/artworks/` (gitignored). [`src/components/ui/ArtworkImage.tsx`](src/components/ui/ArtworkImage.tsx) emits `<picture>` with multi-format `<source srcset>` chains; the original `.jpg` in `public/artworks/` stays as a fallback.
-- **SEO** -- JSON-LD via [`src/lib/structured-data.tsx`](src/lib/structured-data.tsx), Open Graph metadata in [`index.html`](index.html), `robots.txt` in `public/`.
+- **SEO** -- A custom Vite plugin in [`vite.config.ts`](vite.config.ts) injects description / Open Graph / Twitter / canonical / JSON-LD into [`index.html`](index.html) at build time and writes `dist/sitemap.xml` from [`src/data/artworks.json`](src/data/artworks.json). Beta builds (`DEPLOY_ENV=beta`) get `<meta name="robots" content="noindex, nofollow">` and a canonical that rewrites `/beta/` -> prod. `robots.txt` lives in `public/`.
 
 Backend hooks left as inert seams (contact form, workshop booking) -- to be activated when needed without restructuring.
 
@@ -58,7 +58,7 @@ Build + typecheck are the current quality gates. Playwright smoke test and Light
 
 ## Deploy
 
-GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`). [`vite.config.ts`](vite.config.ts) sets `base` to `/folk-art-portfolio/` (or `/folk-art-portfolio/beta/` for staging). OG metadata lives in [`index.html`](index.html). When the artist's own domain lands, update the `base` in `vite.config.ts` and the OG/canonical URLs in `index.html`.
+GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`). [`vite.config.ts`](vite.config.ts) sets `base` to `/folk-art-portfolio/` (or `/folk-art-portfolio/beta/` when `DEPLOY_ENV=beta`). The same file's SEO plugin injects OG / Twitter / canonical / JSON-LD into [`index.html`](index.html) and writes `dist/sitemap.xml` from [`src/data/artworks.json`](src/data/artworks.json) at build time. When the artist's own domain lands, update the `base` and the `SITE` constant in `vite.config.ts`; the OG / canonical / sitemap will follow.
 
 ## Entry points
 
@@ -76,10 +76,11 @@ GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`). [`vite.config.t
 - [`src/components/sections/`](src/components/sections/) -- `Hero`, `About`, `Work`, `Workshops`, `CustomOrders`, `Contact`. One per page section.
 - [`src/components/ui/`](src/components/ui/) -- `ThemeToggle`, `ArtworkImage` (`<picture>` wrapper), `ArtworkLightbox`, `Chromacard`, `Marquee`, `OrderForm`, `icons` (all TSX).
 - [`src/lib/images.ts`](src/lib/images.ts) -- `Artwork` type + `artworkUrl(art, baseUrl)` helper.
-- [`src/lib/structured-data.tsx`](src/lib/structured-data.tsx) -- `StructuredData` React component emitting schema.org JSON-LD.
+- [`src/lib/site.ts`](src/lib/site.ts) -- typed re-exports of `src/data/site.json` (brand, nav, contact, styles, sections).
 - [`src/lib/placeholder.ts`](src/lib/placeholder.ts) -- deterministic SVG placeholders per style.
 - [`src/styles/globals.css`](src/styles/globals.css) -- Tailwind import, theme tokens, font imports, design-system utilities.
 - [`scripts/optimize-images.mjs`](scripts/optimize-images.mjs) -- build-time AVIF + WebP variant generator (sharp). Idempotent (mtime-aware), regenerates only changed sources.
+- [`scripts/generate-sitemap.mjs`](scripts/generate-sitemap.mjs) -- build-time sitemap.xml generator (reads `artworks.json`, writes to `dist/`).
 - [`public/artworks/`](public/artworks/) -- one `<slug>.jpg` per piece (committed; serves as the JPEG fallback in `<picture>` and as the canonical URL for `og:image` + JSON-LD).
 - `public/_opt/artworks/` -- generated AVIF + WebP variants at 400/800/1200 widths. Gitignored, regenerated on every build.
 - [`public/robots.txt`](public/robots.txt) -- allow-all, points at the sitemap.
@@ -95,7 +96,7 @@ GitHub Pages from this repo (`Sagargupta16/folk-art-portfolio`). [`vite.config.t
 ## Gotchas
 
 - Client (Megha) does not write code. Update flow is Sagar edits and ships -- no CMS yet. If she ever wants self-edit, the JSON-driven catalog is CMS-ready (Decap, Sanity, etc.) without restructuring.
-- Domain: client wants their own. Until DNS lands the site is mirrored on `Sagargupta16.github.io/folk-art-portfolio/` and proxied at `sagargupta.online/folk-art-portfolio/`. When the artist's domain lands, update `base` in `vite.config.ts` and OG URLs in `index.html`.
+- Domain: client wants their own. Until DNS lands the site is mirrored on `Sagargupta16.github.io/folk-art-portfolio/` and proxied at `sagargupta.online/folk-art-portfolio/`. When the artist's domain lands, update `base` and the `SITE` constant in `vite.config.ts` -- everything else (canonical, OG URLs, sitemap, JSON-LD) is derived from those.
 - Adding a new artwork: drop `<slug>.jpg` into [`public/artworks/`](public/artworks/), append an entry to [`src/data/artworks.json`](src/data/artworks.json) with matching `image: "<slug>.jpg"`. The build runs [`scripts/optimize-images.mjs`](scripts/optimize-images.mjs) automatically and the gallery + hero pick it up via [`ArtworkImage.tsx`](src/components/ui/ArtworkImage.tsx).
 
 ## Branching and releases
@@ -112,7 +113,7 @@ Promotion flow: `feat/<topic>` -> PR into `dev` -> deploys to `/beta/` -> review
 - **No direct push to `main` or `dev`.** Work on a feature branch (`feat/<topic>`, `fix/<topic>`, `chore/<topic>`). Don't push to remote until Sagar explicitly says so ("push it", "push and PR", etc.). Server-side branch protection is configured on `main`; `dev` relies on convention.
 - **PRs only into `main`.** All prod changes land via the `dev` -> `main` promotion PR. No fast-forward from local, no direct push.
 - **One open PR at a time per target.** Don't open a second PR into `dev` while one is unmerged; stack onto the existing branch. The `dev` -> `main` promotion PR is its own slot and may coexist with an open feature -> `dev` PR. Exception: a true hotfix on a separate branch, linked in the existing PR body.
-- **Beta builds set `DEPLOY_ENV=beta`.** [`astro.config.mjs`](astro.config.mjs) reads it and switches `base` to `/folk-art-portfolio/beta/`. [`BaseLayout.astro`](src/layouts/BaseLayout.astro) reads it and emits `<meta robots="noindex, nofollow">` plus a canonical that rewrites `/beta/` -> `/`. The combined-dist deploy in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds both branches on every push to either, so prod and beta never drift.
+- **Beta builds set `DEPLOY_ENV=beta`.** [`vite.config.ts`](vite.config.ts) reads it and switches `base` to `/folk-art-portfolio/beta/`. The SEO plugin in the same file reads it and injects `<meta name="robots" content="noindex, nofollow">` plus a canonical that rewrites `/beta/` -> `/`. The combined-dist deploy in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds both branches on every push to either, so prod and beta never drift.
 - **Versioning: SemVer, manual, pre-1.0.0** while the site is in build-out. 1.0.0 = first public launch on the client's domain.
   - **Patch** (`0.x.Y`): typo, broken link, image swap, CSS tweak, new artwork added.
   - **Minor** (`0.X.0`): new gallery section / page, content model change, stack swap.

@@ -6,7 +6,7 @@ import { getSite } from "@/lib/data";
 export const metadata: Metadata = {
 	title: "About",
 	description:
-		"On preserving folk traditions through practice -- Madhubani, Pichwai, Lippan and Gond painting by Megha Seth.",
+		"On preserving folk traditions through practice. Madhubani, Pichwai, Lippan and Gond painting by Megha Seth.",
 };
 
 interface AboutSection {

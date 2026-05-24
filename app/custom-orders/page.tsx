@@ -9,7 +9,7 @@ import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 export const metadata: Metadata = {
 	title: "Custom orders",
 	description:
-		"Order a custom painting -- Madhubani, Pichwai, Lippan, Gond, Texture, Mixed Media. Send a brief and we'll get back to you on WhatsApp with a quote and timeline.",
+		"Order a custom painting in any of the styles: Madhubani, Pichwai, Lippan, Gond, Texture, or Mixed Media. Send a brief and we'll get back to you on WhatsApp with a quote and timeline.",
 };
 
 interface CustomOrdersSection {
@@ -54,7 +54,7 @@ export default function CustomOrdersPage() {
 				<Reveal delayMs={160}>
 					<p className="t-lead mt-4">
 						{co.lead ??
-							"Tell us what you have in mind. We'll review and get back to you on WhatsApp -- no payment until we've talked."}
+							"Tell us what you have in mind. We'll review and get back to you on WhatsApp. No payment until we've talked."}
 					</p>
 				</Reveal>
 			</header>

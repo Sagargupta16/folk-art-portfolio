@@ -4,8 +4,8 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 > Stacks on the workspace root at `C:\Code\GitHub\`:
 >
-> - Root [CLAUDE.md](../../CLAUDE.md) -- voice, rules, routing, references, skills, conventions.
-> - Root [MEMORY.md](../../MEMORY.md), [STATUS.md](../../STATUS.md) -- live cross-repo facts.
+> - Root [CLAUDE.md](../../CLAUDE.md): voice, rules, routing, references, skills, conventions.
+> - Root [MEMORY.md](../../MEMORY.md), [STATUS.md](../../STATUS.md): live cross-repo facts.
 >
 > Read those first. This file adds repo-specific context only.
 
@@ -13,42 +13,93 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 Portfolio site for **Megha Seth**, traditional folk artist (family member of Sagar). Live at <https://kalchar.co.in/>.
 
-The full project knowledge -- goal, confirmed decisions, observable disk state, implied recommendations, open questions, architecture sketch, Phase 2 migration plan -- lives in [MEMORY.md](MEMORY.md). Read it at session start.
+The full project knowledge (goal, confirmed decisions, vision, architecture, open questions, Phase 2 plan) lives in [MEMORY.md](MEMORY.md). Read it at session start.
 
-## Current focus
+## Stack
 
-Build a strong public UI now, with the catalog still in the repo (`data/*.json`). Pick folder structure so the eventual switch to full-stack (admin panel via Google OAuth, DB-backed catalog) is a localized change -- one data-seam swap, not a rewrite.
+Next.js 15 (App Router) + React 19 + TypeScript strict + Tailwind 4 + Biome 2. Static export to `out/` for GitHub Pages. Motion 12 + Lenis (lazy-loaded) for animation. shadcn-style components (cva + Radix-friendly). pnpm 10.
 
-## Status
+## Branch + deploy
 
-Skeleton repo. The earlier build pipeline (`package.json`, Vite config, `tsconfig.json`, `biome.json`, `index.html`) and the previous frontend code have all been removed. Catalog data and artwork images are kept; the UI and stack are being designed from scratch with the user.
+Currently on `feat/ui-theme-foundation`, ahead of `main`. Live deploy is on the (much older) `main`. Earlier commits in this branch contain wiped attempts; **do not reuse them as templates** without explicit confirmation. Push + PR only when Sagar says so.
 
-Branch: `feat/ui-theme-foundation`. Earlier commits in branch history contain prior frontend attempts that were wiped -- **do not reuse them as templates** without explicit user confirmation.
+GitHub Pages OIDC deploy from `main`. `public/CNAME` ships the apex domain.
+
+## Local dev
+
+```sh
+pnpm dev          # http://localhost:3000
+pnpm build        # static export to out/
+pnpm typecheck
+pnpm lint
+pnpm format
+```
+
+`devIndicators: false` is set in `next.config.mjs` (Next 15.5.x in-app DevTools panel was crashing HMR on Windows + pnpm).
+
+## Project rules
+
+### Style and copy
+
+- **No double dash (` -- `) in user-facing copy.** Replace with comma, period, colon, parentheses, or restructure. The Em-dash visual idea is fine in content writing but the literal `--` glyph is banned in metadata, JSX strings, page bodies, dropdown options, and `data/*.json`. Internal code comments and JSDoc may keep `--` since they don't ship.
+- **No emojis** in user-facing copy or commits unless the user explicitly asks.
+- **Voice**: neutral first-person plural ("we'll get back to you"), not third-person referencing the artist by name. Exception: `data/site.json` artist-voice copy, where the artist speaks in first-person singular and we don't rewrite her words.
+
+### Visual / motion
+
+- **Mobile-first.** Most traffic arrives from WhatsApp / Instagram link-taps. Design for phone width primarily, then scale up.
+- **Restrained motion.** Fade-up reveal on scroll, subtle hover lifts, smooth scroll, character-entrance on hero. **No 3D tilt, no decorative backdrops (mesh / lattice / particles), no custom cursor.** All animation respects `prefers-reduced-motion` (handled at the library level via `MotionConfig reducedMotion="user"`).
+- **Subtle, consistent corner radius** (`rounded-md`) on every surface (cards, panels, fields, buttons, image plates). Pills + theme toggle stay `rounded-full`. No sharp corners.
+- **Section pigment accents**: about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock. Hero + Selected Work inherit the global terracotta. Set via `--section-accent` inline on `<main>` or a `Section` wrapper.
+- **No raw hex / rgb in components.** All color via CSS custom properties. Lone exception: `data/artworks.json` palette arrays (data, not theme) and SVG data URIs (CSS vars don't resolve there).
+- **No magic timings.** Use named tokens (`--duration-fast/base/slow`, `--ease-out-soft/glide/spring`).
+
+### Architecture
+
+- **Data seam at `lib/data.ts`.** Everything reads catalog through it. Phase 2 swaps the implementation from JSON-file reads to DB queries; UI never knows. Don't import `data/*.json` directly outside this file.
+- **URLs from one place.** `lib/site-config.ts` exports `siteConfig.url` / `basePath` / `prodUrl`. `next.config.mjs` duplicates `basePath` as a literal (it can't import `.ts`); keep them in sync, comment cross-references.
+- **500-line file ceiling.** Split before committing: extract sub-component, lift styles, pull data into JSON.
+- **Data files at repo root** (`data/`). Not under `src/`. Survives stack swaps.
+- **Build output to `out/`** (Next static export), gitignored.
+
+### Workflow
+
+- **Never push to remote without explicit per-session approval.** Rebasing local feature branches autonomously is fine.
+- **One open PR at a time per target.** Bot PRs (Renovate, ImgBot) count.
+- **Default branch is `main`.** Never `master`.
+- **Never force-push to `main`. Never amend published commits. Never skip hooks (`--no-verify`).**
 
 ## What's on disk
 
 ```text
-.claude/           settings + project-local AI config
+.claude/                  settings + project-local AI config
+app/                      Next.js App Router
+  layout.tsx              root layout, fonts, providers
+  page.tsx                home: hero / marquee / selected work / available / about teaser / CTAs
+  about/, workshops/, custom-orders/, contact/
+  work/                   gallery + per-artwork detail (statically generated)
+  fonts.ts                next/font/google: Cormorant + Inter + Tiro Devanagari
+  globals.css             @theme tokens, drop-cap, base reset
+components/
+  layout/                 site-header / site-footer / section
+  gallery/                artwork-card, chromacard, work-filter
+  forms/                  custom-order-form
+  motion/                 reveal, motion-provider, smooth-scroll, split-text
+  decor/                  marquee, scroll-progress
+  ui/                     button, theme-toggle, brand-icons
+lib/
+  data.ts                 the data seam
+  types.ts, utils.ts, whatsapp.ts, site-config.ts, hooks/
 data/
-  site.json        copy: brand, nav, contact, sections, workshops
-  artworks.json    catalog: one entry per artwork
+  site.json, artworks.json
 public/
-  artworks/        source JPGs, one per slug
+  artworks/               21 JPGs, ~28 MB
   logo.jpg, logo-180.png, CNAME, robots.txt
-.github/workflows/
-  ci.yml, deploy.yml   expect a pnpm project; will fail until v3 scaffolds
-CHANGELOG.md, LICENSE, README.md, renovate.json
+.github/workflows/        ci.yml, deploy.yml (deploy.yml uploads out/)
+scripts/
+  optimize-images.mjs     stub; real sharp pipeline pending
 ```
-
-There is no `package.json`, no `tsconfig.json`, no `index.html`, no `src/`. `pnpm` commands will not work until a stack is chosen and scaffolded.
 
 ## Operating mode
 
-The user is driving discovery + decision-making. Until they explicitly invite questions or say "go":
-
-- **Do not** scaffold, install, or write build configs.
-- **Do not** propose stack picks or design choices unprompted.
-- **Do not** ask questions.
-- **Do not** import preferences, rules, or patterns from prior sessions or prior frontend attempts in this branch.
-
-When they signal it's time, their answers drive the implementation -- not assumptions.
+The user drives discovery and decisions. Don't propose stacks, scopes, or design choices unprompted. When they signal "go" or "do it", execute against their stated intent without re-litigating earlier decisions.

@@ -270,7 +270,7 @@ function CtaPair() {
 							</h3>
 							<p className="mt-3 text-sm text-muted">
 								{wsCount > 0
-									? `${wsCount} session formats -- from beginner to focused folk-art deep dives.`
+									? `${wsCount} session formats, from beginner to focused folk-art deep dives.`
 									: "From beginner to focused folk-art deep dives."}
 							</p>
 							<p className="mt-6 inline-flex items-center gap-2 text-sm uppercase tracking-meta text-accent">
@@ -288,7 +288,7 @@ function CtaPair() {
 								Order a custom piece
 							</h3>
 							<p className="mt-3 text-sm text-muted">
-								Commissions in any of the styles -- send a brief and we&rsquo;ll discuss over
+								Commissions in any of the styles. Send a brief and we&rsquo;ll discuss over
 								WhatsApp.
 							</p>
 							<p className="mt-6 inline-flex items-center gap-2 text-sm uppercase tracking-meta text-accent">

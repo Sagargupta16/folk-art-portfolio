@@ -1,6 +1,6 @@
 # folk-art-portfolio
 
-Portfolio site for Megha Seth -- folk artist working in Madhubani, Pichwai, Lippan, Gond and texture art.
+Portfolio site for Megha Seth, folk artist working in Madhubani, Pichwai, Lippan, Gond and texture art.
 
 **Live:** <https://kalchar.co.in/>
 

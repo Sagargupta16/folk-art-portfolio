@@ -9,7 +9,7 @@ import { buildWhatsAppLink, extractPhoneFromWaUrl } from "@/lib/whatsapp";
 export const metadata: Metadata = {
 	title: "Workshops",
 	description:
-		"Hands-on folk-art sessions for individuals, schools, communities, and corporate groups -- Madhubani, Pichwai, Lippan, Gond, mirror clay, and more.",
+		"Hands-on folk-art sessions for individuals, schools, communities, and corporate groups. Madhubani, Pichwai, Lippan, Gond, mirror clay, and more.",
 };
 
 interface WorkshopsSection {
@@ -93,7 +93,7 @@ export default function WorkshopsPage() {
 						<p className="t-eyebrow">Group / school enquiries</p>
 						<p className="t-display mt-2 text-2xl">Bring a workshop to your space</p>
 						<p className="mt-1 text-sm text-muted">
-							Tell us about the group, age range, and dates -- we&rsquo;ll work it out.
+							Tell us about the group, age range, and dates. We&rsquo;ll work it out.
 						</p>
 					</div>
 					<a

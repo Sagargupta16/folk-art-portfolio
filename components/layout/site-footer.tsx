@@ -1,5 +1,15 @@
 import Link from "next/link";
+import type { ComponentType, SVGProps } from "react";
+import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
 import { getSite } from "@/lib/data";
+
+type BrandIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
+const ICON_FOR_KEY: Record<string, BrandIcon> = {
+	instagram: InstagramIcon,
+	whatsapp: WhatsAppIcon,
+	email: GmailIcon,
+};
 
 /**
  * Footer -- gallery register, calm. Three blocks on desktop (brand,
@@ -51,18 +61,22 @@ export function SiteFooter() {
 				<div>
 					<p className="t-eyebrow">Reach out</p>
 					<ul className="mt-4 space-y-2 text-sm">
-						{channels.map((c) => (
-							<li key={c.key}>
-								<a
-									className="text-ink transition-colors hover:text-accent"
-									href={c.url}
-									target={c.url.startsWith("http") ? "_blank" : undefined}
-									rel={c.url.startsWith("http") ? "noopener noreferrer" : undefined}
-								>
-									{c.display ?? c.label}
-								</a>
-							</li>
-						))}
+						{channels.map((c) => {
+							const Icon = ICON_FOR_KEY[c.key];
+							return (
+								<li key={c.key}>
+									<a
+										className="inline-flex items-center gap-2 text-ink transition-colors hover:text-accent"
+										href={c.url}
+										target={c.url.startsWith("http") ? "_blank" : undefined}
+										rel={c.url.startsWith("http") ? "noopener noreferrer" : undefined}
+									>
+										{Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
+										<span>{c.display ?? c.label}</span>
+									</a>
+								</li>
+							);
+						})}
 					</ul>
 				</div>
 			</div>

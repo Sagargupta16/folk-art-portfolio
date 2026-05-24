@@ -4,6 +4,7 @@ import { ArrowRight, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
 
 /**
@@ -92,47 +93,53 @@ export function SiteHeaderClient({
 					</span>
 				</Link>
 
-				{/* Desktop nav */}
-				<nav aria-label="Primary" className="hidden md:block">
-					<ul className="flex items-center gap-7">
-						{NAV.map((item) => {
-							const active = isActive(item.href);
-							return (
-								<li key={item.href}>
-									<Link
-										href={item.href}
-										aria-current={active ? "page" : undefined}
-										className={cn(
-											"relative text-xs uppercase tracking-meta transition-colors",
-											active ? "text-accent" : "text-muted hover:text-ink",
-										)}
-									>
-										{item.label}
-										<span
-											aria-hidden="true"
+				{/* Desktop nav + theme toggle */}
+				<div className="hidden items-center gap-6 md:flex">
+					<nav aria-label="Primary">
+						<ul className="flex items-center gap-7">
+							{NAV.map((item) => {
+								const active = isActive(item.href);
+								return (
+									<li key={item.href}>
+										<Link
+											href={item.href}
+											aria-current={active ? "page" : undefined}
 											className={cn(
-												"pointer-events-none absolute -bottom-1.5 left-0 h-px w-full bg-accent transition-transform duration-(--duration-base)",
-												active ? "scale-x-100" : "scale-x-0",
+												"relative text-xs uppercase tracking-meta transition-colors",
+												active ? "text-accent" : "text-muted hover:text-ink",
 											)}
-										/>
-									</Link>
-								</li>
-							);
-						})}
-					</ul>
-				</nav>
+										>
+											{item.label}
+											<span
+												aria-hidden="true"
+												className={cn(
+													"pointer-events-none absolute -bottom-1.5 left-0 h-px w-full bg-accent transition-transform duration-(--duration-base)",
+													active ? "scale-x-100" : "scale-x-0",
+												)}
+											/>
+										</Link>
+									</li>
+								);
+							})}
+						</ul>
+					</nav>
+					<ThemeToggle />
+				</div>
 
-				{/* Mobile menu trigger */}
-				<button
-					type="button"
-					onClick={() => setOpen((v) => !v)}
-					aria-expanded={open}
-					aria-controls="mobile-menu"
-					aria-label={open ? "Close menu" : "Open menu"}
-					className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded text-ink transition-colors hover:text-accent md:hidden"
-				>
-					{open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
-				</button>
+				{/* Mobile theme toggle + menu trigger */}
+				<div className="flex items-center gap-2 md:hidden">
+					<ThemeToggle />
+					<button
+						type="button"
+						onClick={() => setOpen((v) => !v)}
+						aria-expanded={open}
+						aria-controls="mobile-menu"
+						aria-label={open ? "Close menu" : "Open menu"}
+						className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded text-ink transition-colors hover:text-accent"
+					>
+						{open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+					</button>
+				</div>
 			</div>
 
 			{/* Mobile drawer */}

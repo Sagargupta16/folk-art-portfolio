@@ -1,7 +1,7 @@
-import { Instagram, Mail, MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
+import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
 import { Button } from "@/components/ui/button";
 import { getSite } from "@/lib/data";
 
@@ -26,19 +26,19 @@ export default function ContactPage() {
 	const channels = [
 		{
 			key: "whatsapp",
-			Icon: MessageCircle,
+			Icon: WhatsAppIcon,
 			...contact.whatsapp,
 			caption: "Fastest reply -- usually same day.",
 		},
 		{
 			key: "instagram",
-			Icon: Instagram,
+			Icon: InstagramIcon,
 			...contact.instagram,
 			caption: "DMs welcome. Recent work and process snippets here.",
 		},
 		{
 			key: "email",
-			Icon: Mail,
+			Icon: GmailIcon,
 			...contact.email,
 			caption: "Best for longer briefs or formal enquiries.",
 		},

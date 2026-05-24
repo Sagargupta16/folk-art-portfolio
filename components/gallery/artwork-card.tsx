@@ -65,6 +65,10 @@ export function ArtworkCard({ artwork, priority = false, className }: ArtworkCar
 				className="mt-2"
 			/>
 
+			{artwork.description ? (
+				<p className="mt-2 line-clamp-2 text-sm text-muted">{artwork.description}</p>
+			) : null}
+
 			<p className="mt-2 text-xs text-muted">{artwork.medium}</p>
 
 			{isAvailable ? (

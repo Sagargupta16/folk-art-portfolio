@@ -39,9 +39,20 @@ export function customOrderMessage(draft: CustomOrderDraft): string {
 	const lines: string[] = ["Hi Megha, I'd like to order a custom piece."];
 	if (draft.name) lines.push(`From: ${draft.name}`);
 	if (draft.style) lines.push(`Style: ${draft.style}`);
-	if (draft.approxSizeCm) lines.push(`Approx size: ${draft.approxSizeCm}`);
-	if (draft.timeline) lines.push(`Timeline: ${draft.timeline === "rush" ? "Rush" : "Open"}`);
+	if (draft.size) lines.push(`Size: ${draft.size}`);
+	if (draft.budget) lines.push(`Budget: ${draft.budget}`);
+	if (draft.timeline) lines.push(`Timeline: ${draft.timeline}`);
 	lines.push("");
 	lines.push(draft.briefMessage);
 	return lines.join("\n");
+}
+
+/** Build a `mailto:` URL with subject + pre-filled body for an email fallback. */
+export function customOrderMailto(emailUrl: string, draft: CustomOrderDraft): string {
+	const subject = "Custom painting order";
+	const body = customOrderMessage(draft);
+	const url = emailUrl.startsWith("mailto:") ? emailUrl : `mailto:${emailUrl}`;
+	const params = new URLSearchParams({ subject, body });
+	const sep = url.includes("?") ? "&" : "?";
+	return `${url}${sep}${params.toString()}`;
 }

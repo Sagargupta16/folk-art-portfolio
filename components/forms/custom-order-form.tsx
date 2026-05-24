@@ -1,62 +1,81 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Mail } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { ArtStyle, CustomOrderDraft } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { buildWhatsAppLink, customOrderMessage } from "@/lib/whatsapp";
+import { buildWhatsAppLink, customOrderMailto, customOrderMessage } from "@/lib/whatsapp";
 
 /**
  * Custom-order form.
  *
  * Phase 1 has no backend. The form collects fields locally, builds a
- * pre-filled WhatsApp message via lib/whatsapp.ts, and opens wa.me on
- * submit. Phase 2 can add a server action that also stores the lead --
- * the form shape (CustomOrderDraft) stays the same.
+ * pre-filled WhatsApp message (or mailto fallback) via lib/whatsapp.ts,
+ * and opens the chosen channel on submit. Phase 2 can add a server
+ * action that also stores the lead -- the form shape (CustomOrderDraft)
+ * stays the same.
  *
- * Keeping inputs minimal: name, style, approx size, timeline, brief.
- * No file upload (Phase 2 admin), no payment (Phase 2 e-commerce).
+ * Preset dropdowns (sizes, budgets, timelines) are driven by the
+ * `data/site.json` customOrders arrays so the artist can edit options
+ * without touching code.
  */
 interface CustomOrderFormProps {
 	phoneE164NoPlus: string;
+	emailUrl: string;
 	availableStyles: readonly ArtStyle[];
+	sizes: readonly string[];
+	budgets: readonly string[];
+	timelines: readonly string[];
+	submitLabel: string;
+	fallbackEmailLabel: string;
 }
 
-export function CustomOrderForm({ phoneE164NoPlus, availableStyles }: CustomOrderFormProps) {
+export function CustomOrderForm({
+	phoneE164NoPlus,
+	emailUrl,
+	availableStyles,
+	sizes,
+	budgets,
+	timelines,
+	submitLabel,
+	fallbackEmailLabel,
+}: CustomOrderFormProps) {
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [draft, setDraft] = useState<CustomOrderDraft | null>(null);
+
+	function readDraft(form: HTMLFormElement): CustomOrderDraft | null {
+		const formData = new FormData(form);
+		const briefMessage = (formData.get("brief") as string | null)?.trim() ?? "";
+		if (!briefMessage) {
+			setError("Tell us a bit about what you'd like.");
+			return null;
+		}
+		const styleVal = formData.get("style") as string | null;
+		return {
+			name: (formData.get("name") as string | null)?.trim() || undefined,
+			style: (styleVal as CustomOrderDraft["style"]) || undefined,
+			size: (formData.get("size") as string | null) || undefined,
+			budget: (formData.get("budget") as string | null) || undefined,
+			timeline: (formData.get("timeline") as string | null) || undefined,
+			briefMessage,
+		};
+	}
 
 	function onSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setError(null);
-
-		const formData = new FormData(e.currentTarget);
-		const briefMessage = (formData.get("brief") as string | null)?.trim() ?? "";
-		if (!briefMessage) {
-			setError("Tell us a bit about what you'd like.");
-			return;
-		}
-
-		const styleVal = formData.get("style") as string | null;
-		const draft: CustomOrderDraft = {
-			name: (formData.get("name") as string | null)?.trim() || undefined,
-			style: (styleVal as CustomOrderDraft["style"]) || undefined,
-			approxSizeCm: (formData.get("size") as string | null)?.trim() || undefined,
-			timeline: (formData.get("timeline") as "open" | "rush" | null) ?? undefined,
-			briefMessage,
-		};
-
-		const url = buildWhatsAppLink({
-			phoneE164NoPlus,
-			message: customOrderMessage(draft),
-		});
-
+		const next = readDraft(e.currentTarget);
+		if (!next) return;
+		setDraft(next);
+		const url = buildWhatsAppLink({ phoneE164NoPlus, message: customOrderMessage(next) });
 		setSubmitting(true);
 		window.open(url, "_blank", "noopener,noreferrer");
-		// keep submitting state briefly so the button reads "Opening WhatsApp..."
 		setTimeout(() => setSubmitting(false), 1500);
 	}
+
+	const mailtoHref = draft ? customOrderMailto(emailUrl, draft) : null;
 
 	return (
 		<form onSubmit={onSubmit} className="space-y-6" noValidate>
@@ -84,22 +103,38 @@ export function CustomOrderForm({ phoneE164NoPlus, availableStyles }: CustomOrde
 
 			<div className="grid gap-6 sm:grid-cols-2">
 				<Field id="size" label="Approx size" optional>
-					<input
-						id="size"
-						name="size"
-						type="text"
-						placeholder="e.g. A3, 18 x 24 in, 50 x 70 cm"
-						className={inputClass}
-					/>
+					<select id="size" name="size" defaultValue="" className={inputClass}>
+						<option value="">No preference</option>
+						{sizes.map((s) => (
+							<option key={s} value={s}>
+								{s}
+							</option>
+						))}
+					</select>
 				</Field>
 
-				<Field id="timeline" label="Timeline" optional>
-					<select id="timeline" name="timeline" defaultValue="open" className={inputClass}>
-						<option value="open">Open -- no rush</option>
-						<option value="rush">Rush -- needed soon</option>
+				<Field id="budget" label="Budget" optional>
+					<select id="budget" name="budget" defaultValue="" className={inputClass}>
+						<option value="">Open / not sure</option>
+						{budgets.map((b) => (
+							<option key={b} value={b}>
+								{b}
+							</option>
+						))}
 					</select>
 				</Field>
 			</div>
+
+			<Field id="timeline" label="Timeline" optional>
+				<select id="timeline" name="timeline" defaultValue="" className={inputClass}>
+					<option value="">No specific timeline</option>
+					{timelines.map((t) => (
+						<option key={t} value={t}>
+							{t}
+						</option>
+					))}
+				</select>
+			</Field>
 
 			<Field id="brief" label="Brief" required>
 				<textarea
@@ -118,14 +153,22 @@ export function CustomOrderForm({ phoneE164NoPlus, availableStyles }: CustomOrde
 				</p>
 			) : null}
 
-			<div className="flex flex-wrap items-center gap-4">
+			<div className="flex flex-col items-start gap-3">
 				<Button type="submit" variant="primary" size="lg" disabled={submitting}>
-					{submitting ? "Opening WhatsApp..." : "Send via WhatsApp"}
+					{submitting ? "Opening WhatsApp..." : submitLabel}
 					<ArrowRight size={16} aria-hidden="true" />
 				</Button>
 				<p className="text-xs text-muted">
 					You&rsquo;ll review the message in WhatsApp before it sends.
 				</p>
+				{mailtoHref ? (
+					<a
+						href={mailtoHref}
+						className="inline-flex items-center gap-2 text-sm text-(--section-accent) underline-offset-4 hover:underline"
+					>
+						<Mail size={14} aria-hidden="true" /> {fallbackEmailLabel}
+					</a>
+				) : null}
 			</div>
 		</form>
 	);
@@ -134,7 +177,7 @@ export function CustomOrderForm({ phoneE164NoPlus, availableStyles }: CustomOrde
 /* ----------------------------- helpers ----------------------------- */
 
 const inputClass =
-	"block w-full min-h-[48px] rounded-md border border-line bg-bg px-4 py-3 text-base text-ink placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30";
+	"block w-full min-h-12 rounded-md border border-line bg-bg px-4 py-3 text-base text-ink placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30";
 
 function Field({
 	id,

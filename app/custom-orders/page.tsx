@@ -1,5 +1,6 @@
 import { Brush, Clock, MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { CustomOrderForm } from "@/components/forms/custom-order-form";
 import { Reveal } from "@/components/motion/reveal";
 import { getSite } from "@/lib/data";
@@ -11,30 +12,48 @@ export const metadata: Metadata = {
 		"Order a custom painting -- Madhubani, Pichwai, Lippan, Gond, Texture, Mixed Media. Send a brief and we'll get back to you on WhatsApp with a quote and timeline.",
 };
 
+interface CustomOrdersSection {
+	eyebrow?: string;
+	title?: string;
+	lead?: string;
+	sizes?: readonly string[];
+	budgets?: readonly string[];
+	timelines?: readonly string[];
+	submitLabel?: string;
+	fallbackEmailLabel?: string;
+}
+
 /**
  * /custom-orders
  *
  * Single column on mobile, 5 / 7 split on desktop. Left rail explains how
  * the process works (3 short steps); right column is the form. On submit
- * the form opens wa.me/<phone>?text=<encoded-brief> in a new tab.
+ * the form opens wa.me/<phone>?text=<encoded-brief> in a new tab; an
+ * email fallback link appears once the form has been submitted at least
+ * once for users whose device blocks WhatsApp deep-links.
+ *
+ * Section accent: vermillion (matches v1).
  */
 export default function CustomOrdersPage() {
 	const { contact, sections, styles } = getSite();
-	const co = sections.customOrders ?? sections["custom-orders"] ?? sections.commission;
+	const co = (sections.customOrders ?? {}) as CustomOrdersSection;
 	const phone = extractPhoneFromWaUrl(contact.whatsapp.url);
+	const sectionStyle = {
+		"--section-accent": "var(--color-vermillion)",
+	} as CSSProperties;
 
 	return (
-		<main className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+		<main style={sectionStyle} className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
 			<header className="max-w-2xl">
 				<Reveal>
-					<p className="t-eyebrow">{(co as { eyebrow?: string })?.eyebrow ?? "Custom orders"}</p>
+					<p className="t-eyebrow">{co.eyebrow ?? "Custom orders"}</p>
 				</Reveal>
 				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
-					{(co as { title?: string })?.title ?? "Order a custom painting"}
+					{co.title ?? "Order a custom painting"}
 				</Reveal>
 				<Reveal delayMs={160}>
 					<p className="t-lead mt-4">
-						{(co as { lead?: string })?.lead ??
+						{co.lead ??
 							"Tell us what you have in mind. We'll review and get back to you on WhatsApp -- no payment until we've talked."}
 					</p>
 				</Reveal>
@@ -74,8 +93,17 @@ export default function CustomOrdersPage() {
 				{/* Form */}
 				<section aria-label="Custom order form" className="md:col-span-7">
 					<Reveal delayMs={120}>
-						<div className="rounded-lg border border-line bg-bg-soft p-6 sm:p-8">
-							<CustomOrderForm phoneE164NoPlus={phone} availableStyles={styles} />
+						<div className="rounded-md border border-line bg-bg-soft p-6 sm:p-8">
+							<CustomOrderForm
+								phoneE164NoPlus={phone}
+								emailUrl={contact.email.url}
+								availableStyles={styles}
+								sizes={co.sizes ?? []}
+								budgets={co.budgets ?? []}
+								timelines={co.timelines ?? []}
+								submitLabel={co.submitLabel ?? "Send via WhatsApp"}
+								fallbackEmailLabel={co.fallbackEmailLabel ?? "Or email instead"}
+							/>
 						</div>
 					</Reveal>
 				</section>
@@ -88,7 +116,7 @@ function Step({ icon: Icon, title, body }: { icon: typeof Brush; title: string; 
 	return (
 		<div className="flex gap-4">
 			<span
-				className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-bg-soft text-accent ring-1 ring-line"
+				className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line"
 				aria-hidden="true"
 			>
 				<Icon size={16} />

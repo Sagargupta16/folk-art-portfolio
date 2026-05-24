@@ -53,6 +53,9 @@ Live URL: <https://kalchar.co.in/>.
 | Home page sections | Hero -> Selected work rail (featured pieces) -> Available now (for-sale pieces, hidden when empty) -> About teaser -> Workshops + Custom Orders CTAs -> Footer. | 2026-05-24 |
 | Visual mood | Gallery / museum register -- restrained, whitespace-forward, the work is the hero. Warm cream + ink + single accent. Fine type. Pieces stand on their own merit. | 2026-05-24 |
 | Motion intensity | Refined -- fade-up on scroll, subtle hover lifts on cards, tasteful page transitions. Motion 12 + Lenis (lazy-loaded). All respect `prefers-reduced-motion`. | 2026-05-24 |
+| Motion exclusions | **No 3D tilt** on cards. **No mesh / lattice / particle / orbit / floating-shapes decoratives.** **No custom cursor.** Earlier v2 attempted these and they read as busy. | 2026-05-24 |
+| Corner radius | Subtle and consistent. Use a single `--radius` token (~6px) across cards, panels, fields, buttons. Pills (filter, badges) keep their full-rounded shape. | 2026-05-24 |
+| Section accents | Each section sets its own pigment via the Section wrapper: about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock. Hero + selected-work use the global accent. | 2026-05-24 |
 
 ## Observable on disk (factual, not session-confirmed)
 

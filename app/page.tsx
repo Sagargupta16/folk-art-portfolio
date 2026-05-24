@@ -1,8 +1,10 @@
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { Marquee } from "@/components/decor/marquee";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { Reveal } from "@/components/motion/reveal";
+import { SplitText } from "@/components/motion/split-text";
 import { Button } from "@/components/ui/button";
 import { getAllArtworks, getAvailableArtworks, getFeaturedArtwork, getSite } from "@/lib/data";
 
@@ -32,6 +34,7 @@ export default function HomePage() {
 	return (
 		<>
 			<Hero site={site} featured={featured} />
+			<Marquee />
 
 			{selected.length > 0 ? (
 				<SectionShell
@@ -109,9 +112,9 @@ function Hero({
 							<span>{site.brand.headline.suffix}</span>
 						</span>
 					</Reveal>
-					<Reveal delayMs={160}>
-						<p className="t-lead mt-6 max-w-xl">{site.brand.description}</p>
-					</Reveal>
+					<p className="t-lead mt-6 max-w-xl">
+						<SplitText text={site.brand.description} startDelayMs={400} />
+					</p>
 					<Reveal delayMs={220}>
 						<div className="mt-8 flex flex-wrap gap-3">
 							<Link href="/work">
@@ -131,7 +134,7 @@ function Hero({
 							className="group block focus-visible:outline-none"
 							aria-label={`Featured work: ${featured.title}`}
 						>
-							<div className="relative aspect-3/4 overflow-hidden bg-bg-soft ring-1 ring-line transition-shadow group-hover:ring-accent">
+							<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-line transition-shadow group-hover:ring-accent">
 								<Image
 									src={`/artworks/${featured.image}`}
 									alt={featured.description ?? featured.title}
@@ -259,7 +262,7 @@ function CtaPair() {
 					<Reveal>
 						<Link
 							href="/workshops"
-							className="group block h-full border border-line bg-bg-soft p-8 transition-colors hover:border-accent"
+							className="group block h-full rounded-md border border-line bg-bg-soft p-8 transition-colors hover:border-accent"
 						>
 							<p className="t-eyebrow">Workshops</p>
 							<h3 className="t-display mt-3 text-3xl transition-colors group-hover:text-accent">
@@ -278,7 +281,7 @@ function CtaPair() {
 					<Reveal delayMs={80}>
 						<Link
 							href="/custom-orders"
-							className="group block h-full border border-line bg-bg-soft p-8 transition-colors hover:border-accent"
+							className="group block h-full rounded-md border border-line bg-bg-soft p-8 transition-colors hover:border-accent"
 						>
 							<p className="t-eyebrow">Custom Orders</p>
 							<h3 className="t-display mt-3 text-3xl transition-colors group-hover:text-accent">

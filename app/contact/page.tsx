@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 export default function ContactPage() {
 	const { contact, sections } = getSite();
 	const c = sections.contact;
+	const sectionStyle = { "--section-accent": "var(--color-peacock)" } as React.CSSProperties;
 
 	const channels = [
 		{
@@ -45,7 +46,7 @@ export default function ContactPage() {
 	];
 
 	return (
-		<main className="mx-auto max-w-3xl px-(--container-px) py-(--section-py)">
+		<main style={sectionStyle} className="mx-auto max-w-3xl px-(--container-px) py-(--section-py)">
 			<header>
 				<Reveal>
 					<p className="t-eyebrow">{c?.eyebrow ?? "Contact"}</p>
@@ -72,21 +73,21 @@ export default function ContactPage() {
 								className="group flex items-center gap-5 py-6 transition-colors hover:bg-bg-soft sm:py-8"
 							>
 								<span
-									className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-bg-soft text-accent ring-1 ring-line transition-colors group-hover:ring-accent sm:h-14 sm:w-14"
+									className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line transition-colors group-hover:ring-(--section-accent) sm:h-14 sm:w-14"
 									aria-hidden="true"
 								>
 									<ch.Icon size={20} />
 								</span>
 								<span className="flex-1">
 									<span className="t-eyebrow">{ch.label}</span>
-									<span className="t-display mt-1 block text-2xl transition-colors group-hover:text-accent sm:text-3xl">
+									<span className="t-display mt-1 block text-2xl transition-colors group-hover:text-(--section-accent) sm:text-3xl">
 										{ch.display ?? ch.label}
 									</span>
 									<span className="mt-1 block text-sm text-muted">{ch.caption}</span>
 								</span>
 								<span
 									aria-hidden="true"
-									className="text-muted transition-transform group-hover:translate-x-1 group-hover:text-accent"
+									className="text-muted transition-transform group-hover:translate-x-1 group-hover:text-(--section-accent)"
 								>
 									&rarr;
 								</span>
@@ -97,7 +98,7 @@ export default function ContactPage() {
 			</ul>
 
 			<Reveal delayMs={320}>
-				<div className="mt-16 flex flex-col items-start gap-4 border border-line bg-bg-soft p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+				<div className="mt-16 flex flex-col items-start gap-4 rounded-md border border-line bg-bg-soft p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
 					<div>
 						<p className="t-eyebrow">Custom orders</p>
 						<p className="t-display mt-2 text-2xl">Order a custom piece</p>

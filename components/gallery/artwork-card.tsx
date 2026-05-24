@@ -36,7 +36,7 @@ export function ArtworkCard({ artwork, priority = false, className }: ArtworkCar
 			className={cn("group block focus-visible:outline-none", className)}
 			aria-label={`${artwork.title}, ${artwork.style}`}
 		>
-			<div className="relative aspect-3/4 overflow-hidden bg-bg-soft ring-1 ring-line transition-shadow group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent">
+			<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-line transition-shadow group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent">
 				<Image
 					src={imgSrc}
 					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}

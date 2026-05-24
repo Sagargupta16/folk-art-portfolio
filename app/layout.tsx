@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { ScrollProgress } from "@/components/decor/scroll-progress";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { MotionProvider } from "@/components/motion/motion-provider";
+import { SmoothScroll } from "@/components/motion/smooth-scroll";
 import { getSite } from "@/lib/data";
 import { siteConfig } from "@/lib/site-config";
 import { fontBody, fontDevanagari, fontDisplay } from "./fonts";
@@ -68,6 +70,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 					Skip to content
 				</a>
 				<MotionProvider>
+					<SmoothScroll />
+					<ScrollProgress />
 					<SiteHeader />
 					<div id="main">{children}</div>
 					<SiteFooter />

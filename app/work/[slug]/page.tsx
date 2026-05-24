@@ -74,7 +74,7 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 			<div className="mt-8 grid gap-10 md:grid-cols-12 md:gap-12">
 				{/* Image plate */}
 				<Reveal className="md:col-span-7">
-					<div className="relative aspect-3/4 overflow-hidden bg-bg-soft ring-1 ring-line">
+					<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-line">
 						<Image
 							src={`/artworks/${art.image}`}
 							alt={art.description ?? `${art.title}, ${art.style} painting in ${art.medium}.`}

@@ -92,42 +92,48 @@ export default function Work() {
 	return (
 		<Section id="work" eyebrow={w.eyebrow} title={w.title} lead={w.lead}>
 			<div>
-				<div
-					role="group"
-					aria-label="Filter by style"
-					className="mb-10 flex flex-wrap justify-center gap-2"
-				>
-					{filters.map((f) => {
-						const pillAccent =
-							f === "All" ? "var(--color-ink)" : (styleAccentVar[f] ?? "var(--color-accent)");
-						const isActive = f === activeFilter;
-						return (
-							<button
-								key={f}
-								type="button"
-								onClick={() => setActiveFilter(f)}
-								aria-pressed={isActive ? "true" : "false"}
-								style={{ "--pill-accent": pillAccent } as React.CSSProperties}
-								className={`gallery-pill min-h-[40px] rounded-full border px-4 py-2.5 text-xs uppercase tracking-[0.16em] transition ${
-									isActive ? "pill-active" : "border-[var(--color-line)] text-[var(--color-muted)]"
-								}`}
-							>
-								{f}
-							</button>
-						);
-					})}
+				<div className="mb-10 flex justify-center sm:mb-14">
+					<div
+						role="group"
+						aria-label="Filter by style"
+						className="glass-strong inline-flex max-w-full flex-wrap justify-center gap-1.5 rounded-full p-1.5 sm:gap-2 sm:p-2"
+					>
+						{filters.map((f) => {
+							const pillAccent =
+								f === "All" ? "var(--color-ink)" : (styleAccentVar[f] ?? "var(--color-accent)");
+							const isActive = f === activeFilter;
+							return (
+								<button
+									key={f}
+									type="button"
+									onClick={() => setActiveFilter(f)}
+									aria-pressed={isActive ? "true" : "false"}
+									style={{ "--pill-accent": pillAccent } as React.CSSProperties}
+									className={`gallery-pill min-h-[40px] rounded-full border px-4 py-2.5 text-xs uppercase tracking-[0.16em] transition ${
+										isActive ? "pill-active" : "border-transparent text-[var(--color-muted)]"
+									}`}
+								>
+									{f}
+								</button>
+							);
+						})}
+					</div>
 				</div>
 
-				<ul className="stagger grid grid-cols-2 gap-3 sm:gap-[var(--grid-gap)] lg:grid-cols-3">
+				<ul className="stagger grid auto-rows-min grid-cols-2 gap-3 sm:gap-[var(--grid-gap)] lg:grid-cols-3">
 					{visibleItems.map((it) => (
 						<GalleryCard key={it.slug} item={it} onOpen={openLightbox} />
 					))}
 				</ul>
 
 				{visibleItems.length === 0 && (
-					<p className="t-body mt-6 text-[var(--color-muted)]" aria-live="polite">
-						No pieces in this style yet.
-					</p>
+					<div
+						className="glass mx-auto mt-6 max-w-md rounded-2xl px-8 py-10 text-center"
+						aria-live="polite"
+					>
+						<p className="t-display text-2xl text-[var(--color-ink)] sm:text-3xl">Coming soon...</p>
+						<p className="t-meta mt-3 text-[var(--color-muted)]">No pieces in this style yet.</p>
+					</div>
 				)}
 			</div>
 
@@ -147,12 +153,22 @@ function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: (slug: strin
 		scale: 1.03,
 	});
 
+	/* Card height varies per artwork's natural aspect so the grid reads as a
+	   curated wall, not a uniform tile sheet. Clamp keeps extreme ratios from
+	   blowing the row layout. */
+	const plateAspect = `${Math.max(0.55, Math.min(1.4, item.aspectRatio))} / 1`;
+
 	return (
 		<li
 			className="gallery-item reveal"
-			style={{ "--card-accent": item.accentVar } as React.CSSProperties}
+			style={
+				{
+					"--card-accent": item.accentVar,
+					"--surface-pigment": item.accentVar,
+				} as React.CSSProperties
+			}
 		>
-			<article className="group flex flex-col gap-4">
+			<article className="glass group flex flex-col gap-3 rounded-xl p-3 sm:gap-4 sm:p-4">
 				<button
 					ref={ref as React.Ref<HTMLButtonElement>}
 					type="button"
@@ -160,7 +176,8 @@ function GalleryCard({ item, onOpen }: { item: GalleryItem; onOpen: (slug: strin
 					onMouseMove={onMouseMove}
 					onMouseLeave={onMouseLeave}
 					aria-label={`Open ${item.title} in larger view`}
-					className="tilt-3d gallery-frame relative grid w-full cursor-pointer place-items-center overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg-soft)] aspect-[3/4] p-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--card-accent)] focus-visible:ring-offset-2"
+					style={{ aspectRatio: plateAspect }}
+					className="tilt-3d gallery-frame relative grid w-full cursor-pointer place-items-center overflow-hidden rounded-lg border border-[var(--color-line)] bg-[var(--color-bg-soft)] p-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--card-accent)] focus-visible:ring-offset-2"
 				>
 					<ImageReveal
 						direction={["left", "right", "up"][Math.abs(item.order) % 3] as "left" | "right" | "up"}

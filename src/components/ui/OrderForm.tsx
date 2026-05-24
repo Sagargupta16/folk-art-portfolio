@@ -29,7 +29,7 @@ const EMPTY: FormState = {
 	notes: "",
 };
 
-const LABEL_CLASSES = "t-eyebrow mb-1.5 block text-[var(--color-muted)]";
+const LABEL_CLASSES = "t-eyebrow mb-1.5 block";
 
 function buildMessage(form: FormState): string {
 	const lines = [
@@ -182,9 +182,9 @@ export default function OrderForm({
 
 			<div className="relative flex flex-col items-center gap-3 pt-1 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
 				<div className="relative w-full sm:w-auto">
-					{/* Saturated submit -- paints in the section accent (vermillion in
-             Custom Orders) so the call-to-action carries the section's warmth.
-             The confetti burst sits behind the button and overflows freely. */}
+					{/* Saturated submit -- inherits --surface-pigment from the section
+             accent (vermillion in Custom Orders). The confetti burst sits
+             behind the button and overflows freely. */}
 					<span className="celebrate-burst" aria-hidden="true">
 						<span />
 						<span />
@@ -198,23 +198,23 @@ export default function OrderForm({
 					<button
 						type="submit"
 						disabled={!isReady}
-						className="t-meta relative inline-flex min-h-[48px] w-full items-center justify-center gap-2 border px-6 py-3.5 transition disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
-						style={{
-							background: "var(--section-accent, var(--color-ink))",
-							borderColor: "var(--section-accent, var(--color-ink))",
-							color: "var(--color-bg)",
-						}}
+						className="btn btn-primary relative w-full disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
 					>
 						{submitLabel} -&gt;
 					</button>
 				</div>
 				<a
 					href={buildEmailUrl(emailUrl, form)}
-					className="t-meta inline-flex min-h-[44px] items-center px-2 py-2 text-[var(--color-muted)] transition hover:text-[var(--section-accent)]"
+					className="t-meta inline-flex min-h-[44px] items-center px-2 py-2 transition hover:text-[var(--section-accent)]"
 				>
 					{fallbackEmailLabel}
 				</a>
 			</div>
+
+			<p className="t-meta sm:col-span-2">
+				No data is stored on this site. Pressing submit opens WhatsApp with your brief pre-filled --
+				nothing is sent until you press send there.
+			</p>
 		</form>
 	);
 }

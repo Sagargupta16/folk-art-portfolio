@@ -45,10 +45,15 @@ export default function ArtworkLightbox({ item, onClose, onPrev, onNext }: Props
 		return () => document.removeEventListener("keydown", onKey);
 	}, [item, onPrev, onNext]);
 
+	/* Backdrop: dark, heavily blurred ink veil so the artwork reads at full
+	   saturation against a quiet field. The `backdrop:` Tailwind modifier
+	   targets the dialog's native `::backdrop` pseudo-element. */
+	const platePigment = item?.accentVar ?? "var(--color-accent)";
+
 	return (
 		<dialog
 			ref={dialogRef}
-			className="artwork-lightbox bg-transparent p-0 backdrop:bg-[var(--color-ink)]/85 backdrop:backdrop-blur-sm"
+			className="artwork-lightbox bg-transparent p-0 backdrop:bg-[var(--color-ink)]/70 backdrop:backdrop-blur-md"
 			aria-labelledby="lightbox-title"
 			onClick={(e) => {
 				if (e.target === dialogRef.current) onClose();
@@ -56,12 +61,21 @@ export default function ArtworkLightbox({ item, onClose, onPrev, onNext }: Props
 			onClose={onClose}
 		>
 			{item && (
-				<div className="relative mx-auto flex max-h-[90vh] w-[min(94vw,1100px)] flex-col overflow-hidden border border-[var(--color-line)] bg-[var(--color-bg)] md:flex-row">
+				<div
+					className="glass-floating relative mx-auto flex max-h-[90vh] w-[min(94vw,1100px)] flex-col overflow-hidden rounded-lg md:flex-row"
+					style={
+						{
+							"--surface-pigment": platePigment,
+							border: `1px solid color-mix(in oklch, ${platePigment} 50%, var(--color-line))`,
+						} as React.CSSProperties
+					}
+				>
 					<button
 						type="button"
 						onClick={onClose}
 						aria-label="Close"
-						className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-[var(--color-line)] bg-[var(--color-bg)] text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+						className="btn-ghost absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full p-0"
+						style={{ minHeight: 0 }}
 					>
 						<svg
 							aria-hidden="true"
@@ -93,7 +107,8 @@ export default function ArtworkLightbox({ item, onClose, onPrev, onNext }: Props
 							type="button"
 							onClick={onPrev}
 							aria-label="Previous artwork"
-							className="lightbox-nav absolute left-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-[var(--color-line)] bg-[var(--color-bg)]/85 text-[var(--color-ink)] backdrop-blur transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+							className="btn-ghost glass lightbox-nav absolute left-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full p-0"
+							style={{ minHeight: 0 }}
 						>
 							<svg
 								aria-hidden="true"
@@ -113,7 +128,8 @@ export default function ArtworkLightbox({ item, onClose, onPrev, onNext }: Props
 							type="button"
 							onClick={onNext}
 							aria-label="Next artwork"
-							className="lightbox-nav absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-[var(--color-line)] bg-[var(--color-bg)]/85 text-[var(--color-ink)] backdrop-blur transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+							className="btn-ghost glass lightbox-nav absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full p-0"
+							style={{ minHeight: 0 }}
 						>
 							<svg
 								aria-hidden="true"

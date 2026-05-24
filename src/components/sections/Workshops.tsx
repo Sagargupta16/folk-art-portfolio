@@ -11,21 +11,24 @@ function WorkshopCard({ item }: { item: Workshop }) {
 		scale: 1.02,
 	});
 	return (
-		<li className="reveal">
+		<li className="reveal h-full">
+			{/* Outer is the glass shell -- carries pigment tint, blur, and the soft
+			   pigment border-beam. Inner article keeps the tilt + content rhythm. */}
 			<article
 				ref={ref as React.Ref<HTMLElement>}
 				onMouseMove={onMouseMove}
 				onMouseLeave={onMouseLeave}
-				className="card card-tilt border-beam tilt-3d h-full"
+				className="glass border-beam tilt-3d card-tilt flex h-full flex-col gap-4 p-6 sm:p-7"
 			>
 				<h3 className="t-display text-2xl text-[var(--color-ink)]">{item.title}</h3>
 				<p className="t-body text-[var(--color-muted)]">{item.blurb}</p>
 				<div className="mt-auto flex items-center justify-between pt-2">
 					{item.durationHours ? (
 						<span
-							className="t-meta rounded-full px-2.5 py-1"
+							className="t-meta rounded-full border px-2.5 py-1"
 							style={{
-								background: "color-mix(in oklch, var(--section-accent) 14%, transparent)",
+								background: "color-mix(in oklch, var(--section-accent) 10%, transparent)",
+								borderColor: "color-mix(in oklch, var(--section-accent) 35%, transparent)",
 								color: "var(--section-accent)",
 							}}
 						>
@@ -56,7 +59,7 @@ export default function Workshops() {
 			lead={w.lead}
 			accent="var(--style-pichwai)"
 		>
-			<ul className="stagger grid gap-[var(--grid-gap)] md:grid-cols-2">
+			<ul className="stagger grid gap-(--grid-gap) md:grid-cols-2">
 				{items.map((item) => (
 					<WorkshopCard key={item.slug} item={item} />
 				))}

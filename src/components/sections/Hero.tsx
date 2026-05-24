@@ -19,7 +19,22 @@ const ParticleField = lazy(() => import("@/components/ui/ParticleField"));
 const featured = artworks.find((a) => a.featured) ?? artworks[0];
 
 const heroAccent = featured?.palette?.[0] ?? "var(--color-accent)";
-const heroHaloStyle = { "--hero-halo": heroAccent } as React.CSSProperties;
+const heroAccentSecondary = featured?.palette?.[1] ?? "var(--color-marigold)";
+const heroHaloStyle = {
+	"--hero-halo": heroAccent,
+	"--hero-halo-2": heroAccentSecondary,
+} as React.CSSProperties;
+
+/* Cycle each style chip through the per-style pigment tokens so the row reads
+   like a mini palette of the traditions Megha works in. */
+const stylePigments: readonly string[] = [
+	"var(--style-madhubani)",
+	"var(--style-pichwai)",
+	"var(--style-lippan)",
+	"var(--style-gond)",
+	"var(--style-texture)",
+	"var(--style-mixed)",
+];
 
 const placeholderHero = placeholderDataUri({
 	title: featured?.title ?? brand.title,
@@ -99,29 +114,42 @@ export default function Hero() {
 					<FloatingShapes />
 				</Suspense>
 			</div>
-			<div className="container-x relative z-10 grid gap-10 py-16 sm:gap-12 sm:py-24 md:grid-cols-12 md:items-center md:gap-10 md:py-32">
+			<div className="container-x relative z-10 grid gap-12 py-16 sm:gap-14 sm:py-24 md:grid-cols-12 md:items-center md:gap-12 md:py-32 lg:gap-16">
 				<div className="stagger md:col-span-7">
 					<p className="t-eyebrow reveal mb-4 sm:mb-5">{brand.tagline}</p>
-					<h1 className="t-display reveal text-5xl text-[var(--color-ink)] sm:text-6xl md:text-[7rem] md:leading-[0.95] lg:text-[7.5rem]">
+					<h1 className="t-display reveal text-5xl text-[var(--color-ink)] sm:text-6xl md:text-[7.25rem] md:leading-[0.95] lg:text-[8rem]">
 						<span className="block">
 							{brand.headline.latinPrefix}
 							<span lang="hi" className="kinetic-devanagari font-devanagari not-italic">
 								{brand.headline.devanagariCore}
 							</span>
 						</span>
-						<span className="block text-[0.55em] tracking-[var(--tracking-display)] text-[var(--color-muted)] sm:text-[0.5em]">
+						<span className="mt-1 block text-[0.55em] tracking-[var(--tracking-display)] text-[var(--color-muted)] sm:text-[0.5em]">
+							<span
+								aria-hidden="true"
+								className="font-display italic"
+								style={{ color: "var(--color-accent)" }}
+							>
+								&amp;
+							</span>{" "}
 							<span className="not-italic">{brand.headline.connector}</span>{" "}
 							<span className="text-[var(--color-ink)]">{brand.headline.suffix}</span>
 						</span>
 					</h1>
-					<p className="t-lead mt-5 max-w-xl sm:mt-7">
+					<p className="t-lead mt-6 max-w-xl sm:mt-8">
 						<SplitText delay={400}>{brand.description}</SplitText>
 					</p>
-					<ul className="reveal mt-7 flex flex-wrap gap-x-1.5 gap-y-1.5 sm:mt-10 sm:gap-x-3">
-						{styles.map((s) => (
+					<ul className="reveal mt-8 flex flex-wrap gap-x-2 gap-y-2 sm:mt-12 sm:gap-x-2.5">
+						{styles.map((s, i) => (
 							<li
 								key={s}
-								className="t-meta rounded-full border border-[var(--color-line)] px-2.5 py-1 text-[0.65rem] sm:px-3 sm:text-xs"
+								className="glass t-meta rounded-full px-2.5 py-1 text-[0.65rem] sm:px-3 sm:py-1.5 sm:text-xs"
+								style={
+									{
+										"--surface-pigment": stylePigments[i % stylePigments.length],
+										color: stylePigments[i % stylePigments.length],
+									} as React.CSSProperties
+								}
 							>
 								{s}
 							</li>
@@ -130,18 +158,45 @@ export default function Hero() {
 				</div>
 
 				<div className="md:col-span-5">
-					<div className="mx-auto w-full max-w-md md:max-w-none" style={heroHaloStyle}>
+					<div className="relative mx-auto w-full max-w-md md:max-w-none" style={heroHaloStyle}>
+						{/* Secondary halo: smaller offset blob behind the plate sampled
+						    from the featured work's second pigment. Uses the same blur
+						    recipe as `.aurora` so it composes naturally with the
+						    decoratives. Hidden under prefers-reduced-transparency. */}
+						<div
+							aria-hidden="true"
+							className="hero-halo-secondary pointer-events-none absolute -z-10"
+							style={
+								{
+									top: "-2rem",
+									right: "-3rem",
+									width: "60%",
+									height: "60%",
+									background: "radial-gradient(circle, var(--hero-halo-2), transparent 65%)",
+									filter: "blur(56px)",
+									opacity: "var(--halo-strength)",
+								} as React.CSSProperties
+							}
+						/>
 						<div ref={frameRef} className="parallax-frame hero-halo relative aspect-[3/4] w-full">
+							{/* Back layer: deeper glass slab, slightly offset. The
+							    floating-glass recipe carries its own tinted gradient and
+							    drop shadow, so the front image feels seated. */}
 							<div
 								data-shadow=""
-								className="absolute inset-0 border border-[var(--color-line)] bg-[var(--color-bg-soft)]"
+								className="glass-floating absolute inset-0"
 								style={{
 									transform: "translate(-1rem, 1rem) translateZ(-30px)",
 								}}
 							/>
+							{/* Front plate: pigment-tinted hairline so the canvas reads as
+							    framed without competing with the back glass. */}
 							<div
 								data-inner=""
-								className="relative h-full w-full overflow-hidden border border-[var(--color-line)]"
+								className="relative h-full w-full overflow-hidden"
+								style={{
+									border: "1px solid color-mix(in oklch, var(--hero-halo) 55%, var(--color-line))",
+								}}
 							>
 								{featured?.image ? (
 									<ArtworkImage

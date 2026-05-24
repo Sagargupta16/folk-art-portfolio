@@ -124,8 +124,12 @@ export default function ParticleField() {
 				if (Math.abs(p.z) > 200) p.vz *= -1;
 			}
 
-			// Project and sort by depth
-			const projected = particles.map((p, i) => ({ ...project(p), i, p }));
+			// Project and sort by depth. Drop particles whose rotated z falls
+			// behind the camera plane (perspective = 800) -- their `scale`
+			// goes negative, which would yield negative arc radii.
+			const projected = particles
+				.map((p, i) => ({ ...project(p), i, p }))
+				.filter((pp) => pp.scale > 0);
 			projected.sort((a, b) => a.z - b.z);
 
 			// Draw connections

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+type Decorative = "aurora" | "mesh" | "none";
+
 type Props = {
 	id: string;
 	eyebrow?: string;
@@ -7,6 +9,10 @@ type Props = {
 	lead?: string;
 	accent?: string;
 	align?: "center" | "left";
+	/** Optional Devanagari character rendered above the title in section-accent. */
+	glyph?: string;
+	/** Optional ambient backdrop layer mounted behind content. */
+	decorative?: Decorative;
 	children: ReactNode;
 };
 
@@ -17,6 +23,8 @@ export default function Section({
 	lead,
 	accent,
 	align = "left",
+	glyph,
+	decorative = "none",
 	children,
 }: Props) {
 	const style = accent ? ({ "--section-accent": accent } as React.CSSProperties) : undefined;
@@ -24,9 +32,30 @@ export default function Section({
 
 	return (
 		<section id={id} className="section" style={style} data-align={align}>
-			<div className="container-x">
-				{(eyebrow || title || lead) && (
+			{decorative === "aurora" && <div className="aurora" aria-hidden="true" />}
+			{decorative === "mesh" && (
+				<div className="mesh-bg" aria-hidden="true">
+					<div className="mesh-blob" />
+				</div>
+			)}
+			<div className="container-x relative">
+				{(eyebrow || title || lead || glyph) && (
 					<header className={`stagger mb-10 sm:mb-14 ${textAlign}`}>
+						{glyph && (
+							<p
+								aria-hidden="true"
+								lang="hi"
+								className={`reveal font-devanagari not-italic leading-none mb-3 ${
+									align === "center" ? "" : "text-left"
+								}`}
+								style={{
+									color: "var(--section-accent)",
+									fontSize: "1.5rem",
+								}}
+							>
+								{glyph}
+							</p>
+						)}
 						{eyebrow && <p className="t-eyebrow reveal mb-3">{eyebrow}</p>}
 						{title && (
 							<h2 className="t-display reveal text-4xl text-[var(--color-ink)] sm:text-5xl">

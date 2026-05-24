@@ -11,20 +11,13 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 ## Project
 
-Portfolio site for **Megha Seth**, traditional folk artist. Live at <https://kalchar.co.in/>.
+Portfolio site for **Megha Seth**, traditional folk artist (family member of Sagar). Live at <https://kalchar.co.in/>.
 
-## Long-term vision
-
-The site is being designed to grow into a **full-stack application**:
-
-- **Public side**: visitors browse the full archive of past artworks, see currently-available pieces with prices, and submit custom-order requests.
-- **Admin side**: Megha (or her assistant) signs in via Google OAuth, uploads new images, edits existing entries, rearranges order, sets availability and prices, and reads incoming orders.
-
-The full-stack work is **future scope**. Today the catalog lives in `data/*.json` and the site is static.
+The full project knowledge -- goal, confirmed decisions, observable disk state, implied recommendations, open questions, architecture sketch, Phase 2 migration plan -- lives in [MEMORY.md](MEMORY.md). Read it at session start.
 
 ## Current focus
 
-Build a strong public UI now, with the catalog still in the repo. Pick folder structure and file boundaries that make the eventual switch to full-stack a localized change rather than a rewrite -- treat data reads as one seam, keep route boundaries clean, keep deployment config (URLs, base path) in one place.
+Build a strong public UI now, with the catalog still in the repo (`data/*.json`). Pick folder structure so the eventual switch to full-stack (admin panel via Google OAuth, DB-backed catalog) is a localized change -- one data-seam swap, not a rewrite.
 
 ## Status
 

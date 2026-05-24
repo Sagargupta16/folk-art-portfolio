@@ -4,6 +4,25 @@ Repo-specific facts that need to persist across Claude sessions. Stacks on the w
 
 Never put PII here. Contact details, payment terms, etc. stay out of the repo.
 
+## Long-term vision
+
+Eventually this becomes a **full-stack site**:
+
+- **Public-facing**: visitors browse all previous artworks (the archive), see what's currently available to sell with prices, and order custom commissions.
+- **Admin-facing**: Megha (or her admin) signs in via Google OAuth, uploads artwork images, edits existing entries, rearranges order, sets availability + price, manages workshop offerings, and reads orders.
+- **Data**: today the catalog lives in `data/*.json`; eventually it lives in a database the admin manipulates via UI.
+
+**Today's posture**: keep data in the repo, keep the focus on a great public UI, but pick a **folder structure / file structure** that is *easy to switch to full-stack later*. Don't optimize for the eventual backend prematurely -- just don't build us into a corner.
+
+What "easy to switch later" means concretely:
+
+- Treat the `data/*.json` reads as a single seam (one module that loads them) so when it becomes a database fetch, only that seam changes.
+- Keep route boundaries clear -- a future `/admin/*` set of pages should slot in without restructuring.
+- Don't bake `SITE = https://kalchar.co.in/` or BASE paths into many places; keep config in one place.
+- Image URLs derive from the data, not hardcoded paths.
+
+The full-stack work is **not** in scope yet -- v3 is still a static site. This section is here so v3's structure decisions account for the trajectory.
+
 ## Roles
 
 - **Megha Seth** -- the artist. Owns all artwork rights. Does not write code. All copy is hers; voice in user-facing text is hers, not Sagar's.
@@ -54,7 +73,9 @@ These survived the wipe as direction (the *execution* was the problem, not the d
 
 ### Open for v3 (decide before scaffolding)
 
-- **Stack**: Vite 7 vs Astro 5 vs Next 15 -- pending
+- **Stack**: Vite 7 vs Astro 5 vs Next 15 -- pending. Note the long-term vision: pick a stack that grows into full-stack cleanly. Next 15 was previously dismissed as overkill for a single-page portfolio, but the admin/auth/upload trajectory makes it worth re-evaluating.
+- **Page structure**: today is a single anchored page (`/#work`, `/#about`, ...). Full-stack future may want real routes (`/work`, `/work/<slug>`, `/admin/...`). Pick one now, structure for the other.
+- **Data seam**: where in the codebase does artwork-data loading happen? One module that reads `data/*.json` today and becomes a fetch later. Decide that seam during v3 scaffolding.
 - **Card size rule**: uniform vs masonry by aspectRatio -- pending (the v2 masonry was the visible inconsistency)
 - **Motion intensity**: recalibrate after the "lush" round felt busy
 - **Glass scope**: chrome-only vs chrome+featured vs everywhere

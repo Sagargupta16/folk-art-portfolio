@@ -8,7 +8,7 @@ import { getSite } from "@/lib/data";
 export const metadata: Metadata = {
 	title: "Contact",
 	description:
-		"Reach Megha Seth on Instagram, WhatsApp, or email. Folk-art commissions and workshops.",
+		"Get in touch about folk-art commissions, workshops, and prints by Megha Seth -- on WhatsApp, Instagram, or email.",
 };
 
 /**

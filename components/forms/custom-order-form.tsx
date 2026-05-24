@@ -34,7 +34,7 @@ export function CustomOrderForm({ phoneE164NoPlus, availableStyles }: CustomOrde
 		const formData = new FormData(e.currentTarget);
 		const briefMessage = (formData.get("brief") as string | null)?.trim() ?? "";
 		if (!briefMessage) {
-			setError("Tell Megha a bit about what you'd like.");
+			setError("Tell us a bit about what you'd like.");
 			return;
 		}
 
@@ -66,7 +66,7 @@ export function CustomOrderForm({ phoneE164NoPlus, availableStyles }: CustomOrde
 					name="name"
 					type="text"
 					autoComplete="name"
-					placeholder="What should Megha call you?"
+					placeholder="What should we call you?"
 					className={inputClass}
 				/>
 			</Field>

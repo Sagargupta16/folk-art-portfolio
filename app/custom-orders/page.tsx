@@ -8,7 +8,7 @@ import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 export const metadata: Metadata = {
 	title: "Custom orders",
 	description:
-		"Order a custom painting from Megha Seth -- Madhubani, Pichwai, Lippan, Gond, Texture, Mixed Media. Submission opens WhatsApp with a pre-filled brief.",
+		"Order a custom painting -- Madhubani, Pichwai, Lippan, Gond, Texture, Mixed Media. Send a brief and we'll get back to you on WhatsApp with a quote and timeline.",
 };
 
 /**
@@ -35,7 +35,7 @@ export default function CustomOrdersPage() {
 				<Reveal delayMs={160}>
 					<p className="t-lead mt-4">
 						{(co as { lead?: string })?.lead ??
-							"Tell me what you have in mind. I'll review and reply on WhatsApp -- no payment until we've talked."}
+							"Tell us what you have in mind. We'll review and get back to you on WhatsApp -- no payment until we've talked."}
 					</p>
 				</Reveal>
 			</header>
@@ -51,20 +51,20 @@ export default function CustomOrdersPage() {
 							<Step
 								icon={Brush}
 								title="Send a brief"
-								body="Style, size, occasion, anything you'd like reflected. References welcome over WhatsApp once we connect."
+								body="Style, size, occasion, anything you'd like reflected. References welcome on WhatsApp once we connect."
 							/>
 						</Reveal>
 						<Reveal as="li" delayMs={120}>
 							<Step
 								icon={MessageCircle}
 								title="We talk it through"
-								body="Megha replies, asks for any missing details, and shares a quote + timeline."
+								body="We get back to you on WhatsApp, ask for any missing details, and share a quote + timeline."
 							/>
 						</Reveal>
 						<Reveal as="li" delayMs={180}>
 							<Step
 								icon={Clock}
-								title="She paints, you approve"
+								title="The piece is painted, you approve"
 								body="Progress shots along the way. Final piece ships from India after your sign-off."
 							/>
 						</Reveal>

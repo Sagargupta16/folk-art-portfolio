@@ -1,5 +1,3 @@
-import { SITE_BASE_PATH } from "./lib/site-config.mjs";
-
 /**
  * Phase 1 -- static export to GitHub Pages.
  *
@@ -12,13 +10,18 @@ import { SITE_BASE_PATH } from "./lib/site-config.mjs";
  *
  * Phase 2 transition: remove `output: "export"`, remove `images.unoptimized`,
  * and the same project starts serving dynamic routes + image optimization.
+ *
+ * `basePath` mirrors `siteConfig.basePath` in lib/site-config.ts. Next.js
+ * config files are plain ESM evaluated before TypeScript is set up, so we
+ * cannot import the .ts file here; keep the two values in sync manually.
+ * Empty string = served at apex (kalchar.co.in/), no subpath.
  */
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	output: "export",
 	trailingSlash: true,
-	basePath: SITE_BASE_PATH,
+	basePath: "",
 	images: {
 		unoptimized: true,
 	},

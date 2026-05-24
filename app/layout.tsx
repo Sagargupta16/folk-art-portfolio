@@ -3,6 +3,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getSite } from "@/lib/data";
 import { siteConfig } from "@/lib/site-config";
+import { fontBody, fontDevanagari, fontDisplay } from "./fonts";
 import "./globals.css";
 
 const site = getSite();
@@ -47,8 +48,9 @@ export const viewport: Viewport = {
  * never see a flash of light styles.
  */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+	const fontVars = `${fontBody.variable} ${fontDisplay.variable} ${fontDevanagari.variable}`;
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html lang="en" suppressHydrationWarning className={fontVars}>
 			<head>
 				<script
 					// biome-ignore lint/security/noDangerouslySetInnerHtml: pre-paint script must be inline
@@ -60,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 			<body className="font-sans">
 				<a
 					href="#main"
-					className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-[var(--color-ink)] focus:px-3 focus:py-2 focus:text-sm focus:text-[var(--color-bg)]"
+					className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-ink focus:px-3 focus:py-2 focus:text-sm focus:text-bg"
 				>
 					Skip to content
 				</a>

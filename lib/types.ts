@@ -6,13 +6,7 @@
  * these types stay -- only the loader implementation changes.
  */
 
-export type ArtStyle =
-	| "Madhubani"
-	| "Pichwai"
-	| "Lippan"
-	| "Gond"
-	| "Texture"
-	| "Mixed Media";
+export type ArtStyle = "Madhubani" | "Pichwai" | "Lippan" | "Gond" | "Texture" | "Mixed Media";
 
 /** Lifecycle of a piece in the catalog. */
 export type ArtworkStatus = "archive" | "available" | "sold";

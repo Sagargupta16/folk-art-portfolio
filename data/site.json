@@ -27,14 +27,7 @@
 		{ "label": "Custom Orders", "href": "#custom-orders" },
 		{ "label": "Contact", "href": "#contact" }
 	],
-	"styles": [
-		"Madhubani",
-		"Pichwai",
-		"Lippan",
-		"Gond",
-		"Texture",
-		"Mixed Media"
-	],
+	"styles": ["Madhubani", "Pichwai", "Lippan", "Gond", "Texture", "Mixed Media"],
 	"contact": {
 		"instagram": {
 			"label": "Instagram",

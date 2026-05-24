@@ -49,6 +49,10 @@ Live URL: <https://kalchar.co.in/>.
 | Design priority | **Mobile-first.** Most traffic arrives from WhatsApp / Instagram link-taps -- design and tune for mobile primarily, then scale up to tablet / desktop. | 2026-05-24 |
 | Custom-orders route | `/custom-orders` (not `/commission`). The word "commission" stays out of nav, route names, and code identifiers. It can still appear in artist's voice copy in `data/site.json`. | 2026-05-24 |
 | Catalog distinctness | All 21 artworks in `data/artworks.json` are **distinct pieces**. No duplicates, no auto-dedup. | 2026-05-24 |
+| Nav structure | 5 items: Work / About / Workshops / Custom Orders / Contact. Mobile = hamburger menu (brand mark + menu button), desktop = horizontal row. | 2026-05-24 |
+| Home page sections | Hero -> Selected work rail (featured pieces) -> Available now (for-sale pieces, hidden when empty) -> About teaser -> Workshops + Custom Orders CTAs -> Footer. | 2026-05-24 |
+| Visual mood | Gallery / museum register -- restrained, whitespace-forward, the work is the hero. Warm cream + ink + single accent. Fine type. Pieces stand on their own merit. | 2026-05-24 |
+| Motion intensity | Refined -- fade-up on scroll, subtle hover lifts on cards, tasteful page transitions. Motion 12 + Lenis (lazy-loaded). All respect `prefers-reduced-motion`. | 2026-05-24 |
 
 ## Observable on disk (factual, not session-confirmed)
 

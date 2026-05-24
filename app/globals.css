@@ -2,28 +2,52 @@
 @import "tw-animate-css";
 
 /**
- * Tailwind 4 design tokens live in `@theme`. Components reference these via
- * `var(--color-*)`, `var(--font-*)`, etc. Keep the token set small for now;
- * we'll expand it once the visual direction lands.
+ * Design tokens for a gallery / museum register: warm cream, deep ink, single
+ * terracotta accent. Saturation lives inside the artwork itself, not the chrome.
  *
- * Light/dark via `class="dark"` on <html>. The dark block overrides the
- * semantic tokens; primitives stay constant.
+ * Tier 1 -- raw primitive families (kept here so palette pivots are one edit).
+ * Tier 2 -- semantic tokens consumed by components via `bg-bg`, `text-ink`,
+ *   `border-line`, etc. Tailwind 4 derives utilities from `@theme` automatically
+ *   so `--color-bg` -> `bg-bg`, `--color-accent` -> `bg-accent`.
+ *
+ * Light/dark via `class="dark"` on <html>. Dark-mode block remaps Tier 2 only.
  */
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-	/* Type families -- to be wired up to actual @font-face once typography is locked. */
-	--font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-	--font-display: ui-serif, Georgia, "Times New Roman", serif;
+	/* Type families -- next/font/google injects --font-* vars in app/fonts.ts. */
+	--font-display: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
+	--font-body: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+	--font-devanagari: var(--font-devanagari), ui-serif, serif;
 
-	/* Base palette -- placeholder; will be redesigned once mood is locked. */
-	--color-bg: oklch(0.98 0.012 80);
-	--color-bg-soft: oklch(0.95 0.018 75);
-	--color-ink: oklch(0.18 0.02 60);
-	--color-muted: oklch(0.5 0.015 60);
-	--color-line: oklch(0.88 0.02 75);
-	--color-accent: oklch(0.55 0.16 40);
+	/* Light palette -- warm cream + deep ink + terracotta accent */
+	--color-bg: oklch(0.97 0.014 80);
+	--color-bg-soft: oklch(0.94 0.02 75);
+	--color-ink: oklch(0.18 0.022 60);
+	--color-muted: oklch(0.5 0.018 60);
+	--color-line: oklch(0.87 0.022 75);
+	--color-accent: oklch(0.55 0.165 40);
+	--color-accent-soft: oklch(0.74 0.12 50);
+
+	/* Tracking + rhythm */
+	--tracking-display: -0.015em;
+	--tracking-eyebrow: 0.22em;
+	--tracking-meta: 0.16em;
+
+	/* Motion -- role-named timings + eases. Components reference these, not
+	   raw `400ms`. Reduces drift; lets one edit retune the whole site. */
+	--duration-fast: 200ms;
+	--duration-base: 400ms;
+	--duration-slow: 700ms;
+
+	--ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+	--ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+	--ease-glide: cubic-bezier(0.16, 1, 0.3, 1);
+
+	/* Layout */
+	--container-px: clamp(1.25rem, 4vw, 2rem);
+	--section-py: clamp(4rem, 8vw, 7rem);
 }
 
 :root.dark {
@@ -33,12 +57,13 @@
 	--color-muted: oklch(0.65 0.018 65);
 	--color-line: oklch(0.28 0.022 60);
 	--color-accent: oklch(0.7 0.14 45);
+	--color-accent-soft: oklch(0.6 0.13 45);
 }
 
 html {
 	background: var(--color-bg);
 	color: var(--color-ink);
-	font-family: var(--font-sans);
+	font-family: var(--font-body);
 	-webkit-font-smoothing: antialiased;
 	text-rendering: optimizeLegibility;
 }
@@ -52,9 +77,36 @@ body {
 	color: var(--color-bg);
 }
 
-/* Reduced-motion: any keyframe-driven CSS should self-suppress under this rule.
-   Component-driven motion (Motion library, Lenis) checks `prefers-reduced-motion`
-   via the usePrefersReducedMotion hook in lib/hooks. */
+/* Typographic roles -- consumed via class, not Tailwind utility, so the
+   shape (line-height, letter-spacing) lives in one place. */
+.t-display {
+	font-family: var(--font-display);
+	font-style: italic;
+	font-weight: 500;
+	letter-spacing: var(--tracking-display);
+	line-height: 1.05;
+}
+.t-eyebrow {
+	font-family: var(--font-body);
+	font-size: 0.6875rem;
+	letter-spacing: var(--tracking-eyebrow);
+	text-transform: uppercase;
+	color: var(--color-muted);
+	font-weight: 500;
+}
+.t-meta {
+	font-family: var(--font-body);
+	font-size: 0.75rem;
+	letter-spacing: var(--tracking-meta);
+	text-transform: uppercase;
+	color: var(--color-muted);
+}
+.t-lead {
+	font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+	line-height: 1.65;
+	color: var(--color-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
 	html {
 		scroll-behavior: auto;

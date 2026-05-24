@@ -6,7 +6,7 @@
  * shadcn's `asChild` slot pattern is omitted here; add Radix Slot when the
  * first consumer needs button-styled `<Link>`s without `<a>`-in-`<a>` issues.
  */
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
@@ -39,14 +39,10 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 	({ className, variant, size, ...props }, ref) => (
-		<button
-			ref={ref}
-			className={cn(buttonVariants({ variant, size }), className)}
-			{...props}
-		/>
+		<button ref={ref} className={cn(buttonVariants({ variant, size }), className)} {...props} />
 	),
 );
 Button.displayName = "Button";
 
-export { Button, buttonVariants };
 export type { ButtonProps };
+export { Button, buttonVariants };

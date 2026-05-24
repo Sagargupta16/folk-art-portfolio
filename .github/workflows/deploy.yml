@@ -40,10 +40,16 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Add CNAME to export
+        # Next.js static export writes to `out/`. Copy the apex domain config so
+        # GitHub Pages serves the build at kalchar.co.in instead of the default
+        # *.github.io URL.
+        run: cp public/CNAME out/CNAME
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/
+          path: out/
 
   deploy:
     name: Deploy to GitHub Pages

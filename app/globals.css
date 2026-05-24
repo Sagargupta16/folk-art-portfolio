@@ -1,0 +1,62 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/**
+ * Tailwind 4 design tokens live in `@theme`. Components reference these via
+ * `var(--color-*)`, `var(--font-*)`, etc. Keep the token set small for now;
+ * we'll expand it once the visual direction lands.
+ *
+ * Light/dark via `class="dark"` on <html>. The dark block overrides the
+ * semantic tokens; primitives stay constant.
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+	/* Type families -- to be wired up to actual @font-face once typography is locked. */
+	--font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--font-display: ui-serif, Georgia, "Times New Roman", serif;
+
+	/* Base palette -- placeholder; will be redesigned once mood is locked. */
+	--color-bg: oklch(0.98 0.012 80);
+	--color-bg-soft: oklch(0.95 0.018 75);
+	--color-ink: oklch(0.18 0.02 60);
+	--color-muted: oklch(0.5 0.015 60);
+	--color-line: oklch(0.88 0.02 75);
+	--color-accent: oklch(0.55 0.16 40);
+}
+
+:root.dark {
+	--color-bg: oklch(0.16 0.018 60);
+	--color-bg-soft: oklch(0.21 0.02 55);
+	--color-ink: oklch(0.92 0.015 80);
+	--color-muted: oklch(0.65 0.018 65);
+	--color-line: oklch(0.28 0.022 60);
+	--color-accent: oklch(0.7 0.14 45);
+}
+
+html {
+	background: var(--color-bg);
+	color: var(--color-ink);
+	font-family: var(--font-sans);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+body {
+	min-height: 100dvh;
+}
+
+::selection {
+	background: var(--color-accent);
+	color: var(--color-bg);
+}
+
+/* Reduced-motion: any keyframe-driven CSS should self-suppress under this rule.
+   Component-driven motion (Motion library, Lenis) checks `prefers-reduced-motion`
+   via the usePrefersReducedMotion hook in lib/hooks. */
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+}

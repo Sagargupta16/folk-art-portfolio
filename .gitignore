@@ -11,6 +11,7 @@ build/
 .netlify/
 .astro/
 .next/
+out/
 tsconfig.tsbuildinfo
 
 # Env / secrets

@@ -46,6 +46,8 @@ Live URL: <https://kalchar.co.in/>.
 | Stack -- package manager | pnpm 10 | 2026-05-24 |
 | Versions policy | Latest stable across the board. No "safe but old" pins without a documented constraint. | 2026-05-24 |
 | Motion accessibility | Every animation respects `prefers-reduced-motion`. Non-negotiable. | 2026-05-24 |
+| Design priority | **Mobile-first.** Most traffic arrives from WhatsApp / Instagram link-taps -- design and tune for mobile primarily, then scale up to tablet / desktop. | 2026-05-24 |
+| Custom-orders route | `/custom-orders` (not `/commission`). The word "commission" stays out of nav, route names, and code identifiers. It can still appear in artist's voice copy in `data/site.json`. | 2026-05-24 |
 
 ## Observable on disk (factual, not session-confirmed)
 
@@ -121,7 +123,7 @@ app/                          Next.js App Router
     [slug]/page.tsx           artwork detail (statically generated)
   about/page.tsx
   workshops/page.tsx
-  commission/page.tsx         custom-order form -> WhatsApp link
+  custom-orders/page.tsx      custom-order form -> WhatsApp link
   contact/page.tsx
   (admin/)                    Phase 2 only -- folder reserved
 
@@ -129,7 +131,7 @@ components/
   ui/                         shadcn primitives, added as used
   layout/                     header, footer, nav
   gallery/                    artwork-card, gallery-grid, lightbox
-  forms/                      commission-form, etc.
+  forms/                      custom-order-form, etc.
 
 lib/
   data.ts                     *** THE SEAM -- reads /data/*.json today.

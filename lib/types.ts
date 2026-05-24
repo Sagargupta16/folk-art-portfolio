@@ -102,7 +102,7 @@ export interface Site {
  * Shape of a custom-order request. Phase 1 routes this to WhatsApp via a
  * pre-filled message; Phase 2 stores it as a row and adds an admin queue.
  */
-export interface CommissionDraft {
+export interface CustomOrderDraft {
 	name?: string;
 	style?: ArtStyle | "Open to suggestion";
 	approxSizeCm?: string;

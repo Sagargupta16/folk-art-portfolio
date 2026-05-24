@@ -13,7 +13,7 @@ const NAV: { label: string; href: string }[] = [
 	{ label: "Work", href: "/work" },
 	{ label: "About", href: "/about" },
 	{ label: "Workshops", href: "/workshops" },
-	{ label: "Commission", href: "/commission" },
+	{ label: "Custom Orders", href: "/custom-orders" },
 	{ label: "Contact", href: "/contact" },
 ];
 

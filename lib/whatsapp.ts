@@ -5,7 +5,7 @@
  * Country code is included with no `+`. The number is read from contact data,
  * never hardcoded here.
  */
-import type { Artwork, CommissionDraft } from "./types";
+import type { Artwork, CustomOrderDraft } from "./types";
 
 export interface WhatsAppLinkOptions {
 	/** E.164-style number with country code, no `+` (e.g. "918435652636"). */
@@ -34,9 +34,9 @@ export function buyArtworkMessage(art: Artwork): string {
 	return `Hi Megha, I'd like to buy "${art.title}" (${art.style}).${priceLine}\nIs this still available?`;
 }
 
-/** Pre-filled commission brief message. */
-export function commissionMessage(draft: CommissionDraft): string {
-	const lines: string[] = ["Hi Megha, I'd like to commission a custom piece."];
+/** Pre-filled custom-order brief message. */
+export function customOrderMessage(draft: CustomOrderDraft): string {
+	const lines: string[] = ["Hi Megha, I'd like to order a custom piece."];
 	if (draft.name) lines.push(`From: ${draft.name}`);
 	if (draft.style) lines.push(`Style: ${draft.style}`);
 	if (draft.approxSizeCm) lines.push(`Approx size: ${draft.approxSizeCm}`);

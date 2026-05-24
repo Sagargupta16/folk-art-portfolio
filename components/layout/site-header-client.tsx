@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -76,7 +76,7 @@ export function SiteHeaderClient({
 	const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
 	return (
-		<header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur supports-[backdrop-filter]:bg-bg/75">
+		<header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur supports-backdrop-filter:bg-bg/75">
 			<div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-(--container-px) py-3 md:py-4">
 				<Link
 					href="/"
@@ -147,14 +147,12 @@ export function SiteHeaderClient({
 										href={item.href}
 										aria-current={active ? "page" : undefined}
 										className={cn(
-											"flex min-h-[48px] items-center justify-between border-b border-line py-3 text-sm transition-colors last:border-b-0",
+											"flex min-h-12 items-center justify-between border-b border-line py-3 text-sm transition-colors last:border-b-0",
 											active ? "text-accent" : "text-ink hover:text-accent",
 										)}
 									>
 										<span>{item.label}</span>
-										<span aria-hidden="true" className="text-muted">
-											&rarr;
-										</span>
+										<ArrowRight size={16} aria-hidden="true" className="text-muted" />
 									</Link>
 								</li>
 							);

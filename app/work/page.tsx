@@ -1,33 +1,63 @@
 import type { Metadata } from "next";
-import { getAllArtworks } from "@/lib/data";
+import { WorkFilter } from "@/components/gallery/work-filter";
+import { Reveal } from "@/components/motion/reveal";
+import { getAllArtworks, getSite } from "@/lib/data";
 
 export const metadata: Metadata = {
 	title: "Work",
 	description: "Selected paintings -- Madhubani, Pichwai, Lippan, Gond, Texture, Mixed Media.",
 };
 
+/**
+ * /work -- the full gallery.
+ *
+ * Renders all artworks as uniform 3:4 cards in a 2-column (mobile) / 3-column
+ * (desktop) grid. The style filter is a Client island that hides cards by
+ * style without re-fetching -- artworks are already in the DOM so the toggle
+ * is instantaneous and works without JS for first paint.
+ */
 export default function WorkPage() {
 	const all = getAllArtworks();
+	const { styles, sections } = getSite();
+	const work = sections.work;
+
 	return (
-		<main className="mx-auto max-w-5xl px-6 py-16">
-			<p className="text-xs uppercase tracking-[0.22em] text-[var(--color-muted)]">Work</p>
-			<h1 className="mt-3 font-display text-4xl italic">Selected work</h1>
-			<p className="mt-4 max-w-2xl text-[var(--color-muted)]">
-				Placeholder list. Gallery UI lands next.
-			</p>
-			<ul className="mt-12 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
-				{all.map((art) => (
-					<li
-						key={art.slug}
-						className="border border-[var(--color-line)] bg-[var(--color-bg-soft)] p-4"
-					>
-						<p className="font-display text-lg italic">{art.title}</p>
-						<p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">
-							{art.style}
-						</p>
-					</li>
-				))}
-			</ul>
+		<main className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+			<header className="max-w-2xl">
+				<Reveal>
+					<p className="t-eyebrow">{work?.eyebrow ?? "Work"}</p>
+				</Reveal>
+				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
+					{work?.title ?? "Selected work"}
+				</Reveal>
+				{work?.lead ? (
+					<Reveal delayMs={160}>
+						<p className="t-lead mt-4">{work.lead}</p>
+					</Reveal>
+				) : null}
+				<Reveal delayMs={220}>
+					<p className="t-meta mt-6">
+						{all.length} {all.length === 1 ? "piece" : "pieces"}
+					</p>
+				</Reveal>
+			</header>
+
+			<WorkFilter
+				styles={styles}
+				items={all.map((a) => ({
+					slug: a.slug,
+					title: a.title,
+					style: a.style,
+					medium: a.medium,
+					image: a.image,
+					description: a.description,
+					featured: a.featured,
+					order: a.order,
+					aspectRatio: a.aspectRatio,
+					priceInr: a.priceInr,
+					status: a.status,
+				}))}
+			/>
 		</main>
 	);
 }

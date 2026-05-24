@@ -1,3 +1,4 @@
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
@@ -195,7 +196,7 @@ function SectionShell({
 							href={href}
 							className="inline-flex items-center gap-2 text-sm uppercase tracking-meta text-accent transition-opacity hover:opacity-80"
 						>
-							{hrefLabel} <span aria-hidden="true">&rarr;</span>
+							{hrefLabel} <ArrowRight size={14} aria-hidden="true" />
 						</Link>
 					</div>
 				</Reveal>
@@ -270,7 +271,7 @@ function CtaPair() {
 									: "From beginner to focused folk-art deep dives."}
 							</p>
 							<p className="mt-6 inline-flex items-center gap-2 text-sm uppercase tracking-meta text-accent">
-								Browse <span aria-hidden="true">&rarr;</span>
+								Browse <ArrowRight size={14} aria-hidden="true" />
 							</p>
 						</Link>
 					</Reveal>
@@ -288,7 +289,7 @@ function CtaPair() {
 								WhatsApp.
 							</p>
 							<p className="mt-6 inline-flex items-center gap-2 text-sm uppercase tracking-meta text-accent">
-								Start a brief <span aria-hidden="true">&rarr;</span>
+								Start a brief <ArrowRight size={14} aria-hidden="true" />
 							</p>
 						</Link>
 					</Reveal>

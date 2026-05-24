@@ -14,7 +14,7 @@ Never put PII here. Contact details, payment terms, etc. stay out of the repo.
 
 | Decision | Value | Notes |
 | --- | --- | --- |
-| Domain | `kalchar.co.in` | Apex, client-owned. Landed 2026-05-24. DNS: 4 A-records to GH Pages IPs + `www` CNAME -> `sagargupta16.github.io`. To swap, edit only [scripts/site-config.mjs](scripts/site-config.mjs). |
+| Domain | `kalchar.co.in` | Apex, client-owned. Landed 2026-05-24. DNS: 4 A-records to GH Pages IPs + `www` CNAME -> `sagargupta16.github.io`. The v3 build must read `SITE` + `BASE` from one constant -- never hardcode `kalchar.co.in` elsewhere. |
 | Hosting | GitHub Pages | OIDC deploy from `main`. `public/CNAME` ships the apex. |
 | Deploy environments | Single (prod only) | `dev` is local-only. GH Pages allows one custom domain per repo. |
 | Default branch | `main` | Protected, PR-only, CI must pass. |
@@ -37,9 +37,10 @@ Then a full nuke of the build pipeline too: `package.json`, `pnpm-lock.yaml`, `v
 
 - `data/site.json`, `data/artworks.json` -- the catalog (moved from `src/data/`)
 - `public/` -- artwork images, logo, CNAME, robots.txt
-- `scripts/` -- image optimizer, sitemap generator (path updated to `/data/`), site-config (stripped stale `REPO_NAME`, `DEPLOY_ENV=beta` references)
 - `.github/workflows/` -- CI + deploy (will need re-confirming once v3 is scaffolded)
 - `CHANGELOG.md`, `LICENSE`, `renovate.json`, `.gitignore`, `.gitattributes`, `.env.example`
+
+`scripts/` was kept for one commit then deleted on user request -- v3 will rebuild image optimization, sitemap generation, and the SITE/BASE constant from scratch. Reference: the deleted scripts used sharp at q82/q90 for AVIF/WebP at 400/800/1200 widths and emitted a 6-entry sitemap (root + 5 anchors). They're recoverable from git history at commit `5c613ce` if needed.
 
 ### What's still locked from earlier brainstorming
 

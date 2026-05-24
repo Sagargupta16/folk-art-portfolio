@@ -27,7 +27,6 @@ See [MEMORY.md](MEMORY.md) for locked decisions and v3 posture.
 | --- | --- |
 | [data/](data/) | The catalog. `site.json` (brand, nav, contact, section copy, workshops) and `artworks.json` (artwork list). Source of truth for all user-facing content. |
 | [public/](public/) | Static assets shipped as-is. `artworks/<slug>.jpg` (28 MB across 23 pieces), `logo.jpg`, `logo-180.png`, `CNAME`, `robots.txt`. |
-| [scripts/](scripts/) | Build helpers. `optimize-images.mjs` (sharp -> AVIF + WebP, idempotent), `generate-sitemap.mjs` (writes `dist/sitemap.xml`), `site-config.mjs` (single source of `SITE` + `BASE`). |
 | [.github/workflows/](.github/workflows/) | `ci.yml` (lint + typecheck + build on PR), `deploy.yml` (push to `main` -> GitHub Pages via OIDC). Both expect a `pnpm` project -- will need v3 reconfirmed. |
 | `CHANGELOG.md` | Real history of merged work. Keep accurate; add an entry per PR. |
 
@@ -40,11 +39,11 @@ See [MEMORY.md](MEMORY.md) for locked decisions and v3 posture.
 
 1. Drop the file at `public/artworks/<slug>.jpg`.
 2. Append an entry to `data/artworks.json` with `image: "<slug>.jpg"`.
-3. Run the build (once v3 is scaffolded) -- the optimizer regenerates AVIF + WebP variants and the sitemap.
+3. The v3 build (when scaffolded) regenerates AVIF + WebP variants and the sitemap.
 
-## URL single source of truth
+## URLs
 
-[scripts/site-config.mjs](scripts/site-config.mjs) exports `SITE` and `BASE`. The sitemap generator imports them. The v3 build config and any SEO logic must import them too -- never hardcode `kalchar.co.in` anywhere else.
+`SITE = https://kalchar.co.in`, `BASE = /`. The v3 build needs a single constant (one file, one place) that everything else imports. Never hardcode `kalchar.co.in` anywhere else.
 
 ## Branching and deploy
 

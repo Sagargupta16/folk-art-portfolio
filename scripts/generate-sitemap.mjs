@@ -6,11 +6,8 @@
 // with the same lastmod. Per-artwork URLs are intentionally omitted; they're
 // not addressable as standalone pages.
 //
-// Reads:  src/data/artworks.json (just for lastmod sanity)
+// Reads:  data/artworks.json (just for lastmod sanity)
 // Writes: dist/sitemap.xml
-//
-// Beta builds (DEPLOY_ENV=beta) skip generation entirely -- the beta site is
-// noindex, so a sitemap there would confuse, not help.
 
 import { existsSync } from "node:fs";
 import { mkdir, stat, writeFile } from "node:fs/promises";
@@ -19,17 +16,12 @@ import { fileURLToPath } from "node:url";
 import { BASE, SITE } from "./site-config.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const ARTWORKS_PATH = join(ROOT, "src", "data", "artworks.json");
+const ARTWORKS_PATH = join(ROOT, "data", "artworks.json");
 const OUT_PATH = join(ROOT, "dist", "sitemap.xml");
 
 const SECTIONS = ["", "#work", "#about", "#workshops", "#custom-orders", "#contact"];
 
 async function main() {
-	if (process.env.DEPLOY_ENV === "beta") {
-		console.log("[generate-sitemap] DEPLOY_ENV=beta -- skipping (beta is noindex).");
-		return;
-	}
-
 	const lastmod = (await stat(ARTWORKS_PATH)).mtime.toISOString().slice(0, 10);
 	const entries = SECTIONS.map((frag) => {
 		const loc = `${SITE}${BASE}${frag}`;

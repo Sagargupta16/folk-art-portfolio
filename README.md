@@ -4,52 +4,29 @@ Portfolio site for **Megha Seth** -- folk artist working in Madhubani, Pichwai, 
 
 **Live:** <https://kalchar.co.in/>
 
-Currently rebuilding the frontend from scratch on `feat/ui-theme-foundation`. Catalog data and build pipeline are kept; UI is being redesigned.
+## Status
 
-## Stack
+The frontend was wiped on 2026-05-24 for a clean rebuild. Currently a **skeleton repo** -- catalog data and build helpers are kept; the build pipeline (package.json, configs, entry HTML) has been removed and will be re-scaffolded under v3.
 
-| Layer | Choice |
+## What's in the repo
+
+| Path | Purpose |
 | --- | --- |
-| Build | Vite 6, static output to `dist/` |
-| UI | React 19 + TypeScript 6 (strict) |
-| Styling | Tailwind 4 via `@tailwindcss/vite` |
-| Fonts | Self-hosted Cormorant Garamond, Inter, Tiro Devanagari Hindi |
-| Content | JSON in `src/data/` |
-| Images | Build-time `sharp` -> AVIF + WebP at 400/800/1200 widths |
-| SEO | Build-time Vite plugin injects OG/Twitter/canonical/JSON-LD into `index.html` and writes `dist/sitemap.xml` |
-| Lint / format | Biome 2 |
-| Deploy | GitHub Pages via Actions, OIDC auth |
+| [`data/`](data/) | The catalog. Two JSON files -- `site.json` (brand, nav, contact, section copy, workshops) and `artworks.json` (artwork list, one entry per piece). Source of truth for everything user-facing. |
+| [`public/`](public/) | Static assets shipped as-is. Artwork images, logo, `CNAME`, `robots.txt`. |
+| [`scripts/`](scripts/) | Build-time helpers. `optimize-images.mjs` (sharp -> AVIF + WebP), `generate-sitemap.mjs` (writes `dist/sitemap.xml`), `site-config.mjs` (single source of truth for `SITE` + `BASE`). |
+| [`.github/workflows/`](.github/workflows/) | CI (lint + typecheck + build on PR) and deploy (push to `main` -> GitHub Pages via OIDC). |
+| `CHANGELOG.md`, `LICENSE`, `MEMORY.md`, `CLAUDE.md` | Project meta. |
 
-## Run
-
-```sh
-pnpm install
-pnpm dev          # http://localhost:5173/
-pnpm build        # static build to ./dist
-pnpm preview      # serve the built site
-pnpm typecheck    # tsc -b
-pnpm lint         # biome check
-pnpm format       # biome format --write
-```
-
-Requires Node 20.18+ and pnpm 10.
-
-## Content
-
-All display copy lives in two JSON files; editing them updates the site:
-
-- [`src/data/site.json`](src/data/site.json) -- brand, nav, contact, every section's copy, the workshops list.
-- [`src/data/artworks.json`](src/data/artworks.json) -- the artwork catalog. One entry per piece.
-
-Adding a new artwork:
+## Adding a new artwork
 
 1. Drop the image at `public/artworks/<slug>.jpg`.
-2. Append an entry to `src/data/artworks.json` with `image: "<slug>.jpg"`.
-3. `pnpm build` regenerates AVIF + WebP variants automatically.
+2. Append an entry to [`data/artworks.json`](data/artworks.json) with `image: "<slug>.jpg"`.
+3. The next build regenerates AVIF + WebP variants automatically.
 
 ## Deploy
 
-`main` -> <https://kalchar.co.in/> via GitHub Pages. `public/CNAME` ships the apex domain.
+`main` -> <https://kalchar.co.in/> via GitHub Pages. [`public/CNAME`](public/CNAME) ships the apex domain. Single deploy environment -- `dev` is local-only.
 
 ## License
 

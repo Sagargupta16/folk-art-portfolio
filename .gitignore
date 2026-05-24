@@ -68,3 +68,4 @@ public/_opt/
 /_originals/
 *.psd
 *.ai
+.vite/

@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.11.1 (2026-05-25)
+
+Audit-pass polish. After 1.11.0 shipped, an a-to-z code review surfaced a handful of small inconsistencies: stale "Hi Megha" voice in three WhatsApp message templates (the page copy moved to plural-voice in 1.7.0 but the deep-link drafts didn't follow), a token-overriding `tracking-tight` on the footer wordmark, a flat copyright bar where the attribution sat at the same weight as the legal line, and three components still concatenating className strings by hand instead of using the project's `cn()` helper. No visual redesign -- just closing the gap between the voice the visitor reads and the message they tap through to send.
+
+### Changed
+
+- **WhatsApp message templates drop "Megha" from the salutation.** [lib/whatsapp.ts](lib/whatsapp.ts) (buy + custom-order) and [app/workshops/page.tsx](app/workshops/page.tsx) (per-workshop enquire) now open with `Hi, I'd like to ...` instead of `Hi Megha, I'd like to ...`. Matches the plural-voice page copy ("we'll get back to you") so the visitor's reading register and their pre-filled draft register stay aligned.
+- **Footer wordmark** ([components/layout/site-footer.tsx](components/layout/site-footer.tsx)) -- removes the `tracking-tight` Tailwind utility (which silently overrode the `--tracking-display` token), bumps to `text-3xl` / `sm:text-[2rem]` with `leading-none`, and switches the location line to a `t-meta`-style `uppercase tracking-meta` micro-line so the brand block reads as three deliberate weights (display word / body tagline / meta location) instead of three same-size lines.
+- **Footer copyright bar** -- bumps the "Site by Sagar Gupta" attribution to `text-[0.65rem]` + `opacity-50` so it sits visibly below the legal line in the visual hierarchy. Same content, clearer intent.
+- **`cn()` adoption.** [components/decor/brush-stroke.tsx](components/decor/brush-stroke.tsx), [components/decor/motif-eyebrow.tsx](components/decor/motif-eyebrow.tsx), and [components/gallery/chromacard.tsx](components/gallery/chromacard.tsx) now compose className strings with `cn()` from `@/lib/utils` instead of template-literal concat with `.trim()` / fallback empty strings. Same output, but the helper handles falsy guards consistently and matches the rest of the codebase.
+
+### Fixed
+
+- **`ScrollProgress` JSDoc** ([components/decor/scroll-progress.tsx](components/decor/scroll-progress.tsx)) -- the comment claimed the bar "sits behind everything except modals (z-50)" but z-50 is a high z-index, so the bar actually sits above the page chrome. Comment now matches the implementation.
+
 ## 1.11.0 (2026-05-25)
 
 Subpage backgrounds now match the home hero recipe, and `/contact` gains a scannable Instagram QR. The 1.8-1.9 painterly register stopped at the home hero -- every other route ran with one subtle splash on cream, so the visual weight collapsed past `/`. Each subpage now layers a rich primary splash with a `tone2` second-pigment bleed plus a subtle counter-splash on the opposite side, in pigment pairings tuned per route.

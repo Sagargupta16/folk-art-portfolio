@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { cn } from "@/lib/utils";
 
 /**
  * BrushStroke -- a long, slightly curved horizontal sweep in
@@ -39,7 +40,7 @@ export function BrushStroke({ width = 240, className }: BrushStrokeProps) {
 			height={Math.round(width * 0.08)}
 			viewBox="0 0 240 20"
 			fill="none"
-			className={`block text-(--section-accent) ${className ?? ""}`.trim()}
+			className={cn("block text-(--section-accent)", className)}
 			initial={{ opacity: 0 }}
 			whileInView={{ opacity: 1 }}
 			viewport={{ once: true, margin: "-10% 0px -10% 0px" }}

@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 /**
  * Chromacard -- a thin row of color swatches sampled from the artwork.
  *
@@ -31,14 +33,16 @@ export function Chromacard({
 	groupHoverBloom = false,
 }: ChromacardProps) {
 	if (!palette || palette.length === 0) return null;
-	const bloom = groupHoverBloom
-		? "transition-[height] duration-(--duration-base) ease-out-soft group-hover:h-2.5"
-		: "";
 	return (
 		<div
 			role="img"
 			aria-label={ariaLabel}
-			className={`flex h-2 w-full overflow-hidden rounded-full ring-1 ring-line/50 ${bloom} ${className ?? ""}`}
+			className={cn(
+				"flex h-2 w-full overflow-hidden rounded-full ring-1 ring-line/50",
+				groupHoverBloom &&
+					"transition-[height] duration-(--duration-base) ease-out-soft group-hover:h-2.5",
+				className,
+			)}
 		>
 			{palette.map((hex, i) => (
 				<span

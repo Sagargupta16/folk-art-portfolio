@@ -7,9 +7,9 @@ import { useEffect, useState } from "react";
  * scales with how far the visitor has scrolled. Cycles through all five
  * section pigments (vermillion -> marigold -> pichwai -> peacock -> ruby)
  * so the bar visually traverses the same chromatic arc as the page beneath.
- * Pure cosmetic; sits behind everything except modals (z-50). No animation
- * if the bar isn't moving, so reduced-motion users see the same final
- * state at every scroll point.
+ * Pure cosmetic; sits above the page chrome at z-50. No animation if the
+ * bar isn't moving, so reduced-motion users see the same final state at
+ * every scroll point.
  */
 export function ScrollProgress() {
 	const [progress, setProgress] = useState(0);

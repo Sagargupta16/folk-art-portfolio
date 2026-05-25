@@ -74,7 +74,7 @@ export default function WorkshopsPage() {
 
 			<ul className="mt-12 grid gap-6 sm:grid-cols-2 sm:mt-16 lg:grid-cols-3">
 				{workshops.map((item, i) => {
-					const enquireMessage = `Hi Megha, I'd like to enquire about the "${item.title}" workshop.`;
+					const enquireMessage = `Hi, I'd like to enquire about the "${item.title}" workshop.`;
 					const enquireUrl = buildWhatsAppLink({
 						phoneE164NoPlus: phone,
 						message: enquireMessage,

@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { Motif, type MotifKey } from "@/components/decor/motifs";
+import { cn } from "@/lib/utils";
 
 /**
  * MotifEyebrow -- the small label that sits above every page H1, refreshed.
@@ -31,7 +32,7 @@ interface MotifEyebrowProps {
 
 export function MotifEyebrow({ motif, label, number, centered = false }: MotifEyebrowProps) {
 	return (
-		<p className={`t-eyebrow flex items-center gap-3 ${centered ? "justify-center" : ""}`.trim()}>
+		<p className={cn("t-eyebrow flex items-center gap-3", centered && "justify-center")}>
 			<motion.span
 				aria-hidden="true"
 				className="inline-flex shrink-0 text-(--section-accent)"

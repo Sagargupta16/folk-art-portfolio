@@ -53,12 +53,12 @@ export function buyArtworkMessage(art: Artwork): string {
 		typeof art.priceInr === "number"
 			? `\nListed price: INR ${art.priceInr.toLocaleString("en-IN")}`
 			: "";
-	return `Hi Megha, I'd like to buy "${art.title}" (${art.style}).${priceLine}\nIs this still available?`;
+	return `Hi, I'd like to buy "${art.title}" (${art.style}).${priceLine}\nIs this still available?`;
 }
 
 /** Pre-filled custom-order brief message. */
 export function customOrderMessage(draft: CustomOrderDraft): string {
-	const lines: string[] = ["Hi Megha, I'd like to order a custom piece."];
+	const lines: string[] = ["Hi, I'd like to order a custom piece."];
 	if (draft.name) lines.push(`From: ${draft.name}`);
 	if (draft.style) lines.push(`Style: ${draft.style}`);
 	if (draft.size) lines.push(`Size: ${draft.size}`);

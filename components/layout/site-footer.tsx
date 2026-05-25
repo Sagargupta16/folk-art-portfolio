@@ -31,15 +31,15 @@ export function SiteFooter() {
 				<div>
 					<Link
 						href="/"
-						className="t-display text-2xl tracking-tight transition-colors hover:text-accent"
+						className="t-display inline-block text-3xl leading-none transition-colors hover:text-accent sm:text-[2rem]"
 					>
 						<span className="not-italic">{brand.headline.latinPrefix}</span>
 						<span lang="hi" className="font-devanagari not-italic text-accent">
 							{brand.headline.devanagariCore}
 						</span>
 					</Link>
-					<p className="mt-3 text-sm leading-relaxed text-muted">{brand.tagline}</p>
-					<p className="mt-1 text-sm text-muted">{brand.location}</p>
+					<p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">{brand.tagline}</p>
+					<p className="mt-1 text-xs uppercase tracking-meta text-muted/80">{brand.location}</p>
 				</div>
 
 				<nav aria-label="Footer">
@@ -86,7 +86,7 @@ export function SiteFooter() {
 					<p>
 						&copy; {year} {brand.title}. All rights reserved.
 					</p>
-					<p className="opacity-60">Site by Sagar Gupta</p>
+					<p className="text-[0.65rem] opacity-50">Site by Sagar Gupta</p>
 				</div>
 			</div>
 		</footer>

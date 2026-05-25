@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.10.0 (2026-05-25)
+
+Single-pager. Most arrivals are WhatsApp / Instagram link-taps -- a flat short home plus four full subpages was over-routing visitors who just wanted to scroll once. The home now carries a teaser of every section inline; the detail pages stay intact for deep-links and longer reads. No page is removed; nothing in the catalog moves.
+
+### Added
+
+- **Workshops teaser on `/`** -- 3-card preview of the top sessions (by `order`) in the pichwai pigment, with motif eyebrow `lotus` numbered `04`. Cards mirror the `/workshops` register (title + line-clamped blurb + duration pill) but drop the per-card enquire link to keep the teaser reading as a sample, not a list. "See all N sessions ->" footer link routes to the full page. Hidden when there are zero workshops in `data/site.json`.
+- **Custom orders teaser on `/`** -- 3-step process strip (Brief / Talk / Painted, approved, shipped) in the vermillion pigment, with motif eyebrow `mirror-diamond` numbered `05`. Primary "Start on WhatsApp" button deep-links into `wa.me/<phone>?text=...` with a short pre-filled message; secondary "Open the brief form ->" link routes to the full `/custom-orders` page when the visitor wants the structured form. Lifts the same `TeaserStep` shape used on the full page.
+- **Contact teaser on `/`** -- 3-channel row (WhatsApp highlighted, Instagram, Email) in the peacock pigment, with motif eyebrow `rangoli-star` numbered `06`. WhatsApp card gets a tinted border so the fastest channel reads first on mobile. "Full contact page ->" link routes to `/contact` for the hero-plate version with the response-time chip.
+
+### Changed
+
+- **Home page tree is now 7 sections** -- Hero / Marquee / 01 Selected work / 02 Available now / 03 About teaser / 04 Workshops teaser / 05 Custom orders teaser / 06 Contact teaser. Replaces the 5-section flow that ended at "Workshops + Custom Orders CTAs" with no contact path inline.
+- **`CtaPair` removed.** The two-card Workshops + Custom Orders block on the home page is replaced by the three full teaser sections above; the same destinations are still reachable from header nav, the new in-page links, and the footer. Section composition lock in [MEMORY.md](MEMORY.md) updated.
+
 ## 1.9.0 (2026-05-25)
 
 Painterly register, take two. The 1.8.0 layer landed but read too quiet on the cream ground -- paper grain at 7%, pigment wash at 12% alpha, and no shape-language anywhere. This release adds two new SVG primitives (ink splash + brushstroke), cranks the existing grain and wash, and fixes two regressions surfaced by a manual audit. Still no 3D, no particles, no WebGL -- the painterly feel comes from organic shapes, not from animating a render loop.

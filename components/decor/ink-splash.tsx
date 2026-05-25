@@ -80,7 +80,14 @@ export function InkSplash({
 					{/* Secondary tone bleed -- only when tone2 is provided */}
 					{tone2 ? (
 						<>
-							<ellipse cx="380" cy="140" rx="130" ry="100" fill={tone2} opacity={baseAlpha * 0.85} />
+							<ellipse
+								cx="380"
+								cy="140"
+								rx="130"
+								ry="100"
+								fill={tone2}
+								opacity={baseAlpha * 0.85}
+							/>
 							<ellipse cx="450" cy="260" rx="80" ry="60" fill={tone2} opacity={baseAlpha * 0.5} />
 						</>
 					) : null}
@@ -98,7 +105,13 @@ export function InkSplash({
 					<circle cx="430" cy="340" r="3" fill={tone2 ?? tone} opacity={splatterAlpha * 0.8} />
 					{density === "rich" ? (
 						<>
-							<circle cx="560" cy="200" r="2.5" fill={tone2 ?? tone} opacity={splatterAlpha * 0.7} />
+							<circle
+								cx="560"
+								cy="200"
+								r="2.5"
+								fill={tone2 ?? tone}
+								opacity={splatterAlpha * 0.7}
+							/>
 							<circle cx="20" cy="60" r="2" fill={tone} opacity={splatterAlpha * 0.6} />
 							<circle cx="380" cy="370" r="3.5" fill={tone} opacity={splatterAlpha * 0.7} />
 							<circle cx="200" cy="60" r="2" fill={tone2 ?? tone} opacity={splatterAlpha * 0.7} />

@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Brush, Clock, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { BrushStroke } from "@/components/decor/brush-stroke";
 import { InkSplash } from "@/components/decor/ink-splash";
@@ -9,18 +9,31 @@ import { ArtImage } from "@/components/gallery/art-image";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { Reveal } from "@/components/motion/reveal";
 import { SplitText } from "@/components/motion/split-text";
+import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
-import { getAllArtworks, getAvailableArtworks, getFeaturedArtwork, getSite } from "@/lib/data";
+import {
+	getAllArtworks,
+	getAllWorkshops,
+	getAvailableArtworks,
+	getFeaturedArtwork,
+	getSite,
+} from "@/lib/data";
+import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 /**
- * Home page.
+ * Home page -- single-pager.
  *
- * Mobile-first, gallery register. The flow:
+ * Mobile-first, gallery register. Most arrivals come from WhatsApp / Insta
+ * link-taps, so the home page now carries ~70% of every section's content
+ * inline; detail pages stay intact for deep-links and longer reads. The flow:
+ *
  *   1. Hero -- artist's brand, lead, featured artwork plate
- *   2. Selected work -- rail of featured pieces (max 6)
- *   3. Available now -- only renders when there's at least one for-sale piece
- *   4. About teaser -- pulled from data/site.json sections.about
- *   5. Two CTAs -- Workshops + Custom Orders
+ *   2. Selected work -- rail of featured pieces (max 6)        -> /work
+ *   3. Available now -- only renders when there's a for-sale piece -> /work
+ *   4. About teaser -- pulled from data/site.json sections.about -> /about
+ *   5. Workshops teaser -- 3 sessions + see all                -> /workshops
+ *   6. Custom orders teaser -- 3-step process + WhatsApp CTA   -> /custom-orders
+ *   7. Contact teaser -- 3-channel row                          -> /contact
  *
  * The section composition is locked in MEMORY.md; if you add or remove a
  * section here, update that file and confirm with the user first.
@@ -30,10 +43,15 @@ export default function HomePage() {
 	const featured = getFeaturedArtwork();
 	const all = getAllArtworks();
 	const available = getAvailableArtworks();
+	const allWorkshops = getAllWorkshops();
+	const phone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
 
 	// Featured rail: pieces explicitly marked, capped at 6, with the hero
 	// piece excluded (it already had its moment above the fold).
 	const selected = all.filter((a) => a.featured && a.slug !== featured?.slug).slice(0, 6);
+
+	// Top 3 workshops by `order` for the teaser strip.
+	const workshopsPreview = allWorkshops.slice(0, 3);
 
 	const featuredIndex = featured ? all.findIndex((a) => a.slug === featured.slug) : -1;
 
@@ -89,7 +107,29 @@ export default function HomePage() {
 				location={site.brand.location}
 			/>
 
-			<CtaPair />
+			{workshopsPreview.length > 0 ? (
+				<WorkshopsTeaser
+					workshops={workshopsPreview}
+					totalCount={allWorkshops.length}
+					eyebrow={site.sections.workshops?.eyebrow ?? "Workshops"}
+					title={site.sections.workshops?.title ?? "Hands-on sessions"}
+					lead={site.sections.workshops?.lead}
+				/>
+			) : null}
+
+			<CustomOrdersTeaser
+				phone={phone}
+				eyebrow={site.sections.customOrders?.eyebrow ?? "Custom orders"}
+				title={site.sections.customOrders?.title ?? "Order a custom piece"}
+				lead={site.sections.customOrders?.lead}
+			/>
+
+			<ContactTeaser
+				contact={site.contact}
+				eyebrow={site.sections.contact?.eyebrow ?? "Contact"}
+				title={site.sections.contact?.title ?? "Get in touch"}
+				lead={site.sections.contact?.lead}
+			/>
 		</>
 	);
 }
@@ -304,66 +344,328 @@ function AboutTeaser({
 	);
 }
 
-/* --------------------------- CTA pair --------------------------- */
+/* --------------------------- Workshops teaser --------------------------- */
 
-function CtaPair() {
-	const site = getSite();
-	const wsCount = site.workshops.length;
+function WorkshopsTeaser({
+	workshops,
+	totalCount,
+	eyebrow,
+	title,
+	lead,
+}: {
+	workshops: readonly ReturnType<typeof getAllWorkshops>[number][];
+	totalCount: number;
+	eyebrow: string;
+	title: string;
+	lead?: string;
+}) {
+	const moreCount = Math.max(0, totalCount - workshops.length);
 	return (
-		<section>
-			<div className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
-				<div className="grid gap-6 md:grid-cols-2">
+		<section
+			className="relative overflow-hidden border-b border-line"
+			style={{ "--section-accent": "var(--color-pichwai)" } as React.CSSProperties}
+		>
+			<PigmentWash />
+			<InkSplash
+				align="right"
+				density="subtle"
+				className="right-[-15%] top-[-10%] h-[80%] w-[80%] sm:w-[55%]"
+			/>
+			<div className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+				<header className="max-w-2xl">
 					<Reveal>
+						<MotifEyebrow motif="lotus" number="04" label={eyebrow} />
+					</Reveal>
+					<Reveal delayMs={80} as="h2" className="t-display mt-3 text-4xl sm:text-5xl">
+						{title}
+					</Reveal>
+					<BrushStroke className="mt-4" width={200} />
+					{lead ? (
+						<Reveal delayMs={160}>
+							<p className="t-lead mt-4">{lead}</p>
+						</Reveal>
+					) : null}
+				</header>
+
+				<ul className="mt-12 grid gap-6 sm:grid-cols-2 sm:mt-16 lg:grid-cols-3">
+					{workshops.map((item, i) => (
+						<Reveal key={item.slug} as="li" delayMs={i * 60}>
+							<article className="group flex h-full flex-col rounded-md border border-line bg-bg-soft p-6 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg">
+								<h3 className="t-display text-2xl transition-colors duration-(--duration-base) ease-out-soft group-hover:text-(--section-accent)">
+									{item.title}
+								</h3>
+								<p className="mt-3 line-clamp-3 text-sm text-muted">{item.blurb}</p>
+								{item.durationHours ? (
+									<p className="mt-4 inline-flex items-center gap-1.5 text-xs uppercase tracking-meta text-(--section-accent)">
+										<Clock size={13} aria-hidden="true" />
+										{item.durationHours}h session
+									</p>
+								) : null}
+							</article>
+						</Reveal>
+					))}
+				</ul>
+
+				<Reveal delayMs={240}>
+					<div className="mt-12 sm:mt-16">
 						<Link
 							href="/workshops"
-							style={{ "--section-accent": "var(--color-pichwai)" } as React.CSSProperties}
-							className="group block h-full rounded-md border border-line bg-bg-soft p-8 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft active:scale-[0.99] hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg"
+							className="inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
 						>
-							<p className="t-eyebrow">Workshops</p>
-							<h3 className="t-display mt-3 text-3xl transition-colors duration-(--duration-base) ease-out-soft group-hover:text-(--section-accent)">
-								Hands-on sessions
-							</h3>
-							<p className="mt-3 text-sm text-muted">
-								{wsCount > 0
-									? `${wsCount} session formats, from beginner to focused folk-art deep dives.`
-									: "From beginner to focused folk-art deep dives."}
-							</p>
-							<p className="mt-6 inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-[gap] duration-(--duration-base) ease-out-soft group-hover:gap-3">
-								Browse{" "}
-								<ArrowRight
-									size={14}
-									aria-hidden="true"
-									className="transition-transform duration-(--duration-base) ease-out-soft group-hover:translate-x-1"
-								/>
-							</p>
+							{moreCount > 0 ? `See all ${totalCount} sessions` : `See all sessions`}{" "}
+							<ArrowRight size={14} aria-hidden="true" />
 						</Link>
-					</Reveal>
-					<Reveal delayMs={80}>
-						<Link
-							href="/custom-orders"
-							style={{ "--section-accent": "var(--color-vermillion)" } as React.CSSProperties}
-							className="group block h-full rounded-md border border-line bg-bg-soft p-8 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft active:scale-[0.99] hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg"
-						>
-							<p className="t-eyebrow">Custom Orders</p>
-							<h3 className="t-display mt-3 text-3xl transition-colors duration-(--duration-base) ease-out-soft group-hover:text-(--section-accent)">
-								Order a custom piece
-							</h3>
-							<p className="mt-3 text-sm text-muted">
-								Commissions in any of the styles. Send a brief and we&rsquo;ll discuss over
-								WhatsApp.
-							</p>
-							<p className="mt-6 inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-[gap] duration-(--duration-base) ease-out-soft group-hover:gap-3">
-								Start a brief{" "}
-								<ArrowRight
-									size={14}
-									aria-hidden="true"
-									className="transition-transform duration-(--duration-base) ease-out-soft group-hover:translate-x-1"
-								/>
-							</p>
-						</Link>
-					</Reveal>
-				</div>
+					</div>
+				</Reveal>
 			</div>
 		</section>
+	);
+}
+
+/* --------------------------- Custom orders teaser --------------------------- */
+
+function CustomOrdersTeaser({
+	phone,
+	eyebrow,
+	title,
+	lead,
+}: {
+	phone: string;
+	eyebrow: string;
+	title: string;
+	lead?: string;
+}) {
+	const teaserMessage = `Hi, I'd like to discuss a custom piece.`;
+	const quickWa = `https://wa.me/${phone}?text=${encodeURIComponent(teaserMessage)}`;
+	return (
+		<section
+			className="relative overflow-hidden border-b border-line bg-bg-soft"
+			style={{ "--section-accent": "var(--color-vermillion)" } as React.CSSProperties}
+		>
+			<PigmentWash />
+			<InkSplash
+				align="left"
+				density="subtle"
+				className="left-[-15%] top-[-10%] h-[80%] w-[80%] sm:w-[55%]"
+			/>
+			<div className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+				<header className="max-w-2xl">
+					<Reveal>
+						<MotifEyebrow motif="mirror-diamond" number="05" label={eyebrow} />
+					</Reveal>
+					<Reveal delayMs={80} as="h2" className="t-display mt-3 text-4xl sm:text-5xl">
+						{title}
+					</Reveal>
+					<BrushStroke className="mt-4" width={220} />
+					{lead ? (
+						<Reveal delayMs={160}>
+							<p className="t-lead mt-4">{lead}</p>
+						</Reveal>
+					) : null}
+				</header>
+
+				<ol className="mt-12 grid gap-6 sm:grid-cols-3 sm:mt-16">
+					<Reveal as="li" delayMs={60}>
+						<TeaserStep
+							icon={Brush}
+							title="Send a brief"
+							body="Style, size, occasion. References welcome on WhatsApp."
+						/>
+					</Reveal>
+					<Reveal as="li" delayMs={120}>
+						<TeaserStep
+							icon={MessageCircle}
+							title="We talk it through"
+							body="Quote and timeline come back over WhatsApp."
+						/>
+					</Reveal>
+					<Reveal as="li" delayMs={180}>
+						<TeaserStep
+							icon={Clock}
+							title="Painted, approved, shipped"
+							body="Progress shots along the way. Ships from India after sign-off."
+						/>
+					</Reveal>
+				</ol>
+
+				<Reveal delayMs={260}>
+					<div className="mt-12 flex flex-wrap items-center gap-3 sm:mt-14">
+						<a
+							href={quickWa}
+							target="_blank"
+							rel="noopener noreferrer"
+							className={buttonVariants({ variant: "primary" })}
+						>
+							Start on WhatsApp
+						</a>
+						<Link
+							href="/custom-orders"
+							className="inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
+						>
+							Open the brief form <ArrowRight size={14} aria-hidden="true" />
+						</Link>
+					</div>
+				</Reveal>
+			</div>
+		</section>
+	);
+}
+
+function TeaserStep({
+	icon: Icon,
+	title,
+	body,
+}: {
+	icon: typeof Brush;
+	title: string;
+	body: string;
+}) {
+	return (
+		<div className="flex h-full flex-col rounded-md border border-line bg-bg p-6">
+			<span
+				className="grid h-10 w-10 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line"
+				aria-hidden="true"
+			>
+				<Icon size={18} />
+			</span>
+			<h3 className="t-display mt-4 text-xl">{title}</h3>
+			<p className="mt-2 text-sm text-muted">{body}</p>
+		</div>
+	);
+}
+
+/* --------------------------- Contact teaser --------------------------- */
+
+function ContactTeaser({
+	contact,
+	eyebrow,
+	title,
+	lead,
+}: {
+	contact: ReturnType<typeof getSite>["contact"];
+	eyebrow: string;
+	title: string;
+	lead?: string;
+}) {
+	const isExternal = (url: string) => url.startsWith("http");
+	return (
+		<section
+			className="relative overflow-hidden"
+			style={{ "--section-accent": "var(--color-peacock)" } as React.CSSProperties}
+		>
+			<PigmentWash />
+			<InkSplash
+				align="right"
+				density="subtle"
+				className="right-[-15%] top-[-10%] h-[80%] w-[80%] sm:w-[55%]"
+			/>
+			<div className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
+				<header className="max-w-2xl">
+					<Reveal>
+						<MotifEyebrow motif="rangoli-star" number="06" label={eyebrow} />
+					</Reveal>
+					<Reveal delayMs={80} as="h2" className="t-display mt-3 text-4xl sm:text-5xl">
+						{title}
+					</Reveal>
+					<BrushStroke className="mt-4" width={200} />
+					{lead ? (
+						<Reveal delayMs={160}>
+							<p className="t-lead mt-4">{lead}</p>
+						</Reveal>
+					) : null}
+				</header>
+
+				<div className="mt-12 grid gap-4 sm:mt-16 sm:grid-cols-3">
+					<Reveal delayMs={80}>
+						<ChannelCard
+							href={contact.whatsapp.url}
+							external={isExternal(contact.whatsapp.url)}
+							icon={<WhatsAppIcon size={20} />}
+							label={contact.whatsapp.label}
+							display={contact.whatsapp.display ?? contact.whatsapp.label}
+							note="Fastest reply, usually same-day"
+							highlight
+						/>
+					</Reveal>
+					<Reveal delayMs={140}>
+						<ChannelCard
+							href={contact.instagram.url}
+							external={isExternal(contact.instagram.url)}
+							icon={<InstagramIcon size={18} />}
+							label={contact.instagram.label}
+							display={contact.instagram.display ?? contact.instagram.label}
+							note="DMs welcome"
+						/>
+					</Reveal>
+					<Reveal delayMs={200}>
+						<ChannelCard
+							href={contact.email.url}
+							external={isExternal(contact.email.url)}
+							icon={<GmailIcon size={18} />}
+							label={contact.email.label}
+							display={contact.email.display ?? contact.email.label}
+							note="Best for longer briefs"
+						/>
+					</Reveal>
+				</div>
+
+				<Reveal delayMs={260}>
+					<div className="mt-12 sm:mt-14">
+						<Link
+							href="/contact"
+							className="inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
+						>
+							Full contact page <ArrowRight size={14} aria-hidden="true" />
+						</Link>
+					</div>
+				</Reveal>
+			</div>
+		</section>
+	);
+}
+
+function ChannelCard({
+	href,
+	external,
+	icon,
+	label,
+	display,
+	note,
+	highlight = false,
+}: {
+	href: string;
+	external: boolean;
+	icon: React.ReactNode;
+	label: string;
+	display: string;
+	note: string;
+	highlight?: boolean;
+}) {
+	return (
+		<a
+			href={href}
+			target={external ? "_blank" : undefined}
+			rel={external ? "noopener noreferrer" : undefined}
+			className={`group flex h-full items-start gap-4 rounded-md border bg-bg p-5 transition-[transform,border-color,box-shadow] duration-(--duration-base) ease-out-soft hover:-translate-y-0.5 hover:border-(--section-accent) hover:shadow-lg ${highlight ? "border-(--section-accent)/40" : "border-line"}`}
+		>
+			<span
+				className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-bg-soft text-(--section-accent) ring-1 ring-line transition-colors duration-(--duration-base) ease-out-soft group-hover:ring-(--section-accent)"
+				aria-hidden="true"
+			>
+				{icon}
+			</span>
+			<div className="min-w-0 flex-1">
+				<p className="t-eyebrow">{label}</p>
+				<p className="t-display mt-1 truncate text-base transition-colors duration-(--duration-base) ease-out-soft group-hover:text-(--section-accent) sm:text-lg">
+					{display}
+				</p>
+				<p className="mt-1 text-xs text-muted">{note}</p>
+			</div>
+			<ArrowRight
+				size={14}
+				aria-hidden="true"
+				className="mt-1 shrink-0 text-muted transition-[transform,color] duration-(--duration-base) ease-out-soft group-hover:translate-x-1 group-hover:text-(--section-accent)"
+			/>
+		</a>
 	);
 }

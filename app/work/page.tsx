@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
+import { BrushStroke } from "@/components/decor/brush-stroke";
+import { InkSplash } from "@/components/decor/ink-splash";
 import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
 import { PigmentWash } from "@/components/decor/pigment-wash";
 import { WorkFilter } from "@/components/gallery/work-filter";
@@ -35,6 +37,11 @@ export default function WorkPage() {
 			className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)"
 		>
 			<PigmentWash />
+			<InkSplash
+				align="right"
+				density="subtle"
+				className="right-[-15%] top-[-10%] h-[80%] w-[80%] sm:w-[55%]"
+			/>
 			<header className="relative max-w-2xl">
 				<Reveal>
 					<MotifEyebrow motif="fish" label={work?.eyebrow ?? "Work"} />
@@ -42,6 +49,7 @@ export default function WorkPage() {
 				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 					{work?.title ?? "Selected work"}
 				</Reveal>
+				<BrushStroke className="mt-5" width={220} />
 				{work?.lead ? (
 					<Reveal delayMs={160}>
 						<p className="t-lead mt-4">{work.lead}</p>
@@ -68,6 +76,7 @@ export default function WorkPage() {
 					aspectRatio: a.aspectRatio,
 					priceInr: a.priceInr,
 					status: a.status,
+					palette: a.palette,
 				}))}
 			/>
 		</main>

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
+import { BrushStroke } from "@/components/decor/brush-stroke";
+import { InkSplash } from "@/components/decor/ink-splash";
 import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
 import { PigmentWash } from "@/components/decor/pigment-wash";
 import { Reveal } from "@/components/motion/reveal";
@@ -43,6 +45,11 @@ export default function AboutPage() {
 			className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)"
 		>
 			<PigmentWash intensity="soft" />
+			<InkSplash
+				align="right"
+				density="subtle"
+				className="right-[-15%] top-[-10%] h-[80%] w-[80%] sm:w-[55%]"
+			/>
 			<header className="relative max-w-3xl">
 				<Reveal>
 					<MotifEyebrow motif="peacock-feather" label={a.eyebrow ?? "About"} />
@@ -50,6 +57,7 @@ export default function AboutPage() {
 				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl md:text-6xl">
 					{a.title ?? "On preserving folk traditions through practice"}
 				</Reveal>
+				<BrushStroke className="mt-5" width={240} />
 			</header>
 
 			<div className="mt-12 grid gap-12 md:grid-cols-12 md:gap-14">

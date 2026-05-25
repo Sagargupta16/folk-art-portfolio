@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.9.0 (2026-05-25)
+
+Painterly register, take two. The 1.8.0 layer landed but read too quiet on the cream ground -- paper grain at 7%, pigment wash at 12% alpha, and no shape-language anywhere. This release adds two new SVG primitives (ink splash + brushstroke), cranks the existing grain and wash, and fixes two regressions surfaced by a manual audit. Still no 3D, no particles, no WebGL -- the painterly feel comes from organic shapes, not from animating a render loop.
+
+### Added
+
+- **`InkSplash`** ([components/decor/ink-splash.tsx](components/decor/ink-splash.tsx)) -- watercolor wash. Several overlapping coloured ellipses passed through one `feGaussianBlur` filter so the edges feather outward like wet paint on cream paper, plus a hand-placed scatter of crisp splatter dots OUTSIDE the filter so they stay sharp like a brush flick. `mix-blend-multiply` (light) / `mix-blend-screen` (dark) so the wash composites correctly on the cream / ink ground. Props: `tone` (defaults to `--section-accent`), optional `tone2` for two-pigment bleed (used on the home hero: terracotta blooming into marigold), `align="left" | "right"`, `density="subtle" | "rich"`. Page headers all use the same composition (top-right, density="subtle", route's `--section-accent`); only the home hero gets the rich variant + tone2 blend. Replaces the first-pass blob, which read as a flat coloured shape rather than paint.
+- **`BrushStroke`** ([components/decor/brush-stroke.tsx](components/decor/brush-stroke.tsx)) -- long curved horizontal sweep in `--section-accent` that draws in like a fresh brush stroke when scrolled into view (1.2s `pathLength` reveal + a thinner trailing wisp at 0.4s delay for bristle-drag feel). Used as the underline beneath every page H1 and section H2, replacing the implicit underline. Reduced-motion is handled by the global `MotionConfig reducedMotion="user"` so no SSR/CSR mismatch (lesson from `MotifEyebrow`).
+
+### Changed
+
+- **Paper grain opacity 0.07 -> 0.11.** The cream-paper texture now reads on first paint instead of needing inspector-eyes to find. Still subtle; still doesn't compete with artwork photos.
+- **Pigment wash alpha bumped: subtle 0.12 -> 0.18, soft 0.18 -> 0.26.** Each section's pigment now actually glows into the top of its `<main>` rather than hinting at it. /work reads ruby, /about reads marigold, /workshops reads pichwai, /custom-orders reads vermillion, /contact reads peacock -- visibly.
+- **Every page H1 + section H2 gains a `<BrushStroke />` underneath.** Home Selected Work / Available Now / About teaser; /work, /about, /workshops, /custom-orders, /contact. Each draws in once when the heading enters view.
+- **Home hero gains two ink splashes** (left soft, right subtle). About teaser, /about, /custom-orders, /work get a left-aligned splash; /workshops, /contact get a right-aligned splash. The pigment in each splash inherits the route's `--section-accent`, so the same component reads as marigold on /about and pichwai on /workshops.
+
+### Fixed
+
+- **Palette swatches not rendering on `/work` cards.** [components/gallery/work-filter.tsx:19-32](components/gallery/work-filter.tsx) typed `GalleryItem` as a `Pick<Artwork, ...>` that omitted `palette`, then [app/work/page.tsx:58-72](app/work/page.tsx) mapped each artwork to that shape -- silently dropping `palette` before passing to the filter island. The `art as Artwork` cast on render hid the missing field from TypeScript. Added `palette` to both the picked-fields list and the map. The Chromacard strip now appears under every artwork card on /work, matching the home Selected Work rail.
+- **Hydration mismatch on `MotifEyebrow`.** `useReducedMotion()` returns `null` during SSR and the actual preference after hydration, which made `initial={reduced ? false : { opacity: 0 }}` flip between two values across the boundary. Removed the local branch -- the global `MotionConfig reducedMotion="user"` in `MotionProvider` already does the work upstream and never SSR-mismatches.
+
 ## 1.8.0 (2026-05-25)
 
 Painterly register, take one. The site was type + photos on flat cream -- no gradients, no textures, no folk-art motifs visible anywhere despite the tradition being named in every page's copy. This release adds the first thematic decoration layer: ambient paper grain, pigment washes, and a hand-drawn motif library. Restrained-motion spec stays locked: no 3D, no particles, no decorative backdrops in the noise sense -- the additions are thematic, single-stroke, and reveal-driven.

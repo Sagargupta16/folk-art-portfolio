@@ -1,6 +1,8 @@
 import { Brush, Clock, MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
+import { BrushStroke } from "@/components/decor/brush-stroke";
+import { InkSplash } from "@/components/decor/ink-splash";
 import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
 import { PigmentWash } from "@/components/decor/pigment-wash";
 import { CustomOrderForm } from "@/components/forms/custom-order-form";
@@ -50,6 +52,11 @@ export default function CustomOrdersPage() {
 			className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)"
 		>
 			<PigmentWash />
+			<InkSplash
+				align="right"
+				density="subtle"
+				className="right-[-15%] top-[-10%] h-[80%] w-[80%] sm:w-[55%]"
+			/>
 			<header className="relative max-w-2xl">
 				<Reveal>
 					<MotifEyebrow motif="mirror-diamond" label={co.eyebrow ?? "Custom orders"} />
@@ -57,6 +64,7 @@ export default function CustomOrdersPage() {
 				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 					{co.title ?? "Order a custom painting"}
 				</Reveal>
+				<BrushStroke className="mt-5" width={240} />
 				<Reveal delayMs={160}>
 					<p className="t-lead mt-4">
 						{co.lead ??

@@ -1,5 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { BrushStroke } from "@/components/decor/brush-stroke";
+import { InkSplash } from "@/components/decor/ink-splash";
 import { Marquee } from "@/components/decor/marquee";
 import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
 import { PigmentWash } from "@/components/decor/pigment-wash";
@@ -108,6 +110,17 @@ function Hero({
 	return (
 		<section className="relative overflow-hidden border-b border-line">
 			<PigmentWash />
+			<InkSplash
+				density="rich"
+				tone2="var(--color-marigold)"
+				className="left-[-20%] top-[-15%] h-[120%] w-[90%] sm:left-[-10%] sm:w-[70%]"
+			/>
+			<InkSplash
+				align="right"
+				density="subtle"
+				tone="var(--color-peacock)"
+				className="right-[-15%] top-[20%] h-[80%] w-[70%] sm:w-[55%]"
+			/>
 			<div className="relative mx-auto grid max-w-6xl gap-10 px-(--container-px) py-(--section-py) md:grid-cols-12 md:items-center md:gap-12">
 				<div className="md:col-span-7">
 					<Reveal>
@@ -215,6 +228,7 @@ function SectionShell({
 					<Reveal delayMs={80} as="h2" className="t-display mt-3 text-4xl sm:text-5xl">
 						{title}
 					</Reveal>
+					<BrushStroke className="mt-4" width={200} />
 					{lead ? (
 						<Reveal delayMs={160}>
 							<p className="t-lead mt-4">{lead}</p>
@@ -256,6 +270,12 @@ function AboutTeaser({
 			style={{ "--section-accent": "var(--color-marigold)" } as React.CSSProperties}
 		>
 			<PigmentWash intensity="soft" />
+			<InkSplash
+				align="left"
+				density="subtle"
+				tone2="var(--color-pichwai)"
+				className="left-[-20%] top-[-10%] h-[120%] w-[80%] sm:w-[55%]"
+			/>
 			<div className="relative mx-auto max-w-3xl px-(--container-px) py-(--section-py) text-center">
 				<Reveal>
 					<MotifEyebrow motif="peacock-feather" number="03" label={eyebrow} centered />
@@ -263,6 +283,7 @@ function AboutTeaser({
 				<Reveal delayMs={80} as="h2" className="t-display mt-3 text-4xl sm:text-5xl">
 					{title}
 				</Reveal>
+				<BrushStroke className="mt-4 mx-auto" width={200} />
 				{lead ? (
 					<Reveal delayMs={160}>
 						<p className="t-lead mt-5">{lead}</p>

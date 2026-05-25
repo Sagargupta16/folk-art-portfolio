@@ -29,6 +29,7 @@ type GalleryItem = Pick<
 	| "aspectRatio"
 	| "priceInr"
 	| "status"
+	| "palette"
 >;
 
 interface WorkFilterProps {

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { Motif, type MotifKey } from "@/components/decor/motifs";
 
 /**
@@ -13,8 +13,11 @@ import { Motif, type MotifKey } from "@/components/decor/motifs";
  * `pathLength` primitive (animates `stroke-dashoffset`). One painterly
  * detail per section header without rebuilding the eyebrow contract.
  *
- * Reduced-motion: skips the path-draw and renders the motif at full
- * stroke immediately. The glyph itself is the same shape either way.
+ * Reduced-motion: handled globally by `MotionConfig reducedMotion="user"`
+ * in `MotionProvider`. We don't branch the `initial` value locally because
+ * `useReducedMotion` returns `null` during SSR and the real preference
+ * after hydration -- that mismatch produced a hydration error on routes
+ * where the eyebrow rendered above the fold.
  *
  * `centered` flips justification for the home-page About teaser, which
  * centres its eyebrow.
@@ -27,13 +30,12 @@ interface MotifEyebrowProps {
 }
 
 export function MotifEyebrow({ motif, label, number, centered = false }: MotifEyebrowProps) {
-	const reduced = useReducedMotion();
 	return (
 		<p className={`t-eyebrow flex items-center gap-3 ${centered ? "justify-center" : ""}`.trim()}>
 			<motion.span
 				aria-hidden="true"
 				className="inline-flex shrink-0 text-(--section-accent)"
-				initial={reduced ? false : { pathLength: 0, opacity: 0 }}
+				initial={{ pathLength: 0, opacity: 0 }}
 				whileInView={{ pathLength: 1, opacity: 1 }}
 				viewport={{ once: true, margin: "-10% 0px -10% 0px" }}
 				transition={{

@@ -21,7 +21,7 @@ interface PigmentWashProps {
 }
 
 export function PigmentWash({ intensity = "subtle", className }: PigmentWashProps) {
-	const alpha = intensity === "soft" ? 0.18 : 0.12;
+	const alpha = intensity === "soft" ? 0.26 : 0.18;
 	return (
 		<div
 			aria-hidden="true"

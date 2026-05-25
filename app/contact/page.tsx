@@ -1,6 +1,8 @@
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BrushStroke } from "@/components/decor/brush-stroke";
+import { InkSplash } from "@/components/decor/ink-splash";
 import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
 import { PigmentWash } from "@/components/decor/pigment-wash";
 import { Reveal } from "@/components/motion/reveal";
@@ -40,6 +42,11 @@ export default function ContactPage() {
 			className="relative mx-auto max-w-3xl px-(--container-px) py-(--section-py)"
 		>
 			<PigmentWash />
+			<InkSplash
+				align="right"
+				density="subtle"
+				className="right-[-15%] top-[-10%] h-[80%] w-[80%] sm:w-[55%]"
+			/>
 			<header className="relative">
 				<Reveal>
 					<MotifEyebrow motif="rangoli-star" label={c?.eyebrow ?? "Contact"} />
@@ -47,6 +54,7 @@ export default function ContactPage() {
 				<Reveal delayMs={80} as="h1" className="t-display mt-3 text-4xl sm:text-5xl">
 					{c?.title ?? "Get in touch"}
 				</Reveal>
+				<BrushStroke className="mt-5" width={220} />
 				{c?.lead ? (
 					<Reveal delayMs={160}>
 						<p className="t-lead mt-4">{c.lead}</p>

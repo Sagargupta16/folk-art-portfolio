@@ -45,7 +45,7 @@ export function PaperGrain() {
 								0 0 0 0.55 0"
 					/>
 				</filter>
-				<rect width="100%" height="100%" filter="url(#paper-grain-noise)" opacity="0.07" />
+				<rect width="100%" height="100%" filter="url(#paper-grain-noise)" opacity="0.11" />
 			</svg>
 		</div>
 	);

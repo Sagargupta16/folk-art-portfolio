@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.11.0 (2026-05-25)
+
+Subpage backgrounds now match the home hero recipe, and `/contact` gains a scannable Instagram QR. The 1.8-1.9 painterly register stopped at the home hero -- every other route ran with one subtle splash on cream, so the visual weight collapsed past `/`. Each subpage now layers a rich primary splash with a `tone2` second-pigment bleed plus a subtle counter-splash on the opposite side, in pigment pairings tuned per route.
+
+### Added
+
+- **Instagram QR card on `/contact`** ([app/contact/page.tsx](app/contact/page.tsx)) -- 192-224px QR plate sits between the WhatsApp hero plate and the IG/Email two-up grid. Themed bg-soft surface, peacock hover ring, "Scan to follow" eyebrow + "Or scan, point, follow" headline + a "Open Instagram instead" ghost link for desktop visitors who'd rather tap. Image at [public/instagram-qr.png](public/instagram-qr.png), source-of-truth URL still pulled from `data/site.json` `contact.instagram.url`.
+
+### Changed
+
+- **Every subpage hero gets the home recipe.** Replaces the single subtle right-aligned `InkSplash` with a rich left-aligned splash (with a complementary `tone2` bleed) plus a subtle right-aligned counter-splash. Same SVG primitives, same geometry as the home hero -- only the pigments rotate. The painterly register now reads consistent across all six routes, not just `/`.
+- **Subpage pigment pairings:**
+  - `/work` -- ruby primary + vermillion bleed, peacock counter
+  - `/about` -- marigold primary + vermillion bleed, pichwai counter
+  - `/workshops` -- pichwai primary + marigold bleed, peacock counter
+  - `/custom-orders` -- vermillion primary + marigold bleed, ruby counter
+  - `/contact` -- peacock primary + pichwai bleed, marigold counter
+
 ## 1.10.0 (2026-05-25)
 
 Single-pager. Most arrivals are WhatsApp / Instagram link-taps -- a flat short home plus four full subpages was over-routing visitors who just wanted to scroll once. The home now carries a teaser of every section inline; the detail pages stay intact for deep-links and longer reads. No page is removed; nothing in the catalog moves.

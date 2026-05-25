@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { BrushStroke } from "@/components/decor/brush-stroke";
 import { InkSplash } from "@/components/decor/ink-splash";
@@ -43,9 +44,15 @@ export default function ContactPage() {
 		>
 			<PigmentWash />
 			<InkSplash
+				density="rich"
+				tone2="var(--color-pichwai)"
+				className="left-[-20%] top-[-15%] h-[120%] w-[90%] sm:left-[-10%] sm:w-[70%]"
+			/>
+			<InkSplash
 				align="right"
 				density="subtle"
-				className="right-[-15%] top-[-10%] h-[80%] w-[80%] sm:w-[55%]"
+				tone="var(--color-marigold)"
+				className="right-[-15%] top-[20%] h-[80%] w-[70%] sm:w-[55%]"
 			/>
 			<header className="relative">
 				<Reveal>
@@ -98,6 +105,45 @@ export default function ContactPage() {
 						/>
 					</div>
 				</a>
+			</Reveal>
+
+			{/* Instagram QR -- scan from a phone, point a camera on desktop */}
+			<Reveal delayMs={240}>
+				<div className="mt-6 grid gap-6 rounded-md border border-line bg-bg-soft p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-8 sm:p-8">
+					<a
+						href={contact.instagram.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						aria-label={`Open ${contact.instagram.display ?? "Instagram"}`}
+						className="group block"
+					>
+						<Image
+							src="/instagram-qr.png"
+							alt=""
+							width={224}
+							height={224}
+							className="block h-44 w-44 rounded-md border border-line bg-bg p-2 transition-[transform,border-color] duration-(--duration-base) ease-out-soft group-hover:-translate-y-0.5 group-hover:border-(--section-accent) sm:h-56 sm:w-56"
+						/>
+					</a>
+					<div>
+						<p className="t-eyebrow">Scan to follow</p>
+						<p className="t-display mt-2 text-2xl sm:text-3xl">Or scan, point, follow</p>
+						<p className="mt-2 text-sm text-muted">
+							Tap-and-hold on a phone, point a camera on desktop. Opens Instagram instantly.
+						</p>
+						<div className="mt-5">
+							<a
+								href={contact.instagram.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex items-center gap-2 text-sm uppercase tracking-meta text-(--section-accent) transition-opacity hover:opacity-80"
+							>
+								Open Instagram instead
+								<ArrowRight size={14} aria-hidden="true" />
+							</a>
+						</div>
+					</div>
+				</div>
 			</Reveal>
 
 			{/* Secondary channels: Instagram + Email */}

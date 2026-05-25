@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.7.3 (2026-05-25)
+
+Second polish pass. Card hover choreography, hero entrance, header indicator, numbered section eyebrows. All visual; no behaviour or data changes.
+
+### Changed
+
+- **Artwork card hover** -- the image plate now lifts by 2px, drops a soft shadow, and rings to `accent` in one coordinated 400ms motion (replacing the standalone ring transition). The title gets a left-to-right underline grown via animated `background-size`, and the chromacard swatch strip blooms from 8px to 10px tall. The eye reads one card as one moving unit instead of three independent fades.
+- **Chromacard `groupHoverBloom` opt-in** -- the swatch strip now accepts a `groupHoverBloom` prop. The artwork card sets it; the artwork detail page leaves it off so the static palette caption doesn't move. Default is the pre-1.7.3 behaviour.
+- **Hero Devanagari flare** -- a 1px accent rule grows in under the Devanagari core after the headline reveals. Implemented as a CSS-only `::after` keyframe so no extra JS lands on the LCP fold; respects `prefers-reduced-motion` (lands instantly at full width).
+- **Hero featured caption** -- a small gallery-register caption ("Featured . N of 21") with an accent rule sits between the featured plate and the title row. Frames the piece editorially without competing with the headline.
+- **Header active-route indicator** -- replaced the per-link static underline with a single Motion `layoutId` element that springs from old position to new on route change. One moving thing for the eye to track instead of two crossfading underlines.
+- **Header scroll-shrink** -- once the user scrolls past 80px the header padding compresses from `py-3 / md:py-4` to `py-2 / md:py-2.5` over 400ms. Listener is rAF-throttled and reads `scrollY` directly (no Motion `useScroll` overhead since we only need a threshold).
+- **Section eyebrows on home** -- "Selected work", "Available now", and "About" now read as `-- 01 / SELECTED WORK` style: a short rule in the section pigment, a numbered prefix in tabular nums, then the eyebrow text. The About teaser also gains its long-promised marigold `--section-accent`. Other pages keep the un-numbered eyebrow.
+
 ## 1.7.2 (2026-05-25)
 
 UI polish pass driven by a multi-skill critique (emil-design-eng, make-interfaces-feel-better, 12-principles-of-animation, baseline-ui, fixing-motion-performance). All visual-only; no behaviour changes.

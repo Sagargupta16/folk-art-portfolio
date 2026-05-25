@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, Menu, X } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -51,6 +52,7 @@ export function SiteHeaderClient({
 }: SiteHeaderClientProps) {
 	const pathname = usePathname();
 	const [open, setOpen] = useState(false);
+	const [scrolled, setScrolled] = useState(false);
 
 	// Close drawer on route change. The effect intentionally depends on
 	// `pathname` -- it's the trigger -- even though the body doesn't read it.
@@ -74,11 +76,36 @@ export function SiteHeaderClient({
 		};
 	}, [open]);
 
+	// Compress header padding once the user has scrolled past 80px. We only
+	// need a threshold crossing, not the scroll value itself, so we read
+	// `scrollY` directly inside an rAF-throttled listener.
+	useEffect(() => {
+		let raf = 0;
+		const onScroll = () => {
+			if (raf) return;
+			raf = requestAnimationFrame(() => {
+				setScrolled(window.scrollY > 80);
+				raf = 0;
+			});
+		};
+		onScroll();
+		window.addEventListener("scroll", onScroll, { passive: true });
+		return () => {
+			window.removeEventListener("scroll", onScroll);
+			if (raf) cancelAnimationFrame(raf);
+		};
+	}, []);
+
 	const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
 	return (
 		<header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur supports-backdrop-filter:bg-bg/75">
-			<div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-(--container-px) py-3 md:py-4">
+			<div
+				className={cn(
+					"mx-auto flex max-w-6xl items-center justify-between gap-4 px-(--container-px) transition-[padding] duration-(--duration-base) ease-out-soft",
+					scrolled ? "py-2 md:py-2.5" : "py-3 md:py-4",
+				)}
+			>
 				<Link
 					href="/"
 					className="t-display text-xl tracking-tight transition-colors hover:text-accent md:text-2xl"
@@ -100,7 +127,7 @@ export function SiteHeaderClient({
 							{NAV.map((item) => {
 								const active = isActive(item.href);
 								return (
-									<li key={item.href}>
+									<li key={item.href} className="relative">
 										<Link
 											href={item.href}
 											aria-current={active ? "page" : undefined}
@@ -110,14 +137,19 @@ export function SiteHeaderClient({
 											)}
 										>
 											{item.label}
-											<span
-												aria-hidden="true"
-												className={cn(
-													"pointer-events-none absolute -bottom-1.5 left-0 h-px w-full bg-accent transition-transform duration-(--duration-base)",
-													active ? "scale-x-100" : "scale-x-0",
-												)}
-											/>
 										</Link>
+										{active ? (
+											<motion.span
+												aria-hidden="true"
+												layoutId="header-nav-indicator"
+												className="pointer-events-none absolute -bottom-1.5 left-0 right-0 h-px bg-accent"
+												transition={{
+													type: "spring",
+													stiffness: 380,
+													damping: 32,
+												}}
+											/>
+										) : null}
 									</li>
 								);
 							})}

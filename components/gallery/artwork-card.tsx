@@ -37,7 +37,7 @@ export function ArtworkCard({ artwork, priority = false, className }: ArtworkCar
 			className={cn("group block focus-visible:outline-none", className)}
 			aria-label={`${artwork.title}, ${artwork.style}`}
 		>
-			<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-black/10 transition-shadow group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent dark:ring-white/10">
+			<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft shadow-none ring-1 ring-black/10 transition-[transform,box-shadow,outline-color] duration-(--duration-base) ease-out-soft group-hover:-translate-y-0.5 group-hover:shadow-lg group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent dark:ring-white/10">
 				<ArtImage
 					src={imgSrc}
 					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
@@ -55,7 +55,9 @@ export function ArtworkCard({ artwork, priority = false, className }: ArtworkCar
 
 			<div className="mt-3 flex items-baseline justify-between gap-3">
 				<h3 className="t-display text-lg leading-tight transition-colors group-hover:text-accent sm:text-xl">
-					{artwork.title}
+					<span className="bg-[linear-gradient(currentColor,currentColor)] bg-size-[0%_1px] bg-no-repeat bg-bottom transition-[background-size] duration-(--duration-base) ease-out-soft group-hover:bg-size-[100%_1px]">
+						{artwork.title}
+					</span>
 				</h3>
 				<span className="t-meta whitespace-nowrap">{artwork.style}</span>
 			</div>
@@ -64,6 +66,7 @@ export function ArtworkCard({ artwork, priority = false, className }: ArtworkCar
 				palette={artwork.palette}
 				ariaLabel={`Palette sampled from ${artwork.title}`}
 				className="mt-2"
+				groupHoverBloom
 			/>
 
 			{artwork.description ? (

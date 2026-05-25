@@ -15,15 +15,30 @@ interface ChromacardProps {
 	ariaLabel: string;
 	/** Optional className passed through to the root strip. */
 	className?: string;
+	/**
+	 * When true, the strip grows from 8px to 10px tall whenever an ancestor
+	 * with the Tailwind `group` class is hovered. Used by the gallery card
+	 * to choreograph a subtle bloom alongside the plate lift; the artwork
+	 * detail page leaves it off so the static palette caption doesn't move.
+	 */
+	groupHoverBloom?: boolean;
 }
 
-export function Chromacard({ palette, ariaLabel, className }: ChromacardProps) {
+export function Chromacard({
+	palette,
+	ariaLabel,
+	className,
+	groupHoverBloom = false,
+}: ChromacardProps) {
 	if (!palette || palette.length === 0) return null;
+	const bloom = groupHoverBloom
+		? "transition-[height] duration-(--duration-base) ease-out-soft group-hover:h-2.5"
+		: "";
 	return (
 		<div
 			role="img"
 			aria-label={ariaLabel}
-			className={`flex h-2 w-full overflow-hidden rounded-full ring-1 ring-line/50 ${className ?? ""}`}
+			className={`flex h-2 w-full overflow-hidden rounded-full ring-1 ring-line/50 ${bloom} ${className ?? ""}`}
 		>
 			{palette.map((hex, i) => (
 				<span

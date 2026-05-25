@@ -138,6 +138,32 @@ body {
 	text-wrap: pretty;
 }
 
+/* Hero Devanagari accent flare -- a 1px rule under the Devanagari core that
+   grows in after the headline reveals. Width animates from 0 to target via
+   a `--flare-w` custom property on a pseudo-element, so layout doesn't
+   thrash. Disabled under reduced-motion (it lands at full width instantly). */
+.flare-after::after {
+	content: "";
+	display: block;
+	height: 1px;
+	width: 0;
+	background: var(--color-accent);
+	animation: flare-grow var(--duration-slow) var(--ease-out-soft) 0.65s forwards;
+}
+
+@keyframes flare-grow {
+	to {
+		width: var(--flare-w, 100%);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.flare-after::after {
+		animation: none;
+		width: var(--flare-w, 100%);
+	}
+}
+
 /* Drop-cap for editorial paragraphs (used in the About page first paragraph). */
 .drop-cap::first-letter {
 	font-family: var(--font-display);

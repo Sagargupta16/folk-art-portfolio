@@ -31,13 +31,16 @@ export default function HomePage() {
 	// piece excluded (it already had its moment above the fold).
 	const selected = all.filter((a) => a.featured && a.slug !== featured?.slug).slice(0, 6);
 
+	const featuredIndex = featured ? all.findIndex((a) => a.slug === featured.slug) : -1;
+
 	return (
 		<>
-			<Hero site={site} featured={featured} />
+			<Hero site={site} featured={featured} featuredIndex={featuredIndex} totalCount={all.length} />
 			<Marquee />
 
 			{selected.length > 0 ? (
 				<SectionShell
+					number="01"
 					eyebrow="Selected work"
 					title={site.sections.work?.title ?? "Selected pieces from the archive"}
 					lead={site.sections.work?.lead}
@@ -56,6 +59,7 @@ export default function HomePage() {
 
 			{available.length > 0 ? (
 				<SectionShell
+					number="02"
 					eyebrow="Available now"
 					title="Pieces ready to find a home"
 					lead="Each one ships from India. Tap to enquire."
@@ -89,9 +93,13 @@ export default function HomePage() {
 function Hero({
 	site,
 	featured,
+	featuredIndex,
+	totalCount,
 }: {
 	site: ReturnType<typeof getSite>;
 	featured: ReturnType<typeof getFeaturedArtwork>;
+	featuredIndex: number;
+	totalCount: number;
 }) {
 	return (
 		<section className="border-b border-line">
@@ -103,7 +111,10 @@ function Hero({
 					<Reveal delayMs={80} as="h1" className="t-display mt-4 text-5xl sm:text-6xl md:text-7xl">
 						<span className="block">
 							<span className="not-italic">{site.brand.headline.latinPrefix}</span>
-							<span lang="hi" className="font-devanagari not-italic text-accent">
+							<span
+								lang="hi"
+								className="flare-after relative inline-block font-devanagari not-italic text-accent"
+							>
 								{site.brand.headline.devanagariCore}
 							</span>
 						</span>
@@ -144,7 +155,15 @@ function Hero({
 									className="object-cover transition-transform duration-(--duration-base) ease-out-soft group-hover:scale-[1.02]"
 								/>
 							</div>
-							<p className="mt-4 flex items-baseline justify-between gap-3">
+							{featuredIndex >= 0 ? (
+								<p className="mt-4 flex items-center gap-3 text-muted">
+									<span aria-hidden="true" className="h-px w-6 bg-accent" />
+									<span className="t-meta">
+										Featured . {featuredIndex + 1} of {totalCount}
+									</span>
+								</p>
+							) : null}
+							<p className="mt-2 flex items-baseline justify-between gap-3">
 								<span className="t-display text-lg italic transition-colors group-hover:text-accent sm:text-xl">
 									{featured.title}
 								</span>
@@ -162,6 +181,7 @@ function Hero({
 
 /** Reusable section header + footer-link wrapper for the rails on /. */
 function SectionShell({
+	number,
 	eyebrow,
 	title,
 	lead,
@@ -169,6 +189,8 @@ function SectionShell({
 	hrefLabel,
 	children,
 }: {
+	/** Two-digit gallery-register number, e.g. "01". Optional. */
+	number?: string;
 	eyebrow: string;
 	title: string;
 	lead?: string;
@@ -181,7 +203,11 @@ function SectionShell({
 			<div className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
 				<header className="max-w-2xl">
 					<Reveal>
-						<p className="t-eyebrow">{eyebrow}</p>
+						<p className="t-eyebrow flex items-center gap-3">
+							<span aria-hidden="true" className="h-px w-6 bg-(--section-accent)" />
+							{number ? <span className="tabular-nums">{number} /</span> : null}
+							<span>{eyebrow}</span>
+						</p>
 					</Reveal>
 					<Reveal delayMs={80} as="h2" className="t-display mt-3 text-4xl sm:text-5xl">
 						{title}
@@ -222,10 +248,17 @@ function AboutTeaser({
 	location: string;
 }) {
 	return (
-		<section className="border-b border-line bg-bg-soft">
+		<section
+			className="border-b border-line bg-bg-soft"
+			style={{ "--section-accent": "var(--color-marigold)" } as React.CSSProperties}
+		>
 			<div className="mx-auto max-w-3xl px-(--container-px) py-(--section-py) text-center">
 				<Reveal>
-					<p className="t-eyebrow">{eyebrow}</p>
+					<p className="t-eyebrow flex items-center justify-center gap-3">
+						<span aria-hidden="true" className="h-px w-6 bg-(--section-accent)" />
+						<span className="tabular-nums">03 /</span>
+						<span>{eyebrow}</span>
+					</p>
 				</Reveal>
 				<Reveal delayMs={80} as="h2" className="t-display mt-3 text-4xl sm:text-5xl">
 					{title}

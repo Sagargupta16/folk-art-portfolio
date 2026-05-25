@@ -52,16 +52,25 @@ export default function CustomOrdersPage() {
 			className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)"
 		>
 			<PigmentWash />
+			{/*
+			 * /custom-orders splash geometry is tighter than the other subpages
+			 * because the right column carries the form -- we keep the painterly
+			 * register on the left rail (rich vermillion + marigold bleed) but
+			 * narrow the primary plume so it doesn't bleed across the form
+			 * inputs at sm:+ widths. The subtle counter on the right also
+			 * stays small. Trade-off: less visual weight than /work or /contact,
+			 * but legibility on the densest interactive surface wins.
+			 */}
 			<InkSplash
 				density="rich"
 				tone2="var(--color-marigold)"
-				className="left-[-20%] top-[-15%] h-[120%] w-[90%] sm:left-[-10%] sm:w-[70%]"
+				className="left-[-25%] top-[-15%] h-[120%] w-[90%] sm:left-[-12%] sm:w-[52%]"
 			/>
 			<InkSplash
 				align="right"
 				density="subtle"
 				tone="var(--color-ruby)"
-				className="right-[-15%] top-[20%] h-[80%] w-[70%] sm:w-[55%]"
+				className="right-[-20%] top-[40%] h-[60%] w-[60%] sm:w-[40%]"
 			/>
 			<header className="relative max-w-2xl">
 				<Reveal>
@@ -113,7 +122,13 @@ export default function CustomOrdersPage() {
 				{/* Form */}
 				<section aria-label="Custom order form" className="md:col-span-7">
 					<Reveal delayMs={120}>
-						<div className="rounded-md border border-line bg-bg-soft p-6 sm:p-8">
+						{/*
+						 * `relative z-10` lifts the form above the InkSplash decor so
+						 * the painterly wash never tints input field backgrounds.
+						 * `bg-bg` (not `bg-bg-soft`) gives a fully-opaque cream ground
+						 * that defends the panel against the splash beneath.
+						 */}
+						<div className="relative z-10 rounded-md border border-line bg-bg p-6 sm:p-8">
 							<CustomOrderForm
 								phoneE164NoPlus={phone}
 								emailUrl={contact.email.url}

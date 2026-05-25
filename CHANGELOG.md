@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.11.2 (2026-05-25)
+
+Visual-audit pass with Playwright. Captured every route at mobile (390x844) and desktop (1440x900), primed the IntersectionObserver-driven `<Reveal>` blocks via programmatic scroll so the fullPage screenshots actually show the below-fold sections, then read each PNG and the per-route console log. Three reproducible findings: two LCP-priority warnings on above-fold images, and a contrast issue on `/custom-orders` where the orange wash bled across the form panel and made input fields harder to read. All three fixed; remaining LCP warnings on `/work` desktop / home mobile turned out to be dev-mode flakiness (LCP candidate varies per load when many same-size cards are above-fold) and don't reproduce on the production build.
+
+### Fixed
+
+- **`priority` on the first 3 cards of `/work`** ([components/gallery/work-filter.tsx](components/gallery/work-filter.tsx)) -- the gallery page's first row is the LCP candidate at both viewports; `ArtworkCard` already accepted `priority` but `WorkFilter` wasn't passing it. Now `priority={i < 3}` on the visible grid.
+- **`priority` on the home Selected Work first card** ([app/page.tsx](app/page.tsx)) -- on mobile the hero piece sits in its own block and the first card of the Selected Work rail is the next LCP candidate. Pass `priority={i === 0}`.
+- **`priority` on the Instagram QR** ([app/contact/page.tsx](app/contact/page.tsx)) -- the QR plate is the LCP image on `/contact` mobile (it sits above the fold immediately after the WhatsApp hero). Now eagerly fetched.
+- **Form contrast on `/custom-orders`** ([app/custom-orders/page.tsx](app/custom-orders/page.tsx)) -- the rich vermillion + marigold splash had a 70%-wide plume that bled across the form column at sm:+ widths, tinting input field backgrounds and reducing legibility on the densest interactive surface in the site. Tightened the splash plume to `sm:w-[52%]` (kept on the left rail behind the "How it works" steps), pulled the counter-splash smaller and lower so it doesn't crowd the form either, and switched the form panel from `bg-bg-soft` to a `relative z-10 ... bg-bg` container so the cream ground sits opaque above the wash. Painterly register preserved on the left rail; form column now reads cleanly.
+
 ## 1.11.1 (2026-05-25)
 
 Audit-pass polish. After 1.11.0 shipped, an a-to-z code review surfaced a handful of small inconsistencies: stale "Hi Megha" voice in three WhatsApp message templates (the page copy moved to plural-voice in 1.7.0 but the deep-link drafts didn't follow), a token-overriding `tracking-tight` on the footer wordmark, a flat copyright bar where the attribution sat at the same weight as the legal line, and three components still concatenating className strings by hand instead of using the project's `cn()` helper. No visual redesign -- just closing the gap between the voice the visitor reads and the message they tap through to send.

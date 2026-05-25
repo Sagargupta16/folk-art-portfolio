@@ -73,7 +73,7 @@ export default function HomePage() {
 					<ul className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 md:gap-y-14 lg:grid-cols-3">
 						{selected.map((art, i) => (
 							<Reveal key={art.slug} as="li" delayMs={i * 60}>
-								<ArtworkCard artwork={art} />
+								<ArtworkCard artwork={art} priority={i === 0} />
 							</Reveal>
 						))}
 					</ul>

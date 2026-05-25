@@ -1,6 +1,6 @@
 {
 	"name": "folk-art-portfolio",
-	"version": "1.11.1",
+	"version": "1.11.2",
 	"private": true,
 	"description": "Portfolio site for Megha Seth, traditional folk artist.",
 	"license": "UNLICENSED",
@@ -36,6 +36,7 @@
 		"@types/node": "^22.10.0",
 		"@types/react": "^19.0.0",
 		"@types/react-dom": "^19.0.0",
+		"playwright": "^1.60.0",
 		"postcss": "^8.5.0",
 		"sharp": "^0.34.0",
 		"tailwindcss": "^4.0.0",

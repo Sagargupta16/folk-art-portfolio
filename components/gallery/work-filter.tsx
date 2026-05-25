@@ -64,7 +64,7 @@ export function WorkFilter({ styles, items }: WorkFilterProps) {
 							onClick={() => setActive(f)}
 							aria-pressed={isActive}
 							className={cn(
-								"min-h-[40px] rounded-full border px-4 py-2 text-xs uppercase tracking-meta transition-colors",
+								"min-h-10 rounded-full border px-4 py-2 text-xs uppercase tracking-meta transition-colors",
 								isActive
 									? "border-ink bg-ink text-bg"
 									: "border-line text-muted hover:border-accent hover:text-accent",
@@ -76,6 +76,12 @@ export function WorkFilter({ styles, items }: WorkFilterProps) {
 				})}
 			</div>
 
+			<p className="sr-only" aria-live="polite">
+				{active === ALL
+					? `Showing all ${visible.length} pieces`
+					: `Showing ${visible.length} ${active} ${visible.length === 1 ? "piece" : "pieces"}`}
+			</p>
+
 			{visible.length > 0 ? (
 				<ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:gap-y-14 lg:grid-cols-3">
 					{visible.map((art, i) => (
@@ -85,9 +91,7 @@ export function WorkFilter({ styles, items }: WorkFilterProps) {
 					))}
 				</ul>
 			) : (
-				<p className="mt-12 text-sm text-muted" aria-live="polite">
-					No pieces in this style yet.
-				</p>
+				<p className="mt-12 text-sm text-muted">No pieces in this style yet.</p>
 			)}
 		</>
 	);

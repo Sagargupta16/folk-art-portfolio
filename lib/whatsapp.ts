@@ -4,6 +4,10 @@
  * Format: https://wa.me/<countrycode><number>?text=<urlencoded-message>
  * Country code is included with no `+`. The number is read from contact data,
  * never hardcoded here.
+ *
+ * Phone numbers must be E.164-style digits only (10-15 digits). Bad input
+ * throws at build time so a typo in `data/site.json` can't ship as a
+ * silently-broken CTA.
  */
 import type { Artwork, CustomOrderDraft } from "./types";
 
@@ -14,15 +18,33 @@ export interface WhatsAppLinkOptions {
 	message: string;
 }
 
+const PHONE_RE = /^\d{10,15}$/;
+
+function assertValidPhone(phone: string): void {
+	if (!PHONE_RE.test(phone)) {
+		throw new Error(
+			`Invalid WhatsApp phone "${phone}": expected 10-15 digits, no leading + or spaces`,
+		);
+	}
+}
+
 export function buildWhatsAppLink({ phoneE164NoPlus, message }: WhatsAppLinkOptions): string {
+	assertValidPhone(phoneE164NoPlus);
 	const encoded = encodeURIComponent(message);
 	return `https://wa.me/${phoneE164NoPlus}?text=${encoded}`;
 }
 
-/** Extracts an E.164-no-plus number from a `wa.me/...` URL stored in site data. */
+/**
+ * Extracts an E.164-no-plus number from a `wa.me/...` URL stored in site
+ * data. Throws on a malformed URL so config typos surface at build time
+ * rather than producing every-CTA-broken silent failures.
+ */
 export function extractPhoneFromWaUrl(waUrl: string): string {
 	const match = waUrl.match(/wa\.me\/(\d+)/);
-	return match?.[1] ?? "";
+	if (!match?.[1]) {
+		throw new Error(`Could not extract phone from WhatsApp URL: "${waUrl}"`);
+	}
+	return match[1];
 }
 
 /** Pre-filled "I'm interested in this piece" message. */

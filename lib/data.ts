@@ -30,13 +30,53 @@ function deriveStatus(art: Artwork): ArtworkStatus {
 	return "archive";
 }
 
-/** All artworks, sorted by `order` ascending. Read-only. */
-export function getAllArtworks(): readonly Artwork[] {
-	const raw = (artworksJson as { items: Artwork[] }).items;
-	return raw
+/**
+ * Validate the artworks JSON before the first read. A typo in the data file
+ * (missing `items`, missing required field on a row) becomes a build-time
+ * failure with the offending slug named, instead of a runtime
+ * `Cannot read properties of undefined` from `.sort` or `.map`.
+ */
+function assertArtworksShape(raw: unknown): asserts raw is { items: Artwork[] } {
+	if (!raw || typeof raw !== "object" || !("items" in raw)) {
+		throw new Error("data/artworks.json: missing top-level `items` array");
+	}
+	const items = (raw as { items: unknown }).items;
+	if (!Array.isArray(items)) {
+		throw new Error("data/artworks.json: `items` must be an array");
+	}
+	for (const item of items) {
+		if (!item || typeof item !== "object") {
+			throw new Error("data/artworks.json: every row must be an object");
+		}
+		const row = item as Record<string, unknown>;
+		const slug = typeof row.slug === "string" ? row.slug : "<unknown slug>";
+		for (const field of ["slug", "title", "style", "medium", "image"] as const) {
+			if (typeof row[field] !== "string") {
+				throw new Error(`data/artworks.json (${slug}): missing or invalid \`${field}\``);
+			}
+		}
+		if (typeof row.order !== "number") {
+			throw new Error(`data/artworks.json (${slug}): \`order\` must be a number`);
+		}
+	}
+}
+
+let cachedArtworks: readonly Artwork[] | null = null;
+
+function loadArtworks(): readonly Artwork[] {
+	if (cachedArtworks) return cachedArtworks;
+	assertArtworksShape(artworksJson);
+	const sorted = (artworksJson.items as unknown as Artwork[])
 		.slice()
 		.sort((a, b) => a.order - b.order)
 		.map((a) => ({ ...a, status: deriveStatus(a) }));
+	cachedArtworks = sorted;
+	return sorted;
+}
+
+/** All artworks, sorted by `order` ascending. Read-only. */
+export function getAllArtworks(): readonly Artwork[] {
+	return loadArtworks();
 }
 
 /** Currently for-sale artworks. */

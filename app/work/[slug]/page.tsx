@@ -1,11 +1,11 @@
 import { ArrowLeft, ArrowRight, ImageIcon, MessageCircle, Palette, Ruler } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArtImage } from "@/components/gallery/art-image";
 import { Chromacard } from "@/components/gallery/chromacard";
 import { Reveal } from "@/components/motion/reveal";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { getAllArtworkSlugs, getAllArtworks, getArtworkBySlug, getSite } from "@/lib/data";
 import { buildWhatsAppLink, buyArtworkMessage, extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
@@ -75,7 +75,7 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 				{/* Image plate */}
 				<Reveal className="md:col-span-7">
 					<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-line">
-						<Image
+						<ArtImage
 							src={`/artworks/${art.image}`}
 							alt={art.description ?? `${art.title}, ${art.style} painting in ${art.medium}.`}
 							fill
@@ -157,12 +157,10 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 								href={whatsappLink}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="inline-block"
+								className={buttonVariants({ variant: "primary", size: "lg" })}
 							>
-								<Button variant="primary" size="lg">
-									<MessageCircle size={16} aria-hidden="true" />
-									{isAvailable ? "Enquire on WhatsApp" : "Ask about this piece"}
-								</Button>
+								<MessageCircle size={16} aria-hidden="true" />
+								{isAvailable ? "Enquire on WhatsApp" : "Ask about this piece"}
 							</a>
 							{!isAvailable ? (
 								<p className="mt-3 text-xs text-muted">

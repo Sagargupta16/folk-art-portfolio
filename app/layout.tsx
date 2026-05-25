@@ -61,6 +61,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 						__html: `(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var v=t||(d?'dark':'light');if(v==='dark')document.documentElement.classList.add('dark');}catch(_){}})();`,
 					}}
 				/>
+				{/* No-JS fallback: Motion's <Reveal> ships SSR markup with inline
+				    `opacity:0`. Without JS the fade-up never runs, leaving content
+				    invisible. This rule wins via the `<noscript>` cascade and snaps
+				    content back to visible for crawlers / no-JS visitors. */}
+				<noscript>
+					<style>{`[style*="opacity:0"],[style*="opacity: 0"]{opacity:1!important;transform:none!important;}`}</style>
+				</noscript>
 			</head>
 			<body className="font-sans">
 				<a

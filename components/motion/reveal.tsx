@@ -14,6 +14,12 @@ import type { ReactNode } from "react";
  * because doing so produces a different React tree shape on server vs.
  * client and breaks hydration.
  *
+ * No-JS / crawler fallback: SSR markup ships with inline `opacity:0`, which
+ * means JS-blocked visitors would see blank pages. The `<noscript>` style
+ * block in app/layout.tsx unhides any element with `opacity:0` so content
+ * remains visible without JS. (Caveat: Motion-bundle-load failure on a
+ * JS-enabled client still leaves content hidden -- accepted trade-off.)
+ *
  * `delayMs` is the entry delay (ms). Use in lists for a small stagger
  * (e.g. `delayMs={index * 60}`).
  */

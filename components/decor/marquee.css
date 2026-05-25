@@ -6,7 +6,16 @@
 	display: flex;
 	gap: 3rem;
 	user-select: none;
-	mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+	/* The mask uses the gradient's alpha channel only; the color value
+	   is irrelevant beyond being opaque. We still source it from the
+	   theme token to keep "no raw hex in components" consistent. */
+	mask-image: linear-gradient(
+		90deg,
+		transparent,
+		var(--color-ink) 8%,
+		var(--color-ink) 92%,
+		transparent
+	);
 }
 
 .marquee__track {

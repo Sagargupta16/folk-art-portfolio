@@ -17,6 +17,11 @@ import { cn } from "@/lib/utils";
  *   - dark   -> localStorage.theme = "dark",   add    .dark
  *   - system -> localStorage.theme removed,    apply matchMedia result
  *
+ * `system` deliberately clears the storage key (rather than writing
+ * "system") so the pre-paint script in app/layout.tsx falls back to
+ * `matchMedia` and tracks live OS theme changes. A stored "system" string
+ * would force a manual override branch; absence is the cleanest signal.
+ *
  * The component is rendered as a tiny segmented row of three buttons --
  * tappable, no dropdown trapping mobile users behind a label.
  *
@@ -98,10 +103,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 		return (
 			<div
 				aria-hidden="true"
-				className={cn(
-					"inline-flex h-9 w-[7.5rem] rounded-full border border-line bg-bg-soft",
-					className,
-				)}
+				className={cn("inline-flex h-9 w-30 rounded-full border border-line bg-bg-soft", className)}
 			/>
 		);
 	}

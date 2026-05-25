@@ -1,11 +1,11 @@
 import { ArrowRight } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { Marquee } from "@/components/decor/marquee";
+import { ArtImage } from "@/components/gallery/art-image";
 import { ArtworkCard } from "@/components/gallery/artwork-card";
 import { Reveal } from "@/components/motion/reveal";
 import { SplitText } from "@/components/motion/split-text";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { getAllArtworks, getAvailableArtworks, getFeaturedArtwork, getSite } from "@/lib/data";
 
 /**
@@ -117,11 +117,11 @@ function Hero({
 					</p>
 					<Reveal delayMs={220}>
 						<div className="mt-8 flex flex-wrap gap-3">
-							<Link href="/work">
-								<Button variant="primary">See the work</Button>
+							<Link href="/work" className={buttonVariants({ variant: "primary" })}>
+								See the work
 							</Link>
-							<Link href="/custom-orders">
-								<Button variant="ghost">Order a custom piece</Button>
+							<Link href="/custom-orders" className={buttonVariants({ variant: "ghost" })}>
+								Order a custom piece
 							</Link>
 						</div>
 					</Reveal>
@@ -135,7 +135,7 @@ function Hero({
 							aria-label={`Featured work: ${featured.title}`}
 						>
 							<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-line transition-shadow group-hover:ring-accent">
-								<Image
+								<ArtImage
 									src={`/artworks/${featured.image}`}
 									alt={featured.description ?? featured.title}
 									fill
@@ -240,8 +240,8 @@ function AboutTeaser({
 				</Reveal>
 				<Reveal delayMs={280}>
 					<div className="mt-8">
-						<Link href="/about">
-							<Button variant="ghost">Read more</Button>
+						<Link href="/about" className={buttonVariants({ variant: "ghost" })}>
+							Read more
 						</Link>
 					</div>
 				</Reveal>

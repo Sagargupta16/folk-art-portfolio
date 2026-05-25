@@ -49,8 +49,11 @@ export function SmoothScroll() {
 					cancelAnimationFrame(raf);
 					lenis.destroy();
 				};
-			} catch {
-				/* ignored -- ad blocker / network blip leaves native scroll */
+			} catch (err) {
+				// Ad blocker / CSP / network blip -- visitor falls back to
+				// native scroll. We still log once so a real bug doesn't
+				// silently disable smoothing for everyone.
+				console.warn("[SmoothScroll] Lenis init failed, using native scroll:", err);
 			}
 		}
 

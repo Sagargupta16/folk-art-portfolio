@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Reveal } from "@/components/motion/reveal";
 import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { getSite } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -106,8 +106,8 @@ export default function ContactPage() {
 							Send a brief and we&rsquo;ll talk on WhatsApp.
 						</p>
 					</div>
-					<Link href="/custom-orders">
-						<Button variant="primary">Start a brief</Button>
+					<Link href="/custom-orders" className={buttonVariants({ variant: "primary" })}>
+						Start a brief
 					</Link>
 				</div>
 			</Reveal>

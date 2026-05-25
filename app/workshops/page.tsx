@@ -2,7 +2,7 @@ import { Clock, MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { Reveal } from "@/components/motion/reveal";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { getAllWorkshops, getSite } from "@/lib/data";
 import { buildWhatsAppLink, extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
@@ -100,9 +100,9 @@ export default function WorkshopsPage() {
 						href={contact.whatsapp.url}
 						target="_blank"
 						rel="noopener noreferrer"
-						className="inline-block"
+						className={buttonVariants({ variant: "primary" })}
 					>
-						<Button variant="primary">Get in touch</Button>
+						Get in touch
 					</a>
 				</div>
 			</Reveal>

@@ -3,15 +3,17 @@
  * variant matrix so consumers write `<Button variant="ghost" size="sm">`
  * instead of remembering the class string.
  *
- * shadcn's `asChild` slot pattern is omitted here; add Radix Slot when the
- * first consumer needs button-styled `<Link>`s without `<a>`-in-`<a>` issues.
+ * For button-styled links (next/link or anchor), apply `buttonVariants(...)`
+ * directly to the `<Link>` / `<a>` rather than wrapping a `<Button>` inside
+ * one. Wrapping creates a nested interactive (`<a><button>`) which is an
+ * a11y anti-pattern -- two tab stops, ambiguous screen-reader role.
  */
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-	"inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-[background-color,color,border-color,box-shadow,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:pointer-events-none disabled:opacity-50",
+	"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium transition-[background-color,color,border-color,box-shadow,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:pointer-events-none disabled:opacity-50",
 	{
 		variants: {
 			variant: {

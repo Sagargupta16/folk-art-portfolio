@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { ArtImage } from "@/components/gallery/art-image";
 import { Chromacard } from "@/components/gallery/chromacard";
 import type { Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -15,8 +15,9 @@ import { cn } from "@/lib/utils";
  * priority.
  *
  * Beneath the plate: title, style (right-aligned), chromacard (sampled
- * palette swatches), medium line, optional price. When palette / price are
- * absent the related rows render nothing -- no empty placeholders.
+ * palette swatches), description preview, medium line, optional price.
+ * When palette / description / price are absent the related rows render
+ * nothing -- no empty placeholders.
  *
  * `priority` should be passed for above-the-fold cards so Next.js fetches
  * them eagerly (the LCP candidate sits inside this component).
@@ -37,7 +38,7 @@ export function ArtworkCard({ artwork, priority = false, className }: ArtworkCar
 			aria-label={`${artwork.title}, ${artwork.style}`}
 		>
 			<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft ring-1 ring-line transition-shadow group-hover:ring-accent group-focus-visible:ring-2 group-focus-visible:ring-accent">
-				<Image
+				<ArtImage
 					src={imgSrc}
 					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
 					fill

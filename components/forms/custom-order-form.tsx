@@ -71,7 +71,13 @@ export function CustomOrderForm({
 		setDraft(next);
 		const url = buildWhatsAppLink({ phoneE164NoPlus, message: customOrderMessage(next) });
 		setSubmitting(true);
-		window.open(url, "_blank", "noopener,noreferrer");
+		// `window.open` returns null when blocked (popup blocker, in-app
+		// browser like Instagram). Surface the email fallback explicitly so
+		// the user has a recovery path; the mailto link below also renders.
+		const opened = window.open(url, "_blank", "noopener,noreferrer");
+		if (!opened) {
+			setError("Couldn't open WhatsApp. Use the email link below to send your brief instead.");
+		}
 		setTimeout(() => setSubmitting(false), 1500);
 	}
 
@@ -147,11 +153,9 @@ export function CustomOrderForm({
 				/>
 			</Field>
 
-			{error ? (
-				<p role="alert" className="text-sm text-red-700 dark:text-red-400">
-					{error}
-				</p>
-			) : null}
+			<div aria-live="polite" aria-atomic="true">
+				{error ? <p className="text-sm text-red-700 dark:text-red-400">{error}</p> : null}
+			</div>
 
 			<div className="flex flex-col items-start gap-3">
 				<Button type="submit" variant="primary" size="lg" disabled={submitting}>

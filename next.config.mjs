@@ -5,8 +5,10 @@
  * `images.unoptimized: true` -- GH Pages can't run Next's image runtime, so
  *   we generate AVIF/WebP variants at build time via scripts/optimize-images.mjs
  *   and serve them as plain assets.
- * `trailingSlash: true` -- GH Pages serves directory paths cleaner with trailing
- *   slashes; otherwise links like /work end up 404'ing depending on config.
+ * `trailingSlash: true` -- GH Pages serves a directory's `index.html` only
+ *   when the URL ends in a slash (e.g. `/work/`). Without this, Next would
+ *   emit links to `/work` and Pages would 404 because there's no
+ *   `out/work` file, only `out/work/index.html`.
  *
  * Phase 2 transition: remove `output: "export"`, remove `images.unoptimized`,
  * and the same project starts serving dynamic routes + image optimization.

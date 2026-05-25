@@ -13,9 +13,9 @@ export const metadata: Metadata = {
  * /work -- the full gallery.
  *
  * Renders all artworks as uniform 3:4 cards in a 2-column (mobile) / 3-column
- * (desktop) grid. The style filter is a Client island that hides cards by
- * style without re-fetching -- artworks are already in the DOM so the toggle
- * is instantaneous and works without JS for first paint.
+ * (desktop) grid. The style filter is a Client island that filters the
+ * rendered subset locally (no re-fetch, no network round-trip). No-JS
+ * visitors see the unfiltered grid -- the filter pills require JS to toggle.
  */
 export default function WorkPage() {
 	const all = getAllArtworks();

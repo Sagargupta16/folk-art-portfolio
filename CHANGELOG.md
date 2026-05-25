@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.7.1 (2026-05-25)
+
+PR #20 review-pass. Resilience, accessibility, and validation fixes uncovered by a multi-agent review of the 1.7.0 rebuild. No visual or behavioural changes on the happy path; failure paths now degrade gracefully.
+
+### Fixed
+
+- **Button corner radius** -- `rounded-md` was missing from the `Button` cva base. Pages used the right wrapper, but raw `<Button>` instances rendered with sharp corners. Added to base classes so radius is consistent everywhere.
+- **No-`<a>`-inside-`<a>` nesting** -- replaced `<Link><Button>...</Button></Link>` patterns with `<Link className={buttonVariants({...})}>...</Link>` on home, contact, work-detail, and workshops pages. Same visual, valid HTML.
+- **No-JS / SSR fallback for `Reveal`** -- elements rendered at `opacity:0` with no JS unhid them. Added a `<noscript>` style block in `app/layout.tsx` that forces `opacity:1` and `transform:none` for elements with the inline opacity-0 marker. Documented the accepted trade-off (Motion bundle load failure on JS clients) in the `Reveal` JSDoc.
+- **Custom-order popup-blocker fallback** -- `window.open(...)` return value is now captured. If the browser blocks the popup, an inline `aria-live` error tells the user to use the email link instead. Form no longer silently does nothing.
+- **`next/image` error fallback** -- new `<ArtImage>` client wrapper renders an `ImageOff` icon plate with the alt text as `aria-label` if the underlying request fails. Used on hero, gallery cards, and detail pages -- prevents broken-image icons from undermining the gallery.
+- **Catalog shape validation** -- `lib/data.ts` now validates `data/artworks.json` on first read and throws a build-time error naming the offending slug if `items` is missing or any row lacks a required field. Replaces the previous "fail with `Cannot read properties of undefined`" runtime trap.
+- **WhatsApp phone validation** -- `lib/whatsapp.ts` now asserts the phone is 10-15 digits and throws on malformed `wa.me` config URLs at build time. Configuration mistakes fail loud instead of producing dead links.
+
+### Changed
+
+- **Theme toggle pre-mount placeholder** uses canonical `w-30` instead of arbitrary `w-[7.5rem]`.
+- **Work-page filter** announces filtered counts via an SR-only `aria-live="polite"` paragraph (instead of overloading the empty-state message). Removed the stray `aria-live` from the empty-state paragraph itself.
+- **`marquee.css`** mask-image gradient uses `var(--color-ink)` instead of a raw `#000`, fixing the lone hex-in-CSS exception flagged by the review.
+- **Smooth-scroll** failure path logs once via `console.warn` instead of silently swallowing the error -- a real Lenis-init bug now surfaces in dev tools.
+
+### Documentation
+
+- Clearer JSDoc on `app/work/page.tsx` (filter is JS-required; no-JS visitors see the unfiltered grid), `next.config.mjs` (named the GH Pages trailing-slash case), `theme-toggle.tsx` (why `system` mode clears the storage key), `artwork-card.tsx` (mentions the description preview), and `smooth-scroll.tsx` (failure-path logging contract).
+
 ## 1.7.0 (2026-05-24)
 
 Full stack swap and frontend rebuild. The site moves from Vite + single-page anchor scroll to Next.js 15 with the App Router and statically exported routes. Catalog data is unchanged; the artwork images and `data/site.json` content carry forward as-is.

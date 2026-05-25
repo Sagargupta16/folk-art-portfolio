@@ -51,11 +51,7 @@ export function WorkFilter({ styles, items }: WorkFilterProps) {
 
 	return (
 		<>
-			<div
-				role="group"
-				aria-label="Filter by style"
-				className="mt-10 flex flex-wrap gap-2 sm:mt-12"
-			>
+			<div role="group" aria-label="Filter by style" className="flex flex-wrap gap-2">
 				{filters.map((f) => {
 					const isActive = f === active;
 					return (

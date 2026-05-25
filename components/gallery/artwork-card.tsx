@@ -31,11 +31,12 @@ interface ArtworkCardProps {
 export function ArtworkCard({ artwork, priority = false, className }: ArtworkCardProps) {
 	const imgSrc = `/artworks/${artwork.image}`;
 	const isAvailable = typeof artwork.priceInr === "number";
+	const isSold = artwork.status === "sold";
 	return (
 		<Link
 			href={`/work/${artwork.slug}`}
 			className={cn("group block focus-visible:outline-none", className)}
-			aria-label={`${artwork.title}, ${artwork.style}`}
+			aria-label={`${artwork.title}, ${artwork.style}${isSold ? ", sold" : ""}`}
 		>
 			<div className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft shadow-none ring-1 ring-black/10 transition-[transform,box-shadow,outline-color] duration-(--duration-base) ease-out-soft group-hover:-translate-y-0.5 group-hover:shadow-lg group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-(--section-accent) dark:ring-white/10">
 				<ArtImage
@@ -46,9 +47,22 @@ export function ArtworkCard({ artwork, priority = false, className }: ArtworkCar
 					className="object-cover transition-transform duration-(--duration-base) ease-out-soft group-hover:scale-[1.03]"
 					priority={priority}
 				/>
-				{isAvailable ? (
+				{isAvailable && !isSold ? (
 					<span className="absolute left-3 top-3 rounded-full bg-bg/90 px-2.5 py-1 text-[0.65rem] font-medium uppercase tracking-meta text-ink shadow-sm backdrop-blur">
 						Available
+					</span>
+				) : null}
+				{isSold ? (
+					/*
+					 * Corner ribbon. Absolute over the image plate, not the
+					 * card, so the title/meta beneath stay clean. Diagonal
+					 * via `-rotate-45` riding the top-left corner.
+					 * `pointer-events-none` so the whole card stays clickable
+					 * through the ribbon -- the link still routes to the
+					 * detail page.
+					 */
+					<span className="pointer-events-none absolute -left-9 top-4 w-32 -rotate-45 bg-ruby py-1 text-center text-[0.6rem] font-semibold uppercase tracking-meta text-bg shadow-sm sm:-left-10 sm:top-5 sm:w-36 sm:text-[0.7rem]">
+						Sold
 					</span>
 				) : null}
 			</div>

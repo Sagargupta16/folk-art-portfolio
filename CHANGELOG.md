@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.12.0 (2026-05-25)
+
+Three voice-and-positioning lifts inspired by a peer artist's site (Shivani Gupta, "trippin-on-hue / The Neutrals -- India"). Captured the page with Playwright, read its 30-section structure, and pulled the patterns that translate to ours without copying anything that hurts mobile or accessibility.
+
+### Added
+
+- **Capability chip rail on the home hero** ([app/page.tsx](app/page.tsx)) -- between the hero description and the CTA buttons, a wrap-friendly row of style chips ("Madhubani", "Pichwai", "Lippan", "Gond", "Texture", "Mixed Media") sourced from `getSite().styles`. Tells a cold WhatsApp / Instagram visitor what Megha actually paints in 2 seconds, before they need to scroll. Mobile-first: smaller chip type at base, scales up at sm:; `flex-wrap` keeps the rail honest at every width. Same data drives the `/work` filter, so positioning and navigation stay aligned.
+- **`SOLD` corner ribbon on artwork cards** ([components/gallery/artwork-card.tsx](components/gallery/artwork-card.tsx)) -- when an artwork's `status` is `"sold"`, a diagonal ribbon rides the top-left corner of the image plate in the ruby pigment. `pointer-events-none` so the whole card stays clickable through the ribbon (the link still routes to the detail page). The "Available" pill stays mutually exclusive with the ribbon. The ribbon also weaves into the link's `aria-label` ("Title, Style, sold") so screen readers don't miss the state. Today no rows are marked sold (Phase 1 derives status from price), but the wiring activates the moment any row gets `"status": "sold"` in `data/artworks.json` -- inventory honesty as a feature, social proof for visitors.
+
+### Changed
+
+- **`/work` color-block header band** ([app/work/page.tsx](app/work/page.tsx)) -- the page now stacks two full-bleed sections: a `bg-bg-soft` header band (eyebrow, H1, BrushStroke, lead, count), then a `bg-bg` gallery band (filter pills + grid). Gives /work a museum-room silhouette without fragmenting gallery rows or breaking on the mobile 2-col grid. Removed the redundant `mt-10 sm:mt-12` from [components/gallery/work-filter.tsx](components/gallery/work-filter.tsx) -- the section's `py-(--section-py)` now owns the top space.
+
 ## 1.11.3 (2026-05-25)
 
 Reverts the painterly background from every subpage. 1.11.0 carried the home hero's recipe (PigmentWash + rich-tone2 InkSplash + counter-splash) onto `/work`, `/about`, `/workshops`, `/custom-orders`, `/contact` so the visual register wouldn't collapse past `/`. After living with it, the wash on subpages read busy rather than painterly -- it competed with the editorial copy on `/about`, the dense form on `/custom-orders`, the card grids on `/work` and `/workshops`, and the channel hierarchy on `/contact`. Home is the right place for the painterly hero (the whole page is decor + headline by design); subpages are reading and interaction surfaces and want a calmer ground. Decor components stay in the codebase -- the home page is unchanged.

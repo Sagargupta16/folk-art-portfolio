@@ -184,7 +184,27 @@ function Hero({
 					<p className="t-lead mt-6 max-w-xl">
 						<SplitText text={site.brand.description} startDelayMs={400} />
 					</p>
-					<Reveal delayMs={220}>
+					{/*
+					 * Capability chip rail. Tells a visitor the styles Megha
+					 * works in before they scroll. Mobile-first: wraps to
+					 * multi-row, smaller chips. The rail uses ruling +
+					 * uppercase tracking so it reads as positioning, not
+					 * navigation -- the same data drives the /work filter,
+					 * which is the actual click target.
+					 */}
+					<Reveal delayMs={180}>
+						<ul className="mt-7 flex flex-wrap gap-x-2 gap-y-2 sm:gap-x-3" aria-label="Styles">
+							{site.styles.map((style) => (
+								<li
+									key={style}
+									className="rounded-full border border-line bg-bg-soft px-3 py-1 text-[0.65rem] uppercase tracking-meta text-muted sm:text-[0.7rem]"
+								>
+									{style}
+								</li>
+							))}
+						</ul>
+					</Reveal>
+					<Reveal delayMs={260}>
 						<div className="mt-8 flex flex-wrap gap-3">
 							<Link href="/work" className={buttonVariants({ variant: "primary" })}>
 								See the work

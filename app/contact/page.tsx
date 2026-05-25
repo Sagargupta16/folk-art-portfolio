@@ -3,9 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { BrushStroke } from "@/components/decor/brush-stroke";
-import { InkSplash } from "@/components/decor/ink-splash";
 import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
-import { PigmentWash } from "@/components/decor/pigment-wash";
 import { Reveal } from "@/components/motion/reveal";
 import { GmailIcon, InstagramIcon, WhatsAppIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
@@ -42,18 +40,6 @@ export default function ContactPage() {
 			style={sectionStyle}
 			className="relative mx-auto max-w-3xl px-(--container-px) py-(--section-py)"
 		>
-			<PigmentWash />
-			<InkSplash
-				density="rich"
-				tone2="var(--color-pichwai)"
-				className="left-[-20%] top-[-15%] h-[120%] w-[90%] sm:left-[-10%] sm:w-[70%]"
-			/>
-			<InkSplash
-				align="right"
-				density="subtle"
-				tone="var(--color-marigold)"
-				className="right-[-15%] top-[20%] h-[80%] w-[70%] sm:w-[55%]"
-			/>
 			<header className="relative">
 				<Reveal>
 					<MotifEyebrow motif="rangoli-star" label={c?.eyebrow ?? "Contact"} />

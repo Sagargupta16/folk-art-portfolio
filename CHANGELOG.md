@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.11.3 (2026-05-25)
+
+Reverts the painterly background from every subpage. 1.11.0 carried the home hero's recipe (PigmentWash + rich-tone2 InkSplash + counter-splash) onto `/work`, `/about`, `/workshops`, `/custom-orders`, `/contact` so the visual register wouldn't collapse past `/`. After living with it, the wash on subpages read busy rather than painterly -- it competed with the editorial copy on `/about`, the dense form on `/custom-orders`, the card grids on `/work` and `/workshops`, and the channel hierarchy on `/contact`. Home is the right place for the painterly hero (the whole page is decor + headline by design); subpages are reading and interaction surfaces and want a calmer ground. Decor components stay in the codebase -- the home page is unchanged.
+
+### Changed
+
+- **Subpages drop PigmentWash + paired InkSplashes.** [app/work/page.tsx](app/work/page.tsx), [app/about/page.tsx](app/about/page.tsx), [app/workshops/page.tsx](app/workshops/page.tsx), [app/custom-orders/page.tsx](app/custom-orders/page.tsx), [app/contact/page.tsx](app/contact/page.tsx) -- removed the JSX block right after the `<main>` open. Section accent tokens (ruby / marigold / pichwai / vermillion / peacock) still drive eyebrow underlines, accent rules, hover rings, and pull-quote borders, so the per-route identity stays without the background bleed.
+- **`/custom-orders` form panel** ([app/custom-orders/page.tsx](app/custom-orders/page.tsx)) -- the `relative z-10 bg-bg` container that was added in 1.11.2 to defend input legibility against the wash is no longer needed; reverted to `bg-bg-soft` to match the rest of the surface tokens.
+
 ## 1.11.2 (2026-05-25)
 
 Visual-audit pass with Playwright. Captured every route at mobile (390x844) and desktop (1440x900), primed the IntersectionObserver-driven `<Reveal>` blocks via programmatic scroll so the fullPage screenshots actually show the below-fold sections, then read each PNG and the per-route console log. Three reproducible findings: two LCP-priority warnings on above-fold images, and a contrast issue on `/custom-orders` where the orange wash bled across the form panel and made input fields harder to read. All three fixed; remaining LCP warnings on `/work` desktop / home mobile turned out to be dev-mode flakiness (LCP candidate varies per load when many same-size cards are above-fold) and don't reproduce on the production build.

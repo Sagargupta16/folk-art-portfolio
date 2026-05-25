@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { BrushStroke } from "@/components/decor/brush-stroke";
-import { InkSplash } from "@/components/decor/ink-splash";
 import { MotifEyebrow } from "@/components/decor/motif-eyebrow";
-import { PigmentWash } from "@/components/decor/pigment-wash";
 import { WorkFilter } from "@/components/gallery/work-filter";
 import { Reveal } from "@/components/motion/reveal";
 import { getAllArtworks, getSite } from "@/lib/data";
@@ -36,18 +34,6 @@ export default function WorkPage() {
 			style={sectionStyle}
 			className="relative mx-auto max-w-6xl px-(--container-px) py-(--section-py)"
 		>
-			<PigmentWash />
-			<InkSplash
-				density="rich"
-				tone2="var(--color-vermillion)"
-				className="left-[-20%] top-[-15%] h-[120%] w-[90%] sm:left-[-10%] sm:w-[70%]"
-			/>
-			<InkSplash
-				align="right"
-				density="subtle"
-				tone="var(--color-peacock)"
-				className="right-[-15%] top-[20%] h-[80%] w-[70%] sm:w-[55%]"
-			/>
 			<header className="relative max-w-2xl">
 				<Reveal>
 					<MotifEyebrow motif="fish" label={work?.eyebrow ?? "Work"} />

@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.14.0 (2026-05-27)
+
+Bespoke motion pass on the gallery surface. Cards now tilt in 3D under the cursor with spring physics, click into a Zen-mode lightbox (zoomable, keyboard-navigable), and the page-header watercolor blooms breathe with de-synced 14-20s loops so the composition never visibly repeats. Native pointer kept -- no custom cursor (an earlier draft tried one and it added perceptible lag, so it's reverted and re-banned in `MEMORY.md`).
+
+### Added
+
+- **Lightbox viewer** ([components/gallery/artwork-lightbox.tsx](components/gallery/artwork-lightbox.tsx) + [components/gallery/lightbox-context.tsx](components/gallery/lightbox-context.tsx)) -- React-context-driven fullscreen Zen viewer mounted at the layout root. Click any artwork card to open; arrow keys navigate, Escape closes, body scroll locks while open. Image zooms via `transformOrigin` panning (scales to 1.8x with the origin tracking the cursor), so panning is implicit and stays GPU-composited. WhatsApp inquiry CTA pre-fills the catalog message. `<Link>` to `/work/<slug>` is preserved for SEO + middle-click new-tab; `e.preventDefault()` only fires on plain left-click.
+- **3D card tilt + gold double-border on `<ArtworkCard>`** ([components/gallery/artwork-card.tsx](components/gallery/artwork-card.tsx)) -- `useMotionValue` -> `useSpring` -> `useTransform` chain converts mouse position into ±7deg `rotateX/rotateY`. A radial-gradient glare element follows the cursor via CSS-var-bound motion values. Two stacked Tanjore gold borders (solid + dashed, oklch(0.76 0.12 85)) bloom in on hover.
+- **`.gold-shimmer` utility** ([app/globals.css](app/globals.css)) -- 6s ease-in-out infinite gradient sweep with three OKLCH gold stops, reusable as a foil-leaf surface.
+
+### Changed
+
+- **Ink-splash blooms now breathe** ([components/decor/ink-splash.tsx](components/decor/ink-splash.tsx)) -- all wash ellipses converted to `motion.ellipse` with prime-ish 14-20s loop durations on `rx/ry/cx/cy`. Ellipses never pulse in sync, so the watercolor reads as organic rather than throbbing. Gaussian-blur filter still does the feathering; only the underlying shape values animate.
+
+### Removed
+
+- **Custom cursor** -- an earlier draft on this branch ([components/ui/custom-cursor.tsx](components/ui/custom-cursor.tsx)) added a two-spring gold-leaf cursor with hover-detection. Even with damping 45 / stiffness 400 it added perceptible lag versus the OS pointer, which is the wrong tradeoff on a gallery site where visitors are scanning many cards. Reverted and re-banned in `MEMORY.md` motion-exclusions.
+
 ## 1.13.0 (2026-05-25)
 
 Build-time image pipeline. Originals stay pristine in the repo as the single source of truth; only optimized derivatives ship to the deployed `out/`. Visitors on a phone over 4G now get the page in roughly 1/15th the bytes they were receiving, with no functional, visual, or accessibility change. The repo's masters never change quality, so future re-encodes can pick a different profile without quality loss.

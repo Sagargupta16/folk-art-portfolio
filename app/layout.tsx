@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { PaperGrain } from "@/components/decor/paper-grain";
 import { ScrollProgress } from "@/components/decor/scroll-progress";
+import { ArtworkLightbox } from "@/components/gallery/artwork-lightbox";
+import { LightboxProvider } from "@/components/gallery/lightbox-context";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { MotionProvider } from "@/components/motion/motion-provider";
@@ -79,13 +81,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				</a>
 				<PaperGrain />
 				<MotionProvider>
-					<SmoothScroll />
-					<ScrollProgress />
-					<SiteHeader />
-					<div id="main" className="relative z-10">
-						{children}
-					</div>
-					<SiteFooter />
+					<LightboxProvider>
+						<SmoothScroll />
+						<ScrollProgress />
+						<SiteHeader />
+						<div id="main" className="relative z-10">
+							{children}
+						</div>
+						<SiteFooter />
+						<ArtworkLightbox />
+					</LightboxProvider>
 				</MotionProvider>
 			</body>
 		</html>

@@ -2,7 +2,24 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
-## 1.15.0 (2026-05-29)
+## 1.16.0 (2026-05-29)
+
+UI/UX enhancement pass across the conversion path, forms, and finish details. On-system throughout (gallery register, `@theme` tokens, mobile-first), every animation reduced-motion safe.
+
+### Added
+
+- **Image settle on load** ([components/gallery/art-image.tsx](components/gallery/art-image.tsx)) -- non-priority gallery images fade and lift out of a soft blur as they decode, so plates resolve into place instead of popping. LCP (priority) images and reduced-motion users skip it. The hidden state is inline `opacity:0` so the no-JS `<noscript>` net still unhides it; a ref-callback `complete` check avoids stuck-invisible cached images.
+- **Custom-order success state** ([components/forms/custom-order-form.tsx](components/forms/custom-order-form.tsx)) -- after submit, a confirmation panel (section-accent check) tells the visitor the brief is ready in WhatsApp, with the email fallback restated. The submit button relabels to "Reopen in WhatsApp".
+- **Artwork status badge + price/CTA panel** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- the detail image plate now carries the Available pill / Sold ribbon (matching the gallery card), and price + CTA + context note are grouped into one bordered panel with a full-width button for stronger conversion prominence. Sold pieces route to a "similar piece" enquiry.
+
+### Changed
+
+- **Form selects match the cream/ink fields** -- native OS chevron dropped (`appearance-none`) with a layered lucide chevron; focus rings now use the section-accent pigment. Inputs gain a subtle focus transition.
+- **Richer 404** ([app/not-found.tsx](app/not-found.tsx)) -- motif eyebrow + brushstroke + lead + routed CTAs (Browse the work / Home) on a peacock accent, replacing the bare text dead-end. Also switched its arbitrary `text-[var(--color-*)]` classes to the project's token utilities.
+
+### Fixed (a11y follow-ups from the 1.15.0 review)
+
+- **Lightbox focus continuity** -- the focus/scroll-lock effect is split from the keydown listener and gated on `isOpen` only, and the dialog now mounts once with a stable key (swaps in place) instead of remounting per navigation. The three context callbacks (`openLightbox`/`closeLightbox`/`next`/`prev`) are memoized with stable identities (ref-mirrored state), so arrow-key navigation no longer tears down the focus trap or thrashes focus to background content. The lightbox `onError` fallback resets per piece via an adjust-state-during-render guard.
 
 A-to-z audit pass: two production-breaking bugs fixed, reduced-motion holes closed, the image fallback made responsive, the home page split under the file ceiling, and the stale docs reconciled with reality.
 

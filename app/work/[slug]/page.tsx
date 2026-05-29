@@ -7,6 +7,7 @@ import { Chromacard } from "@/components/gallery/chromacard";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { getAllArtworkSlugs, getAllArtworks, getArtworkBySlug, getSite } from "@/lib/data";
+import { cn } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage, extractPhoneFromWaUrl } from "@/lib/whatsapp";
 
 interface PageProps {
@@ -58,6 +59,7 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 	});
 
 	const isAvailable = typeof art.priceInr === "number";
+	const isSold = art.status === "sold";
 
 	return (
 		<main className="mx-auto max-w-6xl px-(--container-px) py-(--section-py)">
@@ -82,6 +84,16 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 							priority
 							className="absolute inset-0 h-full w-full object-cover"
 						/>
+						{isAvailable && !isSold ? (
+							<span className="absolute left-3.5 top-3.5 z-10 rounded-full bg-bg/90 px-2.5 py-1 text-[0.65rem] font-medium uppercase tracking-meta text-ink shadow-sm backdrop-blur">
+								Available
+							</span>
+						) : null}
+						{isSold ? (
+							<span className="pointer-events-none absolute -left-9 top-4 z-10 w-32 -rotate-45 bg-ruby py-1 text-center text-[0.6rem] font-semibold uppercase tracking-meta text-bg shadow-sm sm:-left-10 sm:top-5 sm:w-36 sm:text-[0.7rem]">
+								Sold
+							</span>
+						) : null}
 					</div>
 				</Reveal>
 
@@ -124,14 +136,6 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 									<dd>{art.dimensions}</dd>
 								</>
 							) : null}
-							{isAvailable ? (
-								<>
-									<dt className="t-meta normal-case tracking-normal">Price</dt>
-									<dd className="text-base font-medium tabular-nums">
-										INR {art.priceInr?.toLocaleString("en-IN")}
-									</dd>
-								</>
-							) : null}
 						</dl>
 					</Reveal>
 
@@ -151,21 +155,35 @@ export default async function ArtworkDetailPage({ params }: PageProps) {
 					) : null}
 
 					<Reveal delayMs={260}>
-						<div className="mt-10">
+						<div className="mt-10 rounded-md border border-line bg-bg-soft p-5 sm:p-6">
+							{isAvailable ? (
+								<div className="mb-4 flex items-baseline justify-between gap-3">
+									<span className="t-meta normal-case tracking-normal text-muted">Price</span>
+									<span className="t-display text-2xl tabular-nums text-(--section-accent) sm:text-3xl">
+										INR {art.priceInr?.toLocaleString("en-IN")}
+									</span>
+								</div>
+							) : null}
 							<a
 								href={whatsappLink}
 								target="_blank"
 								rel="noopener noreferrer"
-								className={buttonVariants({ variant: "primary", size: "lg" })}
+								className={cn(buttonVariants({ variant: "primary", size: "lg" }), "w-full")}
 							>
 								<MessageCircle size={16} aria-hidden="true" />
-								{isAvailable ? "Enquire on WhatsApp" : "Ask about this piece"}
+								{isSold
+									? "Ask about a similar piece"
+									: isAvailable
+										? "Enquire on WhatsApp"
+										: "Ask about this piece"}
 							</a>
-							{!isAvailable ? (
-								<p className="mt-3 text-xs text-muted">
-									Listed in the archive. Reach out if you&rsquo;d like a similar piece commissioned.
-								</p>
-							) : null}
+							<p className="mt-3 text-xs text-muted">
+								{isSold
+									? "This piece has found a home. Reach out for a commission in the same style."
+									: isAvailable
+										? "Tap to open a pre-filled WhatsApp message. Ships from India."
+										: "Listed in the archive. Reach out if you'd like a similar piece commissioned."}
+							</p>
 						</div>
 					</Reveal>
 				</div>

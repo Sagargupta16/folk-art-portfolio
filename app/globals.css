@@ -38,6 +38,11 @@
 	--color-peacock: oklch(0.5 0.1 220);
 	--color-ruby: oklch(0.55 0.2 25);
 
+	/* Tanjore gold leaf -- the foil highlight on gallery card borders and the
+	   .gold-shimmer sweep. A fixed metallic, not a section pigment, so it lives
+	   here once instead of being re-typed at each use site. */
+	--color-gold-leaf: oklch(0.76 0.12 85);
+
 	/* Tracking + rhythm */
 	--tracking-display: -0.015em;
 	--tracking-eyebrow: 0.22em;
@@ -194,12 +199,18 @@ body {
 	background: linear-gradient(
 		90deg,
 		var(--color-accent) 0%,
-		oklch(0.76 0.12 85) 30%,
+		var(--color-gold-leaf) 30%,
 		oklch(0.85 0.08 90) 50%,
-		oklch(0.76 0.12 85) 70%,
+		var(--color-gold-leaf) 70%,
 		var(--color-accent) 100%
 	);
 	background-size: 200% 100%;
 	animation: gold-shimmer-anim 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.gold-shimmer {
+		animation: none;
+	}
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 
 /**
  * InkSplash -- a watercolor wash. Several overlapping coloured ellipses
@@ -53,6 +54,23 @@ export function InkSplash({
 }: InkSplashProps) {
 	const baseAlpha = density === "rich" ? 0.32 : 0.22;
 	const splatterAlpha = density === "rich" ? 0.45 : 0.3;
+
+	// The wash "breathes" by looping its SVG geometry (rx/ry/cx/cy). Motion's
+	// global reducedMotion="user" only neutralizes transform/layout props, NOT
+	// SVG presentation attributes, so we drop the animation here at the source
+	// for reduced-motion users -- otherwise the backdrop loops forever for them.
+	const reduceMotion = usePrefersReducedMotion();
+	const breathe = (
+		keyframes: Record<string, number[]>,
+		duration: number,
+	): Record<string, unknown> =>
+		reduceMotion
+			? {}
+			: {
+					animate: keyframes,
+					transition: { duration, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+				};
+
 	return (
 		<div
 			aria-hidden="true"
@@ -88,17 +106,15 @@ export function InkSplash({
 						ry="120"
 						fill={tone}
 						opacity={baseAlpha}
-						animate={{
-							rx: [170, 185, 160, 170],
-							ry: [120, 110, 130, 120],
-							cx: [220, 226, 214, 220],
-							cy: [170, 174, 166, 170],
-						}}
-						transition={{
-							duration: 16,
-							repeat: Infinity,
-							ease: "easeInOut",
-						}}
+						{...breathe(
+							{
+								rx: [170, 185, 160, 170],
+								ry: [120, 110, 130, 120],
+								cx: [220, 226, 214, 220],
+								cy: [170, 174, 166, 170],
+							},
+							16,
+						)}
 					/>
 					<motion.ellipse
 						cx="320"
@@ -107,17 +123,15 @@ export function InkSplash({
 						ry="90"
 						fill={tone}
 						opacity={baseAlpha * 0.7}
-						animate={{
-							rx: [120, 130, 110, 120],
-							ry: [90, 82, 98, 90],
-							cx: [320, 314, 326, 320],
-							cy: [240, 244, 236, 240],
-						}}
-						transition={{
-							duration: 18,
-							repeat: Infinity,
-							ease: "easeInOut",
-						}}
+						{...breathe(
+							{
+								rx: [120, 130, 110, 120],
+								ry: [90, 82, 98, 90],
+								cx: [320, 314, 326, 320],
+								cy: [240, 244, 236, 240],
+							},
+							18,
+						)}
 					/>
 					<motion.ellipse
 						cx="140"
@@ -126,17 +140,15 @@ export function InkSplash({
 						ry="70"
 						fill={tone}
 						opacity={baseAlpha * 0.5}
-						animate={{
-							rx: [90, 98, 82, 90],
-							ry: [70, 64, 76, 70],
-							cx: [140, 144, 136, 140],
-							cy: [240, 237, 243, 240],
-						}}
-						transition={{
-							duration: 14,
-							repeat: Infinity,
-							ease: "easeInOut",
-						}}
+						{...breathe(
+							{
+								rx: [90, 98, 82, 90],
+								ry: [70, 64, 76, 70],
+								cx: [140, 144, 136, 140],
+								cy: [240, 237, 243, 240],
+							},
+							14,
+						)}
 					/>
 
 					{/* Secondary tone bleed -- only when tone2 is provided */}
@@ -149,17 +161,15 @@ export function InkSplash({
 								ry="100"
 								fill={tone2}
 								opacity={baseAlpha * 0.85}
-								animate={{
-									rx: [130, 140, 120, 130],
-									ry: [100, 94, 106, 100],
-									cx: [380, 384, 376, 380],
-									cy: [140, 137, 143, 140],
-								}}
-								transition={{
-									duration: 20,
-									repeat: Infinity,
-									ease: "easeInOut",
-								}}
+								{...breathe(
+									{
+										rx: [130, 140, 120, 130],
+										ry: [100, 94, 106, 100],
+										cx: [380, 384, 376, 380],
+										cy: [140, 137, 143, 140],
+									},
+									20,
+								)}
 							/>
 							<motion.ellipse
 								cx="450"
@@ -168,17 +178,15 @@ export function InkSplash({
 								ry="60"
 								fill={tone2}
 								opacity={baseAlpha * 0.5}
-								animate={{
-									rx: [80, 88, 72, 80],
-									ry: [60, 54, 66, 60],
-									cx: [450, 444, 456, 450],
-									cy: [260, 263, 257, 260],
-								}}
-								transition={{
-									duration: 15,
-									repeat: Infinity,
-									ease: "easeInOut",
-								}}
+								{...breathe(
+									{
+										rx: [80, 88, 72, 80],
+										ry: [60, 54, 66, 60],
+										cx: [450, 444, 456, 450],
+										cy: [260, 263, 257, 260],
+									},
+									15,
+								)}
 							/>
 						</>
 					) : null}

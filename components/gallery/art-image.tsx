@@ -47,13 +47,14 @@ function deriveSlug(src: string): string {
 	return file.replace(/\.[^.]+$/, "");
 }
 
-function buildSrcset(slug: string, ext: "avif" | "webp"): string {
+function buildSrcset(slug: string, ext: "avif" | "webp" | "jpg"): string {
 	return WIDTHS.map((w) => `/_opt/artworks/${slug}-${w}.${ext} ${w}w`).join(", ");
 }
 
-// JPG fallback path under _opt/ -- mozjpeg-encoded at master width, ~50%
-// smaller than the baseline-encoded master in /artworks/. The master stays
-// in the repo as the single source of truth; only this fallback ships.
+// Bare-<img> JPG fallback under _opt/ -- mozjpeg-encoded at master width, used
+// only when the browser supports no <source> (no srcset at all). Browsers with
+// srcset support pick a per-width JPG from the image/jpeg <source> instead. The
+// master in /artworks/ stays in the repo as source of truth; only _opt ships.
 function jpegFallback(slug: string): string {
 	return `/_opt/artworks/${slug}.jpg`;
 }
@@ -79,6 +80,7 @@ export function ArtImage({ src, alt, className, priority = false, sizes }: ArtIm
 		<picture>
 			<source type="image/avif" srcSet={buildSrcset(slug, "avif")} sizes={sizes} />
 			<source type="image/webp" srcSet={buildSrcset(slug, "webp")} sizes={sizes} />
+			<source type="image/jpeg" srcSet={buildSrcset(slug, "jpg")} sizes={sizes} />
 			<img
 				src={jpegFallback(slug)}
 				alt={alt}

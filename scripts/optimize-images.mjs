@@ -57,53 +57,51 @@ async function isFresh(outPath, srcMtimeMs) {
 async function processOne(srcPath) {
 	const { name } = parse(srcPath);
 	const srcStat = await stat(srcPath);
-	const meta = await sharp(srcPath).metadata();
-	const srcWidth = meta.width ?? 0;
 
 	let written = 0;
 	let skipped = 0;
 
+	// One fresh sharp pipeline per output, written straight to disk. (An earlier
+	// version encoded to a buffer then re-opened it through a second sharp pass;
+	// that double-encode doubled CPU and risked re-compression. A new
+	// sharp(srcPath) per variant avoids pipeline-reuse issues without the hop.)
+	const encodeVariant = async (outPath, fmt, width) => {
+		if (await isFresh(outPath, srcStat.mtimeMs)) {
+			skipped += 1;
+			return;
+		}
+		const pipeline = sharp(srcPath, { failOn: "none" })
+			.rotate() // honor EXIF orientation, then strip below
+			.withMetadata({ orientation: undefined }); // drop EXIF + ICC
+		if (width) pipeline.resize({ width, withoutEnlargement: true });
+		if (fmt === "avif") await pipeline.avif(AVIF_OPTS).toFile(outPath);
+		else if (fmt === "webp") await pipeline.webp(WEBP_OPTS).toFile(outPath);
+		else await pipeline.jpeg(JPEG_OPTS).toFile(outPath);
+		written += 1;
+	};
+
 	for (const w of WIDTHS) {
-		// Don't upscale -- if the master is narrower than the target width,
-		// skip that variant (browser will pick the next-smaller from srcset).
-		if (w > srcWidth) continue;
-
-		for (const fmt of ["avif", "webp"]) {
-			const outPath = join(OUT_DIR, `${name}-${w}.${fmt}`);
-			if (await isFresh(outPath, srcStat.mtimeMs)) {
-				skipped += 1;
-				continue;
-			}
-
-			const pipeline = sharp(srcPath, { failOn: "none" })
-				.rotate() // honor EXIF orientation, then strip below
-				.resize({ width: w, withoutEnlargement: true })
-				.withMetadata({ orientation: undefined }); // drop EXIF + ICC
-
-			const buf =
-				fmt === "avif"
-					? await pipeline.avif(AVIF_OPTS).toBuffer()
-					: await pipeline.webp(WEBP_OPTS).toBuffer();
-
-			await sharp(buf).toFile(outPath);
-			written += 1;
+		// Emit EVERY width tier, even when the master is narrower than the
+		// target. `withoutEnlargement: true` (in encodeVariant) caps the output
+		// at the master width, so there's no upscaling -- a 1504px master just
+		// yields a ~1504px "-1600" file. We must not skip the larger tiers:
+		// the runtime references fixed filenames (art-image's srcset lists all
+		// four widths; the lightbox loads `-1600` directly), and a <picture>
+		// 404s rather than falling back when a referenced <source> is missing.
+		//
+		// AVIF + WebP for modern browsers, plus a per-width mozjpeg so the
+		// no-AVIF/no-WebP fallback path is ALSO responsive (older Safari /
+		// Firefox / in-app webviews don't download a master-width JPG into a
+		// phone-sized cell).
+		for (const fmt of ["avif", "webp", "jpg"]) {
+			await encodeVariant(join(OUT_DIR, `${name}-${w}.${fmt}`), fmt, w);
 		}
 	}
 
-	// JPG fallback at master width via mozjpeg. Replaces the baseline-encoded
-	// original in the deployed `out/` for browsers without AVIF/WebP support.
-	// The repo's `public/artworks/` master stays untouched.
-	const jpgOut = join(OUT_DIR, `${name}.jpg`);
-	if (!(await isFresh(jpgOut, srcStat.mtimeMs))) {
-		await sharp(srcPath, { failOn: "none" })
-			.rotate()
-			.withMetadata({ orientation: undefined })
-			.jpeg(JPEG_OPTS)
-			.toFile(jpgOut);
-		written += 1;
-	} else {
-		skipped += 1;
-	}
+	// Master-width JPG fallback via mozjpeg (the bare <img src> in art-image.tsx
+	// and the lightbox base src). Browsers with srcset support pick a per-width
+	// variant above; this is the last-resort full-size fallback.
+	await encodeVariant(join(OUT_DIR, `${name}.jpg`), "jpg", null);
 
 	return { name, written, skipped };
 }

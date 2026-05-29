@@ -2,6 +2,36 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.15.0 (2026-05-29)
+
+A-to-z audit pass: two production-breaking bugs fixed, reduced-motion holes closed, the image fallback made responsive, the home page split under the file ceiling, and the stale docs reconciled with reality.
+
+### Fixed
+
+- **Lightbox no longer 404s in production** ([components/gallery/artwork-lightbox.tsx](components/gallery/artwork-lightbox.tsx)) -- the viewer loaded the raw master at `/artworks/<image>`, but `prune-build.mjs` deletes `out/artworks/` from the deploy, so every lightbox image was broken on the live site. It now renders a `<picture>` over the surviving `_opt/` variants (AVIF/WebP at 1600w + master-width mozjpeg fallback), deriving the slug the same way [art-image.tsx](components/gallery/art-image.tsx) does, with an `onError` that drops to the master JPG if a variant is missing.
+- **Every width tier is now emitted for narrow masters** ([scripts/optimize-images.mjs](scripts/optimize-images.mjs)) -- the optimizer skipped any width wider than the master (`if (w > srcWidth) continue`), so the two masters under 1600px (`gond-camel` 1504w, `tree-with-figures` 1441w) never got `-1600` variants. Both the lightbox (`-1600` direct) and `art-image`'s srcset reference fixed filenames, and a `<picture>` 404s rather than falling back, so those two pieces rendered broken. Now every tier is written, capped at master width by `withoutEnlargement` (no upscaling). Verified against a built `out/`: all 13 referenced variants exist for all 21 pieces.
+- **3D card tilt now has a vanishing point** ([components/gallery/artwork-card.tsx](components/gallery/artwork-card.tsx)) -- the perspective wrapper used `perspective-1000`, which compiles to no CSS in Tailwind 4, so the `rotateX/rotateY` springs rendered flat. Changed to `perspective-[1000px]`.
+- **`prune-build` reports the real freed size** ([scripts/prune-build.mjs](scripts/prune-build.mjs)) -- it logged `stat(dir).size` (~0) as MB freed; now sums file sizes recursively (reports ~27 MB).
+
+### Changed
+
+- **Reduced-motion now covers the whole motion surface.** Gated the card tilt + glare and the InkSplash "breathing" wash behind `usePrefersReducedMotion()` -- Motion's library-level `reducedMotion="user"` does not neutralize raw `useSpring` transforms or animated SVG `rx/ry` attributes, so these looped/tilted for reduced-motion users. Added a `prefers-reduced-motion` guard to the `.gold-shimmer` utility too ([app/globals.css](app/globals.css)).
+- **JPEG fallback is now responsive** ([scripts/optimize-images.mjs](scripts/optimize-images.mjs), [components/gallery/art-image.tsx](components/gallery/art-image.tsx)) -- per-width mozjpeg variants (400/800/1200/1600) emitted and served via an `image/jpeg <source>` srcset, so browsers without AVIF/WebP no longer download a master-width JPG into a phone cell. Dropped the redundant encode-to-buffer-then-re-encode round-trip in the optimizer.
+- **Lightbox is now an accessible dialog** -- added `role="dialog"` + `aria-modal` + `aria-labelledby`, a Tab focus trap, and focus restoration to the trigger on close. Fixed the no-op `AnimatePresence` (the conditional child now lives inside it, keyed by slug, so exit animations play). The enquiry CTA color is tokenized (`bg-accent`) so it follows dark mode; the gallery card gold borders use a new `--color-gold-leaf` token.
+- **Lightbox prev/next works from the grid** -- cards now pass their sibling set (the filtered `/work` grid or a home rail) into `openLightbox`, so arrow keys and the prev/next buttons sweep the collection instead of opening single-item.
+- **Home page split under the 500-line ceiling** -- `app/page.tsx` (690 lines) broke into `components/home/` (hero, section-shell, about/workshops/custom-orders/contact teasers); the route is now ~135 lines. Selected Work prioritizes the first 3 cards (was 1) to match the desktop 3-col LCP.
+- **Lightbox no longer reaches through the data seam** -- the client component pulled `getSite()` directly; the WhatsApp phone is now read server-side and threaded through `LightboxProvider`, keeping the Phase 2 DB swap a server-only change.
+
+### Added
+
+- **`app/sitemap.ts`** -- static `MetadataRoute` sitemap emitted to `out/sitemap.xml` (the file `robots.txt` already advertised but nothing generated). Routes + per-artwork slugs come through the data seam and base URL from `lib/site-config`.
+- **`pnpm preview`** script -- builds then serves `out/` locally (the command `deploy.yml` referenced but didn't exist).
+- **Turbopack dev server** -- `pnpm dev` now runs `next dev --turbopack` (Rust bundler, multi-core). Cold start ~1.1s vs the webpack dev server's several seconds; faster HMR. Dev-only, production build is unchanged.
+
+### Docs
+
+- Reconciled stale documentation: rewrote the "Skeleton repo" README to match the shipped app; updated `CLAUDE.md`'s motion rule to match `MEMORY.md` (3D tilt + watercolor backdrops are sanctioned, mesh/particles + custom cursor banned) and fixed the branch reference; corrected `package.json` name (`kalchar-by-megha`) and `engines` (`>=22`); fixed the `data/artworks.json` schema note and `robots.txt` generator reference.
+
 ## 1.14.0 (2026-05-27)
 
 Bespoke motion pass on the gallery surface. Cards now tilt in 3D under the cursor with spring physics, click into a Zen-mode lightbox (zoomable, keyboard-navigable), and the page-header watercolor blooms breathe with de-synced 14-20s loops so the composition never visibly repeats. Native pointer kept -- no custom cursor (an earlier draft tried one and it added perceptible lag, so it's reverted and re-banned in `MEMORY.md`).

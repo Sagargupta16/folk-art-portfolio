@@ -2,7 +2,7 @@
 	"_notes": [
 		"Single source of truth for artwork metadata. Each entry is one painting.",
 		"'image' is the filename under public/artworks/. Add the file there, then append an entry here.",
-		"Schema is documented in src/lib/images.ts; bad shapes surface as compile errors via `pnpm typecheck`."
+		"Schema is the Artwork type in lib/types.ts; lib/data.ts validates each row at build and names a bad slug."
 	],
 	"items": [
 		{

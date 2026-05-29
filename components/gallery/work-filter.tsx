@@ -83,7 +83,11 @@ export function WorkFilter({ styles, items }: WorkFilterProps) {
 				<ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:gap-y-14 lg:grid-cols-3">
 					{visible.map((art, i) => (
 						<Reveal key={art.slug} as="li" delayMs={Math.min(i, 5) * 60}>
-							<ArtworkCard artwork={art as Artwork} priority={i < 3} />
+							<ArtworkCard
+								artwork={art as Artwork}
+								siblings={visible as Artwork[]}
+								priority={i < 3}
+							/>
 						</Reveal>
 					))}
 				</ul>

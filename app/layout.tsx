@@ -9,10 +9,12 @@ import { MotionProvider } from "@/components/motion/motion-provider";
 import { SmoothScroll } from "@/components/motion/smooth-scroll";
 import { getSite } from "@/lib/data";
 import { siteConfig } from "@/lib/site-config";
+import { extractPhoneFromWaUrl } from "@/lib/whatsapp";
 import { fontBody, fontDevanagari, fontDisplay } from "./fonts";
 import "./globals.css";
 
 const site = getSite();
+const whatsappPhone = extractPhoneFromWaUrl(site.contact.whatsapp.url);
 
 export const metadata: Metadata = {
 	metadataBase: new URL(siteConfig.url),
@@ -81,7 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				</a>
 				<PaperGrain />
 				<MotionProvider>
-					<LightboxProvider>
+					<LightboxProvider whatsappPhone={whatsappPhone}>
 						<SmoothScroll />
 						<ScrollProgress />
 						<SiteHeader />

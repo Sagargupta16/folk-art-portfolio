@@ -1,6 +1,351 @@
 # Changelog
 
-All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/) -- bump rules in [`CLAUDE.md`](CLAUDE.md) -> "Branching and releases".
+All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
+
+## 1.16.0 (2026-05-29)
+
+UI/UX enhancement pass across the conversion path, forms, and finish details. On-system throughout (gallery register, `@theme` tokens, mobile-first), every animation reduced-motion safe.
+
+### Added
+
+- **Image settle on load** ([components/gallery/art-image.tsx](components/gallery/art-image.tsx)) -- non-priority gallery images fade and lift out of a soft blur as they decode, so plates resolve into place instead of popping. LCP (priority) images and reduced-motion users skip it. The hidden state is inline `opacity:0` so the no-JS `<noscript>` net still unhides it; a ref-callback `complete` check avoids stuck-invisible cached images.
+- **Custom-order success state** ([components/forms/custom-order-form.tsx](components/forms/custom-order-form.tsx)) -- after submit, a confirmation panel (section-accent check) tells the visitor the brief is ready in WhatsApp, with the email fallback restated. The submit button relabels to "Reopen in WhatsApp".
+- **Artwork status badge + price/CTA panel** ([app/work/[slug]/page.tsx](app/work/[slug]/page.tsx)) -- the detail image plate now carries the Available pill / Sold ribbon (matching the gallery card), and price + CTA + context note are grouped into one bordered panel with a full-width button for stronger conversion prominence. Sold pieces route to a "similar piece" enquiry.
+
+### Changed
+
+- **Form selects match the cream/ink fields** -- native OS chevron dropped (`appearance-none`) with a layered lucide chevron; focus rings now use the section-accent pigment. Inputs gain a subtle focus transition.
+- **Richer 404** ([app/not-found.tsx](app/not-found.tsx)) -- motif eyebrow + brushstroke + lead + routed CTAs (Browse the work / Home) on a peacock accent, replacing the bare text dead-end. Also switched its arbitrary color/tracking classes to the project's token utilities (`text-muted`, `text-accent`).
+
+### Fixed (a11y follow-ups from the 1.15.0 review)
+
+- **Lightbox focus continuity** -- the focus/scroll-lock effect is split from the keydown listener and gated on `isOpen` only, and the dialog now mounts once with a stable key (swaps in place) instead of remounting per navigation. The three context callbacks (`openLightbox`/`closeLightbox`/`next`/`prev`) are memoized with stable identities (ref-mirrored state), so arrow-key navigation no longer tears down the focus trap or thrashes focus to background content. The lightbox `onError` fallback resets per piece via an adjust-state-during-render guard.
+
+A-to-z audit pass: two production-breaking bugs fixed, reduced-motion holes closed, the image fallback made responsive, the home page split under the file ceiling, and the stale docs reconciled with reality.
+
+### Fixed
+
+- **Lightbox no longer 404s in production** ([components/gallery/artwork-lightbox.tsx](components/gallery/artwork-lightbox.tsx)) -- the viewer loaded the raw master at `/artworks/<image>`, but `prune-build.mjs` deletes `out/artworks/` from the deploy, so every lightbox image was broken on the live site. It now renders a `<picture>` over the surviving `_opt/` variants (AVIF/WebP at 1600w + master-width mozjpeg fallback), deriving the slug the same way [art-image.tsx](components/gallery/art-image.tsx) does, with an `onError` that drops to the master JPG if a variant is missing.
+- **Every width tier is now emitted for narrow masters** ([scripts/optimize-images.mjs](scripts/optimize-images.mjs)) -- the optimizer skipped any width wider than the master (`if (w > srcWidth) continue`), so the two masters under 1600px (`gond-camel` 1504w, `tree-with-figures` 1441w) never got `-1600` variants. Both the lightbox (`-1600` direct) and `art-image`'s srcset reference fixed filenames, and a `<picture>` 404s rather than falling back, so those two pieces rendered broken. Now every tier is written, capped at master width by `withoutEnlargement` (no upscaling). Verified against a built `out/`: all 13 referenced variants exist for all 21 pieces.
+- **3D card tilt now has a vanishing point** ([components/gallery/artwork-card.tsx](components/gallery/artwork-card.tsx)) -- the perspective wrapper used `perspective-1000`, which compiles to no CSS in Tailwind 4, so the `rotateX/rotateY` springs rendered flat. Changed to `perspective-[1000px]`.
+- **`prune-build` reports the real freed size** ([scripts/prune-build.mjs](scripts/prune-build.mjs)) -- it logged `stat(dir).size` (~0) as MB freed; now sums file sizes recursively (reports ~27 MB).
+
+### Changed
+
+- **Reduced-motion now covers the whole motion surface.** Gated the card tilt + glare and the InkSplash "breathing" wash behind `usePrefersReducedMotion()` -- Motion's library-level `reducedMotion="user"` does not neutralize raw `useSpring` transforms or animated SVG `rx/ry` attributes, so these looped/tilted for reduced-motion users. Added a `prefers-reduced-motion` guard to the `.gold-shimmer` utility too ([app/globals.css](app/globals.css)).
+- **JPEG fallback is now responsive** ([scripts/optimize-images.mjs](scripts/optimize-images.mjs), [components/gallery/art-image.tsx](components/gallery/art-image.tsx)) -- per-width mozjpeg variants (400/800/1200/1600) emitted and served via an `image/jpeg <source>` srcset, so browsers without AVIF/WebP no longer download a master-width JPG into a phone cell. Dropped the redundant encode-to-buffer-then-re-encode round-trip in the optimizer.
+- **Lightbox is now an accessible dialog** -- added `role="dialog"` + `aria-modal` + `aria-labelledby`, a Tab focus trap, and focus restoration to the trigger on close. Fixed the no-op `AnimatePresence` (the conditional child now lives inside it, keyed by slug, so exit animations play). The enquiry CTA color is tokenized (`bg-accent`) so it follows dark mode; the gallery card gold borders use a new `--color-gold-leaf` token.
+- **Lightbox prev/next works from the grid** -- cards now pass their sibling set (the filtered `/work` grid or a home rail) into `openLightbox`, so arrow keys and the prev/next buttons sweep the collection instead of opening single-item.
+- **Home page split under the 500-line ceiling** -- `app/page.tsx` (690 lines) broke into `components/home/` (hero, section-shell, about/workshops/custom-orders/contact teasers); the route is now ~135 lines. Selected Work prioritizes the first 3 cards (was 1) to match the desktop 3-col LCP.
+- **Lightbox no longer reaches through the data seam** -- the client component pulled `getSite()` directly; the WhatsApp phone is now read server-side and threaded through `LightboxProvider`, keeping the Phase 2 DB swap a server-only change.
+
+### Added
+
+- **`app/sitemap.ts`** -- static `MetadataRoute` sitemap emitted to `out/sitemap.xml` (the file `robots.txt` already advertised but nothing generated). Routes + per-artwork slugs come through the data seam and base URL from `lib/site-config`.
+- **`pnpm preview`** script -- builds then serves `out/` locally (the command `deploy.yml` referenced but didn't exist).
+- **Turbopack dev server** -- `pnpm dev` now runs `next dev --turbopack` (Rust bundler, multi-core). Cold start ~1.1s vs the webpack dev server's several seconds; faster HMR. Dev-only, production build is unchanged.
+
+### Docs
+
+- Reconciled stale documentation: rewrote the "Skeleton repo" README to match the shipped app; updated `CLAUDE.md`'s motion rule to match `MEMORY.md` (3D tilt + watercolor backdrops are sanctioned, mesh/particles + custom cursor banned) and fixed the branch reference; corrected `package.json` name (`kalchar-by-megha`) and `engines` (`>=22`); fixed the `data/artworks.json` schema note and `robots.txt` generator reference.
+
+## 1.14.0 (2026-05-27)
+
+Bespoke motion pass on the gallery surface. Cards now tilt in 3D under the cursor with spring physics, click into a Zen-mode lightbox (zoomable, keyboard-navigable), and the page-header watercolor blooms breathe with de-synced 14-20s loops so the composition never visibly repeats. Native pointer kept -- no custom cursor (an earlier draft tried one and it added perceptible lag, so it's reverted and re-banned in `MEMORY.md`).
+
+### Added
+
+- **Lightbox viewer** ([components/gallery/artwork-lightbox.tsx](components/gallery/artwork-lightbox.tsx) + [components/gallery/lightbox-context.tsx](components/gallery/lightbox-context.tsx)) -- React-context-driven fullscreen Zen viewer mounted at the layout root. Click any artwork card to open; arrow keys navigate, Escape closes, body scroll locks while open. Image zooms via `transformOrigin` panning (scales to 1.8x with the origin tracking the cursor), so panning is implicit and stays GPU-composited. WhatsApp inquiry CTA pre-fills the catalog message. `<Link>` to `/work/<slug>` is preserved for SEO + middle-click new-tab; `e.preventDefault()` only fires on plain left-click.
+- **3D card tilt + gold double-border on `<ArtworkCard>`** ([components/gallery/artwork-card.tsx](components/gallery/artwork-card.tsx)) -- `useMotionValue` -> `useSpring` -> `useTransform` chain converts mouse position into ±7deg `rotateX/rotateY`. A radial-gradient glare element follows the cursor via CSS-var-bound motion values. Two stacked Tanjore gold borders (solid + dashed, oklch(0.76 0.12 85)) bloom in on hover.
+- **`.gold-shimmer` utility** ([app/globals.css](app/globals.css)) -- 6s ease-in-out infinite gradient sweep with three OKLCH gold stops, reusable as a foil-leaf surface.
+
+### Changed
+
+- **Ink-splash blooms now breathe** ([components/decor/ink-splash.tsx](components/decor/ink-splash.tsx)) -- all wash ellipses converted to `motion.ellipse` with prime-ish 14-20s loop durations on `rx/ry/cx/cy`. Ellipses never pulse in sync, so the watercolor reads as organic rather than throbbing. Gaussian-blur filter still does the feathering; only the underlying shape values animate.
+
+### Removed
+
+- **Custom cursor** -- an earlier draft on this branch ([components/ui/custom-cursor.tsx](components/ui/custom-cursor.tsx)) added a two-spring gold-leaf cursor with hover-detection. Even with damping 45 / stiffness 400 it added perceptible lag versus the OS pointer, which is the wrong tradeoff on a gallery site where visitors are scanning many cards. Reverted and re-banned in `MEMORY.md` motion-exclusions.
+
+## 1.13.0 (2026-05-25)
+
+Build-time image pipeline. Originals stay pristine in the repo as the single source of truth; only optimized derivatives ship to the deployed `out/`. Visitors on a phone over 4G now get the page in roughly 1/15th the bytes they were receiving, with no functional, visual, or accessibility change. The repo's masters never change quality, so future re-encodes can pick a different profile without quality loss.
+
+### Added
+
+- **Real `scripts/optimize-images.mjs`** -- replaces the stub. Reads each `public/artworks/<slug>.jpg` master and emits AVIF + WebP variants at 400 / 800 / 1200 / 1600 widths, plus a mozjpeg-encoded JPG fallback at master width, into `public/_opt/artworks/`. Idempotent (mtime-cached), strips EXIF + ICC, honors EXIF orientation. Tuned for hand-painted folk art (AVIF q60, WebP q72, JPG q82 mozjpeg). 21 sources -> 168 variants in ~80s cold, ~7s warm.
+- **Post-build prune** ([scripts/prune-build.mjs](scripts/prune-build.mjs)) -- after `next build` writes to `out/`, deletes `out/artworks/` (the raw masters Next copied through `public/`). Refuses to delete if `out/_opt/artworks/` is missing -- bails loudly so a missing fallback never reaches deploy. The repo's `public/artworks/` stays untouched.
+
+### Changed
+
+- **`<ArtImage>` rewritten as native `<picture>`** ([components/gallery/art-image.tsx](components/gallery/art-image.tsx)) -- AVIF + WebP `<source>` srcsets at all four widths, `<img>` fallback to the mozjpeg JPG. The browser picks the smallest variant whose width covers `rendered CSS width x DPR`, so a 180px-wide phone cell pulls the 400px AVIF (~30-50 KB) instead of the 2 MB master. Drops the `next/image` dependency for catalog images -- on `output: "export"` with `images.unoptimized: true`, `next/image` was just emitting a plain `<img>` to the master anyway. `priority` now controls `loading` / `decoding` / `fetchPriority` directly. Reduced motion, hover, error fallback all unchanged.
+- **`/work/[slug]` Open Graph image** points at `/_opt/artworks/<slug>-1200.webp` instead of the master JPG, so social-card crawlers fetch ~150 KB instead of ~2 MB.
+- **`pnpm build`** chain now runs `optimize:images` -> `next build` -> `prune-build`. The deployed `out/` shrinks from ~32 MB to ~14-16 MB; the visible bandwidth saving is far larger because most browsers pull AVIF (smallest of the three).
+- **Browser tab title** ([data/site.json](data/site.json)) -- `brand.title` is now "Kalचर by Megha" (was "Megha Seth"). Same Devanagari mark the header wordmark uses, so the tab, the OG card, the Twitter card, and the header all read the same brand. Sub-routes still get `Work · Kalcher by Megha` etc. via the layout's title template.
+- **Logo in header** ([components/layout/site-header-client.tsx](components/layout/site-header-client.tsx)) -- the brand-mark Link now leads with a 32-36 px circular `logo.jpg` ring before the wordmark. Mobile-first: 32 px at base, 36 px at md:. Eager + priority decode so it never lags the wordmark next to it. Hover lights the ring with the section accent in step with the wordmark colour change.
+
+## 1.12.0 (2026-05-25)
+
+Three voice-and-positioning lifts inspired by a peer artist's site (Shivani Gupta, "trippin-on-hue / The Neutrals -- India"). Captured the page with Playwright, read its 30-section structure, and pulled the patterns that translate to ours without copying anything that hurts mobile or accessibility.
+
+### Added
+
+- **Capability chip rail on the home hero** ([app/page.tsx](app/page.tsx)) -- between the hero description and the CTA buttons, a wrap-friendly row of style chips ("Madhubani", "Pichwai", "Lippan", "Gond", "Texture", "Mixed Media") sourced from `getSite().styles`. Tells a cold WhatsApp / Instagram visitor what Megha actually paints in 2 seconds, before they need to scroll. Mobile-first: smaller chip type at base, scales up at sm:; `flex-wrap` keeps the rail honest at every width. Same data drives the `/work` filter, so positioning and navigation stay aligned.
+- **`SOLD` corner ribbon on artwork cards** ([components/gallery/artwork-card.tsx](components/gallery/artwork-card.tsx)) -- when an artwork's `status` is `"sold"`, a diagonal ribbon rides the top-left corner of the image plate in the ruby pigment. `pointer-events-none` so the whole card stays clickable through the ribbon (the link still routes to the detail page). The "Available" pill stays mutually exclusive with the ribbon. The ribbon also weaves into the link's `aria-label` ("Title, Style, sold") so screen readers don't miss the state. Today no rows are marked sold (Phase 1 derives status from price), but the wiring activates the moment any row gets `"status": "sold"` in `data/artworks.json` -- inventory honesty as a feature, social proof for visitors.
+
+### Changed
+
+- **`/work` color-block header band** ([app/work/page.tsx](app/work/page.tsx)) -- the page now stacks two full-bleed sections: a `bg-bg-soft` header band (eyebrow, H1, BrushStroke, lead, count), then a `bg-bg` gallery band (filter pills + grid). Gives /work a museum-room silhouette without fragmenting gallery rows or breaking on the mobile 2-col grid. Removed the redundant `mt-10 sm:mt-12` from [components/gallery/work-filter.tsx](components/gallery/work-filter.tsx) -- the section's `py-(--section-py)` now owns the top space.
+
+## 1.11.3 (2026-05-25)
+
+Reverts the painterly background from every subpage. 1.11.0 carried the home hero's recipe (PigmentWash + rich-tone2 InkSplash + counter-splash) onto `/work`, `/about`, `/workshops`, `/custom-orders`, `/contact` so the visual register wouldn't collapse past `/`. After living with it, the wash on subpages read busy rather than painterly -- it competed with the editorial copy on `/about`, the dense form on `/custom-orders`, the card grids on `/work` and `/workshops`, and the channel hierarchy on `/contact`. Home is the right place for the painterly hero (the whole page is decor + headline by design); subpages are reading and interaction surfaces and want a calmer ground. Decor components stay in the codebase -- the home page is unchanged.
+
+### Changed
+
+- **Subpages drop PigmentWash + paired InkSplashes.** [app/work/page.tsx](app/work/page.tsx), [app/about/page.tsx](app/about/page.tsx), [app/workshops/page.tsx](app/workshops/page.tsx), [app/custom-orders/page.tsx](app/custom-orders/page.tsx), [app/contact/page.tsx](app/contact/page.tsx) -- removed the JSX block right after the `<main>` open. Section accent tokens (ruby / marigold / pichwai / vermillion / peacock) still drive eyebrow underlines, accent rules, hover rings, and pull-quote borders, so the per-route identity stays without the background bleed.
+- **`/custom-orders` form panel** ([app/custom-orders/page.tsx](app/custom-orders/page.tsx)) -- the `relative z-10 bg-bg` container that was added in 1.11.2 to defend input legibility against the wash is no longer needed; reverted to `bg-bg-soft` to match the rest of the surface tokens.
+
+## 1.11.2 (2026-05-25)
+
+Visual-audit pass with Playwright. Captured every route at mobile (390x844) and desktop (1440x900), primed the IntersectionObserver-driven `<Reveal>` blocks via programmatic scroll so the fullPage screenshots actually show the below-fold sections, then read each PNG and the per-route console log. Three reproducible findings: two LCP-priority warnings on above-fold images, and a contrast issue on `/custom-orders` where the orange wash bled across the form panel and made input fields harder to read. All three fixed; remaining LCP warnings on `/work` desktop / home mobile turned out to be dev-mode flakiness (LCP candidate varies per load when many same-size cards are above-fold) and don't reproduce on the production build.
+
+### Fixed
+
+- **`priority` on the first 3 cards of `/work`** ([components/gallery/work-filter.tsx](components/gallery/work-filter.tsx)) -- the gallery page's first row is the LCP candidate at both viewports; `ArtworkCard` already accepted `priority` but `WorkFilter` wasn't passing it. Now `priority={i < 3}` on the visible grid.
+- **`priority` on the home Selected Work first card** ([app/page.tsx](app/page.tsx)) -- on mobile the hero piece sits in its own block and the first card of the Selected Work rail is the next LCP candidate. Pass `priority={i === 0}`.
+- **`priority` on the Instagram QR** ([app/contact/page.tsx](app/contact/page.tsx)) -- the QR plate is the LCP image on `/contact` mobile (it sits above the fold immediately after the WhatsApp hero). Now eagerly fetched.
+- **Form contrast on `/custom-orders`** ([app/custom-orders/page.tsx](app/custom-orders/page.tsx)) -- the rich vermillion + marigold splash had a 70%-wide plume that bled across the form column at sm:+ widths, tinting input field backgrounds and reducing legibility on the densest interactive surface in the site. Tightened the splash plume to `sm:w-[52%]` (kept on the left rail behind the "How it works" steps), pulled the counter-splash smaller and lower so it doesn't crowd the form either, and switched the form panel from `bg-bg-soft` to a `relative z-10 ... bg-bg` container so the cream ground sits opaque above the wash. Painterly register preserved on the left rail; form column now reads cleanly.
+
+## 1.11.1 (2026-05-25)
+
+Audit-pass polish. After 1.11.0 shipped, an a-to-z code review surfaced a handful of small inconsistencies: stale "Hi Megha" voice in three WhatsApp message templates (the page copy moved to plural-voice in 1.7.0 but the deep-link drafts didn't follow), a token-overriding `tracking-tight` on the footer wordmark, a flat copyright bar where the attribution sat at the same weight as the legal line, and three components still concatenating className strings by hand instead of using the project's `cn()` helper. No visual redesign -- just closing the gap between the voice the visitor reads and the message they tap through to send.
+
+### Changed
+
+- **WhatsApp message templates drop "Megha" from the salutation.** [lib/whatsapp.ts](lib/whatsapp.ts) (buy + custom-order) and [app/workshops/page.tsx](app/workshops/page.tsx) (per-workshop enquire) now open with `Hi, I'd like to ...` instead of `Hi Megha, I'd like to ...`. Matches the plural-voice page copy ("we'll get back to you") so the visitor's reading register and their pre-filled draft register stay aligned.
+- **Footer wordmark** ([components/layout/site-footer.tsx](components/layout/site-footer.tsx)) -- removes the `tracking-tight` Tailwind utility (which silently overrode the `--tracking-display` token), bumps to `text-3xl` / `sm:text-[2rem]` with `leading-none`, and switches the location line to a `t-meta`-style `uppercase tracking-meta` micro-line so the brand block reads as three deliberate weights (display word / body tagline / meta location) instead of three same-size lines.
+- **Footer copyright bar** -- bumps the "Site by Sagar Gupta" attribution to `text-[0.65rem]` + `opacity-50` so it sits visibly below the legal line in the visual hierarchy. Same content, clearer intent.
+- **`cn()` adoption.** [components/decor/brush-stroke.tsx](components/decor/brush-stroke.tsx), [components/decor/motif-eyebrow.tsx](components/decor/motif-eyebrow.tsx), and [components/gallery/chromacard.tsx](components/gallery/chromacard.tsx) now compose className strings with `cn()` from `@/lib/utils` instead of template-literal concat with `.trim()` / fallback empty strings. Same output, but the helper handles falsy guards consistently and matches the rest of the codebase.
+
+### Fixed
+
+- **`ScrollProgress` JSDoc** ([components/decor/scroll-progress.tsx](components/decor/scroll-progress.tsx)) -- the comment claimed the bar "sits behind everything except modals (z-50)" but z-50 is a high z-index, so the bar actually sits above the page chrome. Comment now matches the implementation.
+
+## 1.11.0 (2026-05-25)
+
+Subpage backgrounds now match the home hero recipe, and `/contact` gains a scannable Instagram QR. The 1.8-1.9 painterly register stopped at the home hero -- every other route ran with one subtle splash on cream, so the visual weight collapsed past `/`. Each subpage now layers a rich primary splash with a `tone2` second-pigment bleed plus a subtle counter-splash on the opposite side, in pigment pairings tuned per route.
+
+### Added
+
+- **Instagram QR card on `/contact`** ([app/contact/page.tsx](app/contact/page.tsx)) -- 192-224px QR plate sits between the WhatsApp hero plate and the IG/Email two-up grid. Themed bg-soft surface, peacock hover ring, "Scan to follow" eyebrow + "Or scan, point, follow" headline + a "Open Instagram instead" ghost link for desktop visitors who'd rather tap. Image at [public/instagram-qr.png](public/instagram-qr.png), source-of-truth URL still pulled from `data/site.json` `contact.instagram.url`.
+
+### Changed
+
+- **Every subpage hero gets the home recipe.** Replaces the single subtle right-aligned `InkSplash` with a rich left-aligned splash (with a complementary `tone2` bleed) plus a subtle right-aligned counter-splash. Same SVG primitives, same geometry as the home hero -- only the pigments rotate. The painterly register now reads consistent across all six routes, not just `/`.
+- **Subpage pigment pairings:**
+  - `/work` -- ruby primary + vermillion bleed, peacock counter
+  - `/about` -- marigold primary + vermillion bleed, pichwai counter
+  - `/workshops` -- pichwai primary + marigold bleed, peacock counter
+  - `/custom-orders` -- vermillion primary + marigold bleed, ruby counter
+  - `/contact` -- peacock primary + pichwai bleed, marigold counter
+
+## 1.10.0 (2026-05-25)
+
+Single-pager. Most arrivals are WhatsApp / Instagram link-taps -- a flat short home plus four full subpages was over-routing visitors who just wanted to scroll once. The home now carries a teaser of every section inline; the detail pages stay intact for deep-links and longer reads. No page is removed; nothing in the catalog moves.
+
+### Added
+
+- **Workshops teaser on `/`** -- 3-card preview of the top sessions (by `order`) in the pichwai pigment, with motif eyebrow `lotus` numbered `04`. Cards mirror the `/workshops` register (title + line-clamped blurb + duration pill) but drop the per-card enquire link to keep the teaser reading as a sample, not a list. "See all N sessions ->" footer link routes to the full page. Hidden when there are zero workshops in `data/site.json`.
+- **Custom orders teaser on `/`** -- 3-step process strip (Brief / Talk / Painted, approved, shipped) in the vermillion pigment, with motif eyebrow `mirror-diamond` numbered `05`. Primary "Start on WhatsApp" button deep-links into `wa.me/<phone>?text=...` with a short pre-filled message; secondary "Open the brief form ->" link routes to the full `/custom-orders` page when the visitor wants the structured form. Lifts the same `TeaserStep` shape used on the full page.
+- **Contact teaser on `/`** -- 3-channel row (WhatsApp highlighted, Instagram, Email) in the peacock pigment, with motif eyebrow `rangoli-star` numbered `06`. WhatsApp card gets a tinted border so the fastest channel reads first on mobile. "Full contact page ->" link routes to `/contact` for the hero-plate version with the response-time chip.
+
+### Changed
+
+- **Home page tree is now 7 sections** -- Hero / Marquee / 01 Selected work / 02 Available now / 03 About teaser / 04 Workshops teaser / 05 Custom orders teaser / 06 Contact teaser. Replaces the 5-section flow that ended at "Workshops + Custom Orders CTAs" with no contact path inline.
+- **`CtaPair` removed.** The two-card Workshops + Custom Orders block on the home page is replaced by the three full teaser sections above; the same destinations are still reachable from header nav, the new in-page links, and the footer. Section composition lock in [MEMORY.md](MEMORY.md) updated.
+
+## 1.9.0 (2026-05-25)
+
+Painterly register, take two. The 1.8.0 layer landed but read too quiet on the cream ground -- paper grain at 7%, pigment wash at 12% alpha, and no shape-language anywhere. This release adds two new SVG primitives (ink splash + brushstroke), cranks the existing grain and wash, and fixes two regressions surfaced by a manual audit. Still no 3D, no particles, no WebGL -- the painterly feel comes from organic shapes, not from animating a render loop.
+
+### Added
+
+- **`InkSplash`** ([components/decor/ink-splash.tsx](components/decor/ink-splash.tsx)) -- watercolor wash. Several overlapping coloured ellipses passed through one `feGaussianBlur` filter so the edges feather outward like wet paint on cream paper, plus a hand-placed scatter of crisp splatter dots OUTSIDE the filter so they stay sharp like a brush flick. `mix-blend-multiply` (light) / `mix-blend-screen` (dark) so the wash composites correctly on the cream / ink ground. Props: `tone` (defaults to `--section-accent`), optional `tone2` for two-pigment bleed (used on the home hero: terracotta blooming into marigold), `align="left" | "right"`, `density="subtle" | "rich"`. Page headers all use the same composition (top-right, density="subtle", route's `--section-accent`); only the home hero gets the rich variant + tone2 blend. Replaces the first-pass blob, which read as a flat coloured shape rather than paint.
+- **`BrushStroke`** ([components/decor/brush-stroke.tsx](components/decor/brush-stroke.tsx)) -- long curved horizontal sweep in `--section-accent` that draws in like a fresh brush stroke when scrolled into view (1.2s `pathLength` reveal + a thinner trailing wisp at 0.4s delay for bristle-drag feel). Used as the underline beneath every page H1 and section H2, replacing the implicit underline. Reduced-motion is handled by the global `MotionConfig reducedMotion="user"` so no SSR/CSR mismatch (lesson from `MotifEyebrow`).
+
+### Changed
+
+- **Paper grain opacity 0.07 -> 0.11.** The cream-paper texture now reads on first paint instead of needing inspector-eyes to find. Still subtle; still doesn't compete with artwork photos.
+- **Pigment wash alpha bumped: subtle 0.12 -> 0.18, soft 0.18 -> 0.26.** Each section's pigment now actually glows into the top of its `<main>` rather than hinting at it. /work reads ruby, /about reads marigold, /workshops reads pichwai, /custom-orders reads vermillion, /contact reads peacock -- visibly.
+- **Every page H1 + section H2 gains a `<BrushStroke />` underneath.** Home Selected Work / Available Now / About teaser; /work, /about, /workshops, /custom-orders, /contact. Each draws in once when the heading enters view.
+- **Home hero gains two ink splashes** (left soft, right subtle). About teaser, /about, /custom-orders, /work get a left-aligned splash; /workshops, /contact get a right-aligned splash. The pigment in each splash inherits the route's `--section-accent`, so the same component reads as marigold on /about and pichwai on /workshops.
+
+### Fixed
+
+- **Palette swatches not rendering on `/work` cards.** [components/gallery/work-filter.tsx:19-32](components/gallery/work-filter.tsx) typed `GalleryItem` as a `Pick<Artwork, ...>` that omitted `palette`, then [app/work/page.tsx:58-72](app/work/page.tsx) mapped each artwork to that shape -- silently dropping `palette` before passing to the filter island. The `art as Artwork` cast on render hid the missing field from TypeScript. Added `palette` to both the picked-fields list and the map. The Chromacard strip now appears under every artwork card on /work, matching the home Selected Work rail.
+- **Hydration mismatch on `MotifEyebrow`.** `useReducedMotion()` returns `null` during SSR and the actual preference after hydration, which made `initial={reduced ? false : { opacity: 0 }}` flip between two values across the boundary. Removed the local branch -- the global `MotionConfig reducedMotion="user"` in `MotionProvider` already does the work upstream and never SSR-mismatches.
+
+## 1.8.0 (2026-05-25)
+
+Painterly register, take one. The site was type + photos on flat cream -- no gradients, no textures, no folk-art motifs visible anywhere despite the tradition being named in every page's copy. This release adds the first thematic decoration layer: ambient paper grain, pigment washes, and a hand-drawn motif library. Restrained-motion spec stays locked: no 3D, no particles, no decorative backdrops in the noise sense -- the additions are thematic, single-stroke, and reveal-driven.
+
+### Added
+
+- **`PaperGrain`** ([components/decor/paper-grain.tsx](components/decor/paper-grain.tsx)) -- inline SVG `feTurbulence` layer fixed to the viewport at low opacity, blended `multiply` on light mode and `overlay` on dark mode. The site now reads as warm cream paper instead of flat digital cream. ~600 bytes; no JS, no animation, no listener.
+- **`PigmentWash`** ([components/decor/pigment-wash.tsx](components/decor/pigment-wash.tsx)) -- soft radial-gradient backdrop in the page's `--section-accent`, painted into the top of each route's `<main>`. Two stacked gradients (centre dome + off-axis bloom) at 12-18% pigment opacity. Each route already sets its own pigment, so /work glows ruby, /about glows marigold, /workshops glows pichwai, /custom-orders glows vermillion, /contact glows peacock, and the home About teaser glows marigold. CSS-only, uses `color-mix(in oklch, ...)` for clean blending against the cream ground.
+- **Folk-art motif library** ([components/decor/motifs/index.tsx](components/decor/motifs/index.tsx)) -- seven single-stroke line-art SVG motifs as React components: fish (Madhubani), lotus (Pichwai), mirror-diamond (Lippan), leaf (Gond), paisley, peacock-feather, rangoli-star. Each renders in `currentColor` so one component works in any pigment, at any size. Uniform 24x24 viewBox.
+- **`MotifEyebrow`** ([components/decor/motif-eyebrow.tsx](components/decor/motif-eyebrow.tsx)) -- replaces the `<span className="h-px w-6">` accent rule that sat next to every section eyebrow with a folk-art motif glyph in the same pigment. Path-draws in once on scroll-into-view via Motion's `pathLength` primitive (1.1s ease-out-soft). Reduced-motion -> renders the motif instantly, no animation.
+
+### Changed
+
+- **Every page eyebrow gains a motif glyph** -- home Selected Work gets paisley (terracotta), home Available Now gets lotus (terracotta), home About teaser gets peacock-feather (marigold), /work gets fish (ruby), /about gets peacock-feather (marigold), /workshops gets lotus (pichwai), /custom-orders gets mirror-diamond (vermillion), /contact gets rangoli-star (peacock). The visual register now ties each section's pigment to a tradition's motif.
+- **Hero gets the first pigment wash** -- the home hero section is now `relative overflow-hidden` with a `<PigmentWash />` behind the headline + featured plate, so the inherited terracotta `--section-accent` glows into the top of the page. Subtle; doesn't compete with the artwork or the Devanagari flare.
+- **About teaser uses `intensity="soft"`** -- the only home-page section with the stronger wash, so the marigold glow registers against the `bg-bg-soft` panel.
+- **Each route's `<main>` becomes `relative`** so `<PigmentWash />` can sit absolutely behind the content; the `<header>` block becomes `relative` too so it lifts above the wash.
+
+## 1.7.5 (2026-05-25)
+
+Audit pass. Removes a dead dependency, unifies the hover register across every CTA card on the site, wires the last unused pigment into a section, and broadens the scroll bar's chromatic arc. No new visual ideas, no spec change -- this is the cleanup release before any further direction work.
+
+### Changed
+
+- **Workshops cards + home CTA pair now match the contact / artwork hover pattern** -- full transition list (`transform`, `border-color`, `box-shadow`), `-translate-y-0.5` lift, soft shadow, and the title tints to `--section-accent` instead of the global accent. The home Workshops CTA inherits pichwai, the Custom Orders CTA inherits vermillion, so both cards preview the pigment of the section they link into. Browse / Start a brief arrows now slide 4px right on hover with the same easing.
+- **Gallery card hover ring inherits `--section-accent`** -- artwork cards on `/work` (ruby) ring deep red on hover, cards in any future section that sets a different pigment will tint to that pigment. Title underline + text tint already use `--section-accent`; the ring was the last hardcoded `accent` reference on the card.
+- **Scroll-progress bar cycles all five pigments** -- vermillion -> marigold -> pichwai -> peacock -> ruby across the page width, replacing the three-stop ruby/marigold/peacock gradient. The bar now visually traverses the same chromatic arc the page does as you scroll.
+- **`/work` index gets the ruby pigment** (the only token that was defined but never assigned). The catalog/archive register reads as a deeper collection-room red, distinct from the global terracotta on the home page. Eyebrow gains the same short rule as the home and contact pages so the section reads as part of the gallery register.
+
+### Removed
+
+- **`tw-animate-css` dependency + `@import "tw-animate-css"` in `globals.css`** -- repo-wide grep showed zero `animate-*` utility classes anywhere outside the import line. Dead dep; gone.
+
+## 1.7.4 (2026-05-25)
+
+Contact-page hierarchy + hover coordination. The page now visually backs the copy's promise that WhatsApp is the fastest reply, instead of treating all three channels as equal rows.
+
+### Changed
+
+- **WhatsApp promoted to a hero plate** -- bordered card with a larger 14/16 icon pellet, a peacock "Fastest reply" chip, the display number in `t-display 3xl/4xl`, and a one-liner explaining what to send. Lifts on hover (`-translate-y-0.5`) with a soft shadow and a peacock border, all in one 400ms ease-out-soft motion.
+- **Instagram + Email step down to a 2-up grid** -- equal weight to each other, lighter than WhatsApp. Compact `t-display lg/xl` titles, smaller 11-unit pellets, same coordinated hover (lift + border + tint + arrow slide) as the hero card.
+- **Coordinated hover** -- pellet ring, title color, and trailing arrow now move as one tinted unit, replacing the three independent transition-colors fades that the cards had before. Same unification approach as the artwork card pass.
+- **Trailing arrow** -- replaced the literal `&rarr;` HTML entity with Lucide's `ArrowRight` icon for consistency with every other arrow on the site.
+- **Eyebrow gets a peacock rule** -- matches the home-page numbered-eyebrow treatment so the contact section reads as part of the gallery register.
+
+## 1.7.3 (2026-05-25)
+
+Second polish pass. Card hover choreography, hero entrance, header indicator, numbered section eyebrows. All visual; no behaviour or data changes.
+
+### Changed
+
+- **Artwork card hover** -- the image plate now lifts by 2px, drops a soft shadow, and rings to `accent` in one coordinated 400ms motion (replacing the standalone ring transition). The title gets a left-to-right underline grown via animated `background-size`, and the chromacard swatch strip blooms from 8px to 10px tall. The eye reads one card as one moving unit instead of three independent fades.
+- **Chromacard `groupHoverBloom` opt-in** -- the swatch strip now accepts a `groupHoverBloom` prop. The artwork card sets it; the artwork detail page leaves it off so the static palette caption doesn't move. Default is the pre-1.7.3 behaviour.
+- **Hero Devanagari flare** -- a 1px accent rule grows in under the Devanagari core after the headline reveals. Implemented as a CSS-only `::after` keyframe so no extra JS lands on the LCP fold; respects `prefers-reduced-motion` (lands instantly at full width).
+- **Hero featured caption** -- a small gallery-register caption ("Featured . N of 21") with an accent rule sits between the featured plate and the title row. Frames the piece editorially without competing with the headline.
+- **Header active-route indicator** -- replaced the per-link static underline with a single Motion `layoutId` element that springs from old position to new on route change. One moving thing for the eye to track instead of two crossfading underlines.
+- **Header scroll-shrink** -- once the user scrolls past 80px the header padding compresses from `py-3 / md:py-4` to `py-2 / md:py-2.5` over 400ms. Listener is rAF-throttled and reads `scrollY` directly (no Motion `useScroll` overhead since we only need a threshold).
+- **Section eyebrows on home** -- "Selected work", "Available now", and "About" now read as `-- 01 / SELECTED WORK` style: a short rule in the section pigment, a numbered prefix in tabular nums, then the eyebrow text. The About teaser also gains its long-promised marigold `--section-accent`. Other pages keep the un-numbered eyebrow.
+
+## 1.7.2 (2026-05-25)
+
+UI polish pass driven by a multi-skill critique (emil-design-eng, make-interfaces-feel-better, 12-principles-of-animation, baseline-ui, fixing-motion-performance). All visual-only; no behaviour changes.
+
+### Changed
+
+- **Tactile press feedback** -- added `active:scale-[0.97]` to the `Button` cva base so every CTA acknowledges the tap; the two large home-page CTA cards (Workshops, Custom Orders) get a gentler `active:scale-[0.99]` so the surface feels pressed without overshooting.
+- **Numeric prices use `tabular-nums`** -- artwork card and detail-page price lines now render with monospaced figures, so prices in a grid or rail line up regardless of digit width.
+- **Type wrap roles** -- `.t-display` gets `text-wrap: balance` (so display headings break evenly instead of leaving an orphan word) and `.t-lead` gets `text-wrap: pretty` (so leads avoid widow lines on the last row). One CSS edit covers the home, work, about, workshops, custom-orders, and contact pages.
+- **Reveal duration** dropped from 700ms to 500ms. The original timing felt cinematic but read as slow on a content-dense scroll; 500ms still lets the fade register without holding the reader up.
+- **Hover-scale duration** on artwork cards and the hero featured image moved from `--duration-slow` (700ms) to `--duration-base` (400ms). Hover is feedback, not choreography -- 400ms lands inside the 200--400ms band where users feel the affordance instead of the animation.
+- **Image-plate rings** switched from the warm-tinted `ring-line` token to neutral `ring-black/10 dark:ring-white/10` on the home featured plate, the artwork card grid, and the artwork detail plate. Lets the artwork's own colour story define the plate boundary instead of pulling page-chrome warmth into the frame. Hover/focus states still ring `accent`.
+
+## 1.7.1 (2026-05-25)
+
+PR #20 review-pass. Resilience, accessibility, and validation fixes uncovered by a multi-agent review of the 1.7.0 rebuild. No visual or behavioural changes on the happy path; failure paths now degrade gracefully.
+
+### Fixed
+
+- **Button corner radius** -- `rounded-md` was missing from the `Button` cva base. Pages used the right wrapper, but raw `<Button>` instances rendered with sharp corners. Added to base classes so radius is consistent everywhere.
+- **No-`<a>`-inside-`<a>` nesting** -- replaced `<Link><Button>...</Button></Link>` patterns with `<Link className={buttonVariants({...})}>...</Link>` on home, contact, work-detail, and workshops pages. Same visual, valid HTML.
+- **No-JS / SSR fallback for `Reveal`** -- elements rendered at `opacity:0` with no JS unhid them. Added a `<noscript>` style block in `app/layout.tsx` that forces `opacity:1` and `transform:none` for elements with the inline opacity-0 marker. Documented the accepted trade-off (Motion bundle load failure on JS clients) in the `Reveal` JSDoc.
+- **Custom-order popup-blocker fallback** -- `window.open(...)` return value is now captured. If the browser blocks the popup, an inline `aria-live` error tells the user to use the email link instead. Form no longer silently does nothing.
+- **`next/image` error fallback** -- new `<ArtImage>` client wrapper renders an `ImageOff` icon plate with the alt text as `aria-label` if the underlying request fails. Used on hero, gallery cards, and detail pages -- prevents broken-image icons from undermining the gallery.
+- **Catalog shape validation** -- `lib/data.ts` now validates `data/artworks.json` on first read and throws a build-time error naming the offending slug if `items` is missing or any row lacks a required field. Replaces the previous "fail with `Cannot read properties of undefined`" runtime trap.
+- **WhatsApp phone validation** -- `lib/whatsapp.ts` now asserts the phone is 10-15 digits and throws on malformed `wa.me` config URLs at build time. Configuration mistakes fail loud instead of producing dead links.
+
+### Changed
+
+- **Theme toggle pre-mount placeholder** uses canonical `w-30` instead of arbitrary `w-[7.5rem]`.
+- **Work-page filter** announces filtered counts via an SR-only `aria-live="polite"` paragraph (instead of overloading the empty-state message). Removed the stray `aria-live` from the empty-state paragraph itself.
+- **`marquee.css`** mask-image gradient uses `var(--color-ink)` instead of a raw `#000`, fixing the lone hex-in-CSS exception flagged by the review.
+- **Smooth-scroll** failure path logs once via `console.warn` instead of silently swallowing the error -- a real Lenis-init bug now surfaces in dev tools.
+
+### Documentation
+
+- Clearer JSDoc on `app/work/page.tsx` (filter is JS-required; no-JS visitors see the unfiltered grid), `next.config.mjs` (named the GH Pages trailing-slash case), `theme-toggle.tsx` (why `system` mode clears the storage key), `artwork-card.tsx` (mentions the description preview), and `smooth-scroll.tsx` (failure-path logging contract).
+
+## 1.7.0 (2026-05-24)
+
+Full stack swap and frontend rebuild. The site moves from Vite + single-page anchor scroll to Next.js 15 with the App Router and statically exported routes. Catalog data is unchanged; the artwork images and `data/site.json` content carry forward as-is.
+
+### Stack
+
+- **Next.js 15 + React 19 + TypeScript strict + Tailwind 4 + Biome 2**, replacing the previous Vite SPA. Static export (`output: "export"`) keeps the GitHub Pages deploy path; `out/` replaces `dist/` as the build target.
+- **Motion 12 + Lenis** for animation, lazy-loaded on first idle. `MotionConfig reducedMotion="user"` honours `prefers-reduced-motion` library-wide.
+- **shadcn-style components** (Radix primitives via `class-variance-authority`), **lucide-react** for UI icons, **react-icons/si** for brand glyphs (WhatsApp, Instagram, Gmail).
+- **next/font/google** self-hosts Cormorant Garamond, Inter, Tiro Devanagari Hindi at build. No CDN font calls.
+
+### Routes
+
+- `/` (home): hero with character-entrance description, marquee band, Selected Work rail, Available Now rail (renders only when at least one piece has `priceInr`), About teaser, Workshops + Custom Orders CTA pair.
+- `/work`: 21-piece gallery with style filter (All / Madhubani / Pichwai / Lippan / Gond / Texture / Mixed Media), uniform 3:4 cards, palette swatches and description preview per card.
+- `/work/[slug]`: 21 statically generated detail pages with full image, metadata stack (medium / year / dimensions / status / price / palette), description, "Enquire on WhatsApp" CTA, prev/next nav.
+- `/about`: paragraphs with drop-cap on the first, marigold pull-quote with side bar, Devanagari iti article-end mark, "Based in" + "Open to" aside cards.
+- `/workshops`: card grid driven by `workshops[]`, duration pills, per-card WhatsApp enquire link, group/school enquiry CTA.
+- `/custom-orders`: 3-step "How it works" rail + form with name / preferred style / approx size / budget / timeline / brief. Submit opens WhatsApp with a pre-filled message; an email fallback link appears after submit.
+- `/contact`: three big channel rows (WhatsApp / Instagram / Gmail) with brand glyphs, monumental hover, custom-orders CTA card.
+
+### Data seam
+
+- New [`lib/data.ts`](lib/data.ts) is the single source the UI imports through. Today it reads `data/*.json`; in Phase 2 it will switch to a database query without touching any other file.
+- Catalog moved from `src/data/` to repo-root `data/` so it survives stack swaps cleanly.
+- New [`lib/site-config.ts`](lib/site-config.ts) holds `siteConfig.url` / `basePath` / `prodUrl`. `next.config.mjs` mirrors `basePath` as a literal because Next config files cannot import `.ts` at config-load.
+- New [`lib/whatsapp.ts`](lib/whatsapp.ts) builds wa.me deep links and the email fallback `mailto:` URL from a typed `CustomOrderDraft`.
+
+### Theme
+
+- 3-state theme toggle (Light / Dark / System) persisted to `localStorage`. Pre-paint script in `app/layout.tsx` resolves the chosen theme before first paint to avoid FOUC.
+- Section pigment accents wired across pages: about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock. Hero + Selected Work inherit the global terracotta accent. Drop-cap, pull-quote borders, hover states, accent links all derive from `--section-accent`.
+- Subtle, consistent corner radius (`rounded-md`) applied to every surface (cards, panels, fields, buttons, image plates). Pills and the theme toggle keep `rounded-full`.
+
+### Motion
+
+- Refined fade-up reveal on scroll (Motion 12), capped stagger so longer lists do not feel theatrical.
+- Hero description uses character-entrance via a small `SplitText` (8px lift, 12ms per-character stagger).
+- Lenis smooth scroll bootstrapped lazily on first idle. Bails out under `prefers-reduced-motion`. Failures (ad blocker, network blip) silently fall back to native scroll.
+- Tri-color scroll-progress bar fixed at the top of the viewport. Marquee band of artwork titles + Devanagari words between hero and Selected Work, pure CSS animation, pauses on hover.
+- Locked exclusions: no 3D tilt on cards, no decorative backdrops (mesh / lattice / particle / orbit / floating-shapes), no custom cursor. Earlier attempts read as busy.
+
+### Bug fixes
+
+- React hydration mismatch in motion components removed by hoisting reduced-motion handling to the library level instead of branching at the component.
+- `mrgayugma.aspectRatio` corrected from 0.77 to 0.73 to match the source image's real pixel ratio.
+- Next 15.5 in-app DevTools panel was crashing HMR on Windows + pnpm with `__webpack_modules__[moduleId] is not a function`. Disabled via `devIndicators: false` in `next.config.mjs`.
+
+### Conventions
+
+- **Mobile-first**: most traffic arrives from WhatsApp / Instagram link-taps. Pages are designed for phone width primarily.
+- **No literal `--` in user-facing copy** (page metadata, JSX strings, dropdown options, `data/*.json`). Replace with comma / period / colon / parentheses, or restructure. Internal code comments are exempt.
+- **CHANGELOG.md is updated on every PR**. Bump version in `package.json` to match.
+- 500-line file ceiling. No raw hex / rgb in components (CSS variables only). No magic timings (named tokens only).
+
+### Documentation
+
+- `CLAUDE.md` rewritten to describe the current stack and rules, including the no-double-dash rule and the changelog rule.
+- `MEMORY.md` "Current state on disk" lists every page that's actually built. Confirmed-decisions table picks up the new locked rules (motion exclusions, corner radius, section accents, no-double-dash).
+
+### Verification
+
+`pnpm typecheck` + `pnpm lint` + `pnpm build` all clean. 30 static pages generated, 21 of them via `generateStaticParams` for `/work/[slug]`. First Load JS: home 150 kB, /about 142, /workshops 142, /contact 145, /custom-orders 151, /work 159, /work/[slug] 150.
 
 ## 1.6.0 -- 2026-05-24
 

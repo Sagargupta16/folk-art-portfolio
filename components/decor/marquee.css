@@ -1,0 +1,46 @@
+/* Marquee -- horizontal scrolling band. Two tracks side-by-side with
+   identical content; one shifts left while the other fills the gap, so
+   the seam at -100% is invisible. */
+
+.marquee {
+	display: flex;
+	gap: 3rem;
+	user-select: none;
+	/* The mask uses the gradient's alpha channel only; the color value
+	   is irrelevant beyond being opaque. We still source it from the
+	   theme token to keep "no raw hex in components" consistent. */
+	mask-image: linear-gradient(
+		90deg,
+		transparent,
+		var(--color-ink) 8%,
+		var(--color-ink) 92%,
+		transparent
+	);
+}
+
+.marquee__track {
+	display: flex;
+	flex-shrink: 0;
+	gap: 3rem;
+	animation: marquee-scroll 38s linear infinite;
+	will-change: transform;
+}
+
+.marquee:hover .marquee__track {
+	animation-play-state: paused;
+}
+
+@keyframes marquee-scroll {
+	from {
+		transform: translateX(0);
+	}
+	to {
+		transform: translateX(-100%);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.marquee__track {
+		animation: none;
+	}
+}

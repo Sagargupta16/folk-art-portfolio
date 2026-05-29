@@ -1,0 +1,142 @@
+{
+	"_notes": [
+		"Single source of truth for all display copy. Edit this file, the site updates.",
+		"Image catalog lives separately in artworks.json (one entry per painting).",
+		"Workshops live in 'workshops' below."
+	],
+	"brand": {
+		"title": "Kalचर by Megha",
+		"publicName": "Kalcher by Megha",
+		"tagline": "Folk Artist & Workshop Facilitator",
+		"description": "Madhubani, Pichwai, Lippan, Gond and texture art by Megha Seth. Original works and workshops rooted in Indian folk traditions.",
+		"devanagariMark": "म",
+		"location": "India",
+		"logo": "logo.jpg",
+		"logoAlt": "Kalcher by Megha. Art elevated by belief",
+		"headline": {
+			"latinPrefix": "Kal",
+			"devanagariCore": "चर",
+			"connector": "by",
+			"suffix": "Megha"
+		}
+	},
+	"nav": [
+		{ "label": "Work", "href": "#work" },
+		{ "label": "About", "href": "#about" },
+		{ "label": "Workshops", "href": "#workshops" },
+		{ "label": "Custom Orders", "href": "#custom-orders" },
+		{ "label": "Contact", "href": "#contact" }
+	],
+	"styles": ["Madhubani", "Pichwai", "Lippan", "Gond", "Texture", "Mixed Media"],
+	"contact": {
+		"instagram": {
+			"label": "Instagram",
+			"display": "@listentoyourart111",
+			"url": "https://instagram.com/listentoyourart111"
+		},
+		"whatsapp": {
+			"label": "WhatsApp",
+			"display": "+91 84356 52636",
+			"url": "https://wa.me/918435652636"
+		},
+		"email": {
+			"label": "Email",
+			"display": "megha10gupta@gmail.com",
+			"url": "mailto:megha10gupta@gmail.com"
+		}
+	},
+	"sections": {
+		"work": {
+			"eyebrow": "Selected work",
+			"title": "Original pieces, in progress and finished",
+			"lead": "A growing archive across Madhubani, Pichwai, Lippan, Gond and texture practice. Filter by style. Hover for a closer look."
+		},
+		"about": {
+			"eyebrow": "About",
+			"title": "On preserving folk traditions through practice",
+			"paragraphs": [
+				"I am an Indian folk artist and workshop facilitator. I work in Madhubani, Pichwai, Lippan, Gond and texture art, forms whose grammar is centuries old and still evolving in the hands of the people who keep them alive.",
+				"My practice moves between two rooms: a quiet one where I paint, and a louder one where I teach. The studio side is where I sit with a single piece for as long as it asks. The workshop side is where the same forms meet new hands (children, beginners, professionals on a Saturday afternoon) and become useful in a different way."
+			],
+			"pullQuote": "Folk art is a language. I am one of many speakers, trying to keep the conversation going.",
+			"asideHeading": "Open to",
+			"asideBody": "Original commissions, workshops, and collaborative cultural programming."
+		},
+		"workshops": {
+			"eyebrow": "Workshops",
+			"title": "Hands-on sessions for every age group",
+			"lead": "Workshops are designed to be enjoyable, therapeutic and culturally meaningful. Held for individuals, schools, communities and corporate groups."
+		},
+		"contact": {
+			"eyebrow": "Contact",
+			"title": "Commissions, workshops, and conversations",
+			"lead": "The fastest reply is on Instagram or WhatsApp. Email is best for longer briefs."
+		},
+		"customOrders": {
+			"eyebrow": "Custom orders",
+			"title": "Order a custom painting",
+			"lead": "Tell us about the painting you have in mind. The form opens WhatsApp with your details pre-filled. No email back-and-forth.",
+			"sizes": [
+				"A4 (8 x 12 inches)",
+				"A3 (11 x 16 inches)",
+				"Square (12 x 12 inches)",
+				"Square (18 x 18 inches)",
+				"Large (24 x 36 inches)",
+				"Custom (mention in notes)"
+			],
+			"budgets": [
+				"Under ₹5,000",
+				"₹5,000 to ₹10,000",
+				"₹10,000 to ₹20,000",
+				"₹20,000 to ₹50,000",
+				"₹50,000+",
+				"Open / not sure"
+			],
+			"timelines": [
+				"No rush",
+				"Within a month",
+				"Within 2 weeks",
+				"Specific date (mention in notes)"
+			],
+			"submitLabel": "Send order on WhatsApp",
+			"fallbackEmailLabel": "Or email the order instead"
+		}
+	},
+	"workshops": [
+		{
+			"slug": "tote-bag-painting",
+			"title": "Tote bag painting",
+			"blurb": "Hand-paint a canvas tote with a folk-art motif of your choice. Beginner friendly, materials provided.",
+			"durationHours": 3,
+			"order": 1
+		},
+		{
+			"slug": "mirror-clay-art",
+			"title": "Mirror clay art",
+			"blurb": "Make a Lippan-style mud-relief panel with embedded mirrors. Suited to small group sessions.",
+			"durationHours": 4,
+			"order": 2
+		},
+		{
+			"slug": "paper-embroidery",
+			"title": "Paper embroidery",
+			"blurb": "Stitch geometric patterns onto card stock to make framed wall pieces. No prior sewing experience needed.",
+			"durationHours": 2,
+			"order": 3
+		},
+		{
+			"slug": "kids-art-activities",
+			"title": "Kids art activities",
+			"blurb": "Story-led folk-art sessions for ages 6 to 12. Madhubani, finger painting and craft, weekly or as a holiday camp.",
+			"durationHours": 1.5,
+			"order": 4
+		},
+		{
+			"slug": "festive-craft",
+			"title": "Festive craft",
+			"blurb": "Seasonal Diwali, Holi and Raksha Bandhan craft sessions, designed for community and corporate groups.",
+			"durationHours": 2,
+			"order": 5
+		}
+	]
+}

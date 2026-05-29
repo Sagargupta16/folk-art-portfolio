@@ -1,0 +1,216 @@
+@import "tailwindcss";
+
+/**
+ * Design tokens for a gallery / museum register: warm cream, deep ink, single
+ * terracotta accent. Saturation lives inside the artwork itself, not the chrome.
+ *
+ * Tier 1 -- raw primitive families (kept here so palette pivots are one edit).
+ * Tier 2 -- semantic tokens consumed by components via `bg-bg`, `text-ink`,
+ *   `border-line`, etc. Tailwind 4 derives utilities from `@theme` automatically
+ *   so `--color-bg` -> `bg-bg`, `--color-accent` -> `bg-accent`.
+ *
+ * Light/dark via `class="dark"` on <html>. Dark-mode block remaps Tier 2 only.
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+	/* Type families -- next/font/google injects --font-* vars in app/fonts.ts. */
+	--font-display: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
+	--font-body: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+	--font-devanagari: var(--font-devanagari), ui-serif, serif;
+
+	/* Light palette -- warm cream + deep ink + terracotta accent */
+	--color-bg: oklch(0.97 0.014 80);
+	--color-bg-soft: oklch(0.94 0.02 75);
+	--color-ink: oklch(0.18 0.022 60);
+	--color-muted: oklch(0.5 0.018 60);
+	--color-line: oklch(0.87 0.022 75);
+	--color-accent: oklch(0.55 0.165 40);
+	--color-accent-soft: oklch(0.74 0.12 50);
+
+	/* Section pigment palette -- one per section, sampled from Madhubani
+	   tradition. Components use these via the Section wrapper which sets
+	   --section-accent. */
+	--color-marigold: oklch(0.72 0.16 75);
+	--color-pichwai: oklch(0.45 0.1 165);
+	--color-vermillion: oklch(0.55 0.18 35);
+	--color-peacock: oklch(0.5 0.1 220);
+	--color-ruby: oklch(0.55 0.2 25);
+
+	/* Tanjore gold leaf -- the foil highlight on gallery card borders and the
+	   .gold-shimmer sweep. A fixed metallic, not a section pigment, so it lives
+	   here once instead of being re-typed at each use site. */
+	--color-gold-leaf: oklch(0.76 0.12 85);
+
+	/* Tracking + rhythm */
+	--tracking-display: -0.015em;
+	--tracking-eyebrow: 0.22em;
+	--tracking-meta: 0.16em;
+
+	/* Motion -- role-named timings + eases. Components reference these, not
+	   raw `400ms`. Reduces drift; lets one edit retune the whole site. */
+	--duration-fast: 200ms;
+	--duration-base: 400ms;
+	--duration-slow: 700ms;
+
+	--ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+	--ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+	--ease-glide: cubic-bezier(0.16, 1, 0.3, 1);
+
+	/* Layout */
+	--container-px: clamp(1.25rem, 4vw, 2rem);
+	--section-py: clamp(4rem, 8vw, 7rem);
+}
+
+/* Site-wide corner-radius rule: every surface (card, panel, frame, field,
+   button) uses `rounded-md` (Tailwind 4 default = 0.375rem) for a subtle,
+   consistent shape. Pills (filter pills, badges, theme toggle, brand mark
+   ring) keep `rounded-full`. Sharp corners are reserved for full-bleed
+   image plates inside cards. */
+
+:root {
+	/* Default section accent -- inherited by sections that don't set their own.
+	   Sections override via inline style={{ "--section-accent": "var(--color-X)" }}. */
+	--section-accent: var(--color-accent);
+}
+
+:root.dark {
+	--color-bg: oklch(0.16 0.018 60);
+	--color-bg-soft: oklch(0.21 0.02 55);
+	--color-ink: oklch(0.92 0.015 80);
+	--color-muted: oklch(0.65 0.018 65);
+	--color-line: oklch(0.28 0.022 60);
+	--color-accent: oklch(0.7 0.14 45);
+	--color-accent-soft: oklch(0.6 0.13 45);
+
+	/* Slightly desaturated + lifted in dark mode so pigments don't bloom on
+	   near-black ground. */
+	--color-marigold: oklch(0.78 0.14 80);
+	--color-pichwai: oklch(0.6 0.09 165);
+	--color-vermillion: oklch(0.65 0.16 40);
+	--color-peacock: oklch(0.65 0.09 220);
+	--color-ruby: oklch(0.65 0.18 28);
+}
+
+html {
+	background: var(--color-bg);
+	color: var(--color-ink);
+	font-family: var(--font-body);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+body {
+	min-height: 100dvh;
+}
+
+::selection {
+	background: var(--color-accent);
+	color: var(--color-bg);
+}
+
+/* Typographic roles -- consumed via class, not Tailwind utility, so the
+   shape (line-height, letter-spacing) lives in one place. */
+.t-display {
+	font-family: var(--font-display);
+	font-style: italic;
+	font-weight: 500;
+	letter-spacing: var(--tracking-display);
+	line-height: 1.05;
+	text-wrap: balance;
+}
+.t-eyebrow {
+	font-family: var(--font-body);
+	font-size: 0.6875rem;
+	letter-spacing: var(--tracking-eyebrow);
+	text-transform: uppercase;
+	color: var(--color-muted);
+	font-weight: 500;
+}
+.t-meta {
+	font-family: var(--font-body);
+	font-size: 0.75rem;
+	letter-spacing: var(--tracking-meta);
+	text-transform: uppercase;
+	color: var(--color-muted);
+}
+.t-lead {
+	font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+	line-height: 1.65;
+	color: var(--color-muted);
+	text-wrap: pretty;
+}
+
+/* Hero Devanagari accent flare -- a 1px rule under the Devanagari core that
+   grows in after the headline reveals. Width animates from 0 to target via
+   a `--flare-w` custom property on a pseudo-element, so layout doesn't
+   thrash. Disabled under reduced-motion (it lands at full width instantly). */
+.flare-after::after {
+	content: "";
+	display: block;
+	height: 1px;
+	width: 0;
+	background: var(--color-accent);
+	animation: flare-grow var(--duration-slow) var(--ease-out-soft) 0.65s forwards;
+}
+
+@keyframes flare-grow {
+	to {
+		width: var(--flare-w, 100%);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.flare-after::after {
+		animation: none;
+		width: var(--flare-w, 100%);
+	}
+}
+
+/* Drop-cap for editorial paragraphs (used in the About page first paragraph). */
+.drop-cap::first-letter {
+	font-family: var(--font-display);
+	font-style: italic;
+	float: left;
+	font-size: 3.4rem;
+	line-height: 0.9;
+	padding: 0.35rem 0.6rem 0 0;
+	color: var(--section-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+}
+
+/* Tanjore Gold Leaf / Foil Shimmer Accents */
+@keyframes gold-shimmer-anim {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
+}
+
+.gold-shimmer {
+	background: linear-gradient(
+		90deg,
+		var(--color-accent) 0%,
+		var(--color-gold-leaf) 30%,
+		oklch(0.85 0.08 90) 50%,
+		var(--color-gold-leaf) 70%,
+		var(--color-accent) 100%
+	);
+	background-size: 200% 100%;
+	animation: gold-shimmer-anim 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.gold-shimmer {
+		animation: none;
+	}
+}
+

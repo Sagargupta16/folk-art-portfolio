@@ -11,6 +11,7 @@ build/
 .netlify/
 .astro/
 .next/
+out/
 tsconfig.tsbuildinfo
 
 # Env / secrets
@@ -59,6 +60,7 @@ CLAUDE.local.md
 # Temp screenshots from dev / Playwright runs
 /*.png
 !public/**/*.png
+tmp/
 
 # Generated artwork variants (regenerated on every build via scripts/optimize-images.mjs)
 public/_opt/
@@ -68,3 +70,4 @@ public/_opt/
 /_originals/
 *.psd
 *.ai
+.vite/

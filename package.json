@@ -1,50 +1,46 @@
 {
-	"name": "folk-art-portfolio",
-	"version": "1.6.0",
+	"name": "kalchar-by-megha",
+	"version": "1.16.0",
 	"private": true,
-	"type": "module",
-	"description": "Portfolio website for Megha Seth, traditional artist.",
-	"scripts": {
-		"dev": "vite",
-		"optimize:images": "node scripts/optimize-images.mjs",
-		"generate:sitemap": "node scripts/generate-sitemap.mjs",
-		"build": "pnpm run optimize:images && tsc -b && vite build && pnpm run generate:sitemap",
-		"preview": "vite preview",
-		"typecheck": "tsc -b",
-		"lint": "biome check",
-		"lint:fix": "biome check --write",
-		"format": "biome format --write"
-	},
+	"description": "Portfolio site for Megha Seth, traditional folk artist.",
 	"license": "UNLICENSED",
 	"packageManager": "pnpm@10.32.0",
 	"engines": {
-		"node": ">=20.18"
+		"node": ">=22"
+	},
+	"scripts": {
+		"dev": "next dev --turbopack",
+		"build": "pnpm run optimize:images && next build && node scripts/prune-build.mjs",
+		"preview": "pnpm run build && npx -y serve out",
+		"start": "next start",
+		"lint": "biome check",
+		"lint:fix": "biome check --write",
+		"format": "biome format --write",
+		"typecheck": "tsc --noEmit",
+		"optimize:images": "node scripts/optimize-images.mjs"
 	},
 	"dependencies": {
-		"@fontsource-variable/inter": "^5.2.8",
-		"@fontsource/cormorant-garamond": "^5.2.11",
-		"@fontsource/tiro-devanagari-hindi": "^5.2.7",
-		"@tailwindcss/vite": "^4.3.0",
-		"lenis": "^1.3.23",
-		"react": "^19.2.6",
-		"react-dom": "^19.2.6",
-		"tailwindcss": "^4.3.0"
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
+		"lenis": "^1.3.4",
+		"lucide-react": "^0.473.0",
+		"motion": "^12.0.0",
+		"next": "^15.1.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"react-icons": "^5.6.0",
+		"tailwind-merge": "^2.6.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.15",
-		"@types/react": "^19.2.14",
-		"@types/react-dom": "^19.2.3",
-		"@vitejs/plugin-react": "^4.5.2",
-		"sharp": "^0.34.5",
-		"typescript": "^6.0.3",
-		"vite": "^6.3.5"
-	},
-	"pnpm": {
-		"onlyBuiltDependencies": [
-			"esbuild"
-		],
-		"overrides": {
-			"yaml@<2.8.3": "^2.8.3"
-		}
+		"@biomejs/biome": "^2.0.0",
+		"@tailwindcss/postcss": "^4.0.0",
+		"@types/node": "^22.10.0",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"playwright": "^1.60.0",
+		"postcss": "^8.5.0",
+		"sharp": "^0.34.0",
+		"tailwindcss": "^4.0.0",
+		"typescript": "^5.7.0"
 	}
 }

@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
@@ -7,17 +7,18 @@
 	},
 	"files": {
 		"includes": [
-			"src/**/*.{ts,tsx,js,jsx}",
+			"app/**/*.{ts,tsx}",
+			"components/**/*.{ts,tsx}",
+			"lib/**/*.{ts,tsx,mjs}",
 			"scripts/**/*.{js,mjs,ts}",
-			"vite.config.ts",
-			"index.html",
+			"data/**/*.json",
 			"*.json",
-			"!**/dist",
+			"*.{ts,tsx,mjs}",
+			"!**/.next",
+			"!**/out",
 			"!**/node_modules",
-			"!**/.astro",
 			"!**/_opt",
-			"!pnpm-lock.yaml",
-			"!tsconfig.tsbuildinfo"
+			"!pnpm-lock.yaml"
 		]
 	},
 	"formatter": {
@@ -45,14 +46,13 @@
 		"enabled": true,
 		"rules": {
 			"recommended": true,
-			"suspicious": {
-				"noArrayIndexKey": "off",
-				"noExplicitAny": "warn"
-			},
 			"a11y": {
 				"recommended": true,
 				"useKeyWithClickEvents": "off",
 				"useSemanticElements": "off"
+			},
+			"suspicious": {
+				"noExplicitAny": "warn"
 			},
 			"style": {
 				"useImportType": "warn",

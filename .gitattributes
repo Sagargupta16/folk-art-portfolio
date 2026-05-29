@@ -1,0 +1,17 @@
+# Enforce LF on all text files so Biome (lineEnding: "lf") agrees with the
+# working tree on every platform. Without this, Windows checkouts get CRLF
+# via core.autocrlf and Biome fails the format check.
+
+* text=auto eol=lf
+
+# Keep binary assets binary -- no normalization, no diffs.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary

@@ -7,6 +7,8 @@ interface LightboxContextType {
 	isOpen: boolean;
 	activeArtwork: Artwork | null;
 	artworksList: Artwork[];
+	/** WhatsApp phone (E.164, no `+`) for the enquiry CTA. Supplied server-side. */
+	whatsappPhone: string;
 	openLightbox: (artwork: Artwork, list?: Artwork[]) => void;
 	closeLightbox: () => void;
 	nextArtwork: () => void;
@@ -15,7 +17,18 @@ interface LightboxContextType {
 
 const LightboxContext = createContext<LightboxContextType | undefined>(undefined);
 
-export function LightboxProvider({ children }: { children: React.ReactNode }) {
+/**
+ * `whatsappPhone` is read once on the server (from the data seam) and passed
+ * in, so the client-side lightbox never reaches through the seam itself --
+ * which keeps the Phase 2 DB swap a server-only change.
+ */
+export function LightboxProvider({
+	children,
+	whatsappPhone,
+}: {
+	children: React.ReactNode;
+	whatsappPhone: string;
+}) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [activeArtwork, setActiveArtwork] = useState<Artwork | null>(null);
 	const [artworksList, setArtworksList] = useState<Artwork[]>([]);
@@ -55,6 +68,7 @@ export function LightboxProvider({ children }: { children: React.ReactNode }) {
 				isOpen,
 				activeArtwork,
 				artworksList,
+				whatsappPhone,
 				openLightbox,
 				closeLightbox,
 				nextArtwork,

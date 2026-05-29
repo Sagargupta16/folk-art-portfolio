@@ -6,6 +6,7 @@ import { useRef } from "react";
 import { ArtImage } from "@/components/gallery/art-image";
 import { Chromacard } from "@/components/gallery/chromacard";
 import { useLightbox } from "@/components/gallery/lightbox-context";
+import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 import type { Artwork } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -24,11 +25,23 @@ interface ArtworkCardProps {
 	artwork: Artwork;
 	priority?: boolean;
 	className?: string;
+	/**
+	 * The sibling pieces this card belongs to (the rail / filtered grid). Passed
+	 * to the lightbox so arrow keys + prev/next sweep the whole set. Omitted ->
+	 * the lightbox opens single-item with nav hidden.
+	 */
+	siblings?: readonly Artwork[];
 }
 
-export function ArtworkCard({ artwork, priority = false, className }: ArtworkCardProps) {
+export function ArtworkCard({ artwork, priority = false, className, siblings }: ArtworkCardProps) {
 	const { openLightbox } = useLightbox();
 	const cardRef = useRef<HTMLDivElement>(null);
+
+	// The 3D tilt + glare is a pointer-only flourish. Reduced-motion users get
+	// the static card -- Motion's reducedMotion="user" does NOT neutralize raw
+	// useSpring/useMotionValue transforms, so we gate them here at the source.
+	const reduceMotion = usePrefersReducedMotion();
+	const tiltEnabled = !reduceMotion;
 
 	// Setup client-side motion tracking for 3D tilt
 	const x = useMotionValue(0);
@@ -41,8 +54,13 @@ export function ArtworkCard({ artwork, priority = false, className }: ArtworkCar
 	const glareX = useSpring(useTransform(x, [-0.5, 0.5], [0, 100]), springConfig);
 	const glareY = useSpring(useTransform(y, [-0.5, 0.5], [0, 100]), springConfig);
 
+	// Hooks must run unconditionally (Rules of Hooks), so these are declared
+	// here and only consumed by the glare element when tilt is enabled.
+	const glarePosX = useTransform(glareX, (val) => `${val}%`);
+	const glarePosY = useTransform(glareY, (val) => `${val}%`);
+
 	const handleMouseMove = (e: React.MouseEvent) => {
-		if (!cardRef.current) return;
+		if (!tiltEnabled || !cardRef.current) return;
 		const rect = cardRef.current.getBoundingClientRect();
 		const width = rect.width;
 		const height = rect.height;
@@ -62,7 +80,7 @@ export function ArtworkCard({ artwork, priority = false, className }: ArtworkCar
 		// Only intercept standard left clicks, allowing command/ctrl clicks to route in new tabs
 		if (!e.metaKey && !e.ctrlKey && e.button === 0) {
 			e.preventDefault();
-			openLightbox(artwork);
+			openLightbox(artwork, siblings ? [...siblings] : undefined);
 		}
 	};
 
@@ -77,33 +95,41 @@ export function ArtworkCard({ artwork, priority = false, className }: ArtworkCar
 			className={cn("group block focus-visible:outline-none", className)}
 			aria-label={`${artwork.title}, ${artwork.style}${isSold ? ", sold" : ""}`}
 		>
-			{/* 3D Perspective Card Frame */}
-			<div className="perspective-1000">
+			{/* 3D Perspective Card Frame. `perspective-[1000px]` is the arbitrary-
+			    value form -- Tailwind 4's bare `perspective-1000` compiles to no
+			    CSS, which would flatten the tilt (no vanishing point). */}
+			<div className="perspective-[1000px]">
 				<motion.div
 					ref={cardRef}
 					onMouseMove={handleMouseMove}
 					onMouseLeave={handleMouseLeave}
-					style={{
-						rotateX,
-						rotateY,
-						transformStyle: "preserve-3d",
-					}}
+					style={
+						tiltEnabled
+							? {
+									rotateX,
+									rotateY,
+									transformStyle: "preserve-3d",
+								}
+							: undefined
+					}
 					className="relative aspect-3/4 overflow-hidden rounded-md bg-bg-soft shadow-none ring-1 ring-black/10 transition-[box-shadow,outline-color] duration-(--duration-base) ease-out-soft group-hover:shadow-xl group-hover:ring-(--section-accent) group-focus-visible:ring-2 group-focus-visible:ring-(--section-accent) dark:ring-white/10"
 				>
-					{/* Reflective light glare effect */}
-					<motion.div
-						className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_var(--glare-x)_var(--glare-y),rgba(255,255,255,0.12)_0%,transparent_60%)]"
-						style={
-							{
-								"--glare-x": useTransform(glareX, (val) => `${val}%`),
-								"--glare-y": useTransform(glareY, (val) => `${val}%`),
-							} as React.CSSProperties
-						}
-					/>
+					{/* Reflective light glare effect. Skipped under reduced-motion. */}
+					{tiltEnabled ? (
+						<motion.div
+							className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_var(--glare-x)_var(--glare-y),rgba(255,255,255,0.12)_0%,transparent_60%)]"
+							style={
+								{
+									"--glare-x": glarePosX,
+									"--glare-y": glarePosY,
+								} as React.CSSProperties
+							}
+						/>
+					) : null}
 
 					{/* Tanjore Gold double-border highlight that animates on hover */}
-					<div className="absolute inset-1 z-20 rounded-md border border-[oklch(0.76_0.12_85)]/45 opacity-0 group-hover:opacity-100 transition-opacity duration-(--duration-base) pointer-events-none" />
-					<div className="absolute inset-2 z-20 rounded-md border border-dashed border-[oklch(0.76_0.12_85)]/25 opacity-0 group-hover:opacity-100 transition-opacity duration-(--duration-base) pointer-events-none" />
+					<div className="absolute inset-1 z-20 rounded-md border border-(--color-gold-leaf)/45 opacity-0 group-hover:opacity-100 transition-opacity duration-(--duration-base) pointer-events-none" />
+					<div className="absolute inset-2 z-20 rounded-md border border-dashed border-(--color-gold-leaf)/25 opacity-0 group-hover:opacity-100 transition-opacity duration-(--duration-base) pointer-events-none" />
 
 					<ArtImage
 						src={imgSrc}

@@ -2,5 +2,5 @@
 User-agent: *
 Allow: /
 
-# Sitemap is generated at build time by scripts/generate-sitemap.mjs.
+# Sitemap is generated at build time by app/sitemap.ts (Next MetadataRoute).
 Sitemap: https://kalchar.co.in/sitemap.xml

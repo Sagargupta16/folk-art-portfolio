@@ -14,7 +14,7 @@
  * loudly rather than deleting unreferenced fallbacks.
  */
 
-import { rm, stat } from "node:fs/promises";
+import { readdir, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -32,6 +32,18 @@ async function exists(p) {
 	}
 }
 
+/** Recursive sum of file sizes under a directory, in bytes. */
+async function dirSize(dir) {
+	let total = 0;
+	const entries = await readdir(dir, { withFileTypes: true });
+	for (const entry of entries) {
+		const full = join(dir, entry.name);
+		if (entry.isDirectory()) total += await dirSize(full);
+		else total += (await stat(full)).size;
+	}
+	return total;
+}
+
 async function main() {
 	if (!(await exists(RAW_DIR))) {
 		console.log("[prune-build] no out/artworks/, skipping");
@@ -44,9 +56,11 @@ async function main() {
 		process.exit(1);
 	}
 
-	const before = await stat(RAW_DIR);
+	// stat() on a directory returns the inode size (~0), not its contents, so
+	// sum the files recursively to report the real freed bytes.
+	const freedBytes = await dirSize(RAW_DIR);
 	await rm(RAW_DIR, { recursive: true, force: true });
-	console.log(`[prune-build] removed out/artworks/ (${(before.size / 1024 / 1024).toFixed(1)} MB)`);
+	console.log(`[prune-build] removed out/artworks/ (${(freedBytes / 1024 / 1024).toFixed(1)} MB)`);
 }
 
 main().catch((err) => {

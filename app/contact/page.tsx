@@ -108,7 +108,7 @@ export default function ContactPage() {
 							alt=""
 							width={224}
 							height={224}
-							priority
+							loading="lazy"
 							className="block h-44 w-44 rounded-md border border-line bg-bg p-2 transition-[transform,border-color] duration-(--duration-base) ease-out-soft group-hover:-translate-y-0.5 group-hover:border-(--section-accent) sm:h-56 sm:w-56"
 						/>
 					</a>

@@ -21,7 +21,7 @@ Next.js 15 (App Router) + React 19 + TypeScript strict + Tailwind 4 + Biome 2. S
 
 ## Branch + deploy
 
-Currently on `feat/ui-theme-foundation`, ahead of `main`. Live deploy is on the (much older) `main`. Earlier commits in this branch contain wiped attempts; **do not reuse them as templates** without explicit confirmation. Push + PR only when Sagar says so.
+Active work lands on `dev`, ahead of `main`; feature branches (`fix/*`, `feat/*`) PR into `dev`. Live deploy is on `main`. Earlier wiped attempts live in old branch history; **do not reuse them as templates** without explicit confirmation. Push + PR only when Sagar says so.
 
 GitHub Pages OIDC deploy from `main`. `public/CNAME` ships the apex domain.
 
@@ -48,7 +48,7 @@ pnpm format
 ### Visual / motion
 
 - **Mobile-first.** Most traffic arrives from WhatsApp / Instagram link-taps. Design for phone width primarily, then scale up.
-- **Restrained motion.** Fade-up reveal on scroll, subtle hover lifts, smooth scroll, character-entrance on hero. **No 3D tilt, no decorative backdrops (mesh / lattice / particles), no custom cursor.** All animation respects `prefers-reduced-motion` (handled at the library level via `MotionConfig reducedMotion="user"`).
+- **Refined motion.** Fade-up reveal on scroll, subtle hover lifts, smooth scroll, character-entrance on hero. Bespoke animation on the work itself is allowed: 3D card tilt, organic watercolor backdrops (ink-splash / pigment-wash), gold-leaf shimmer. **Banned: busy mesh / lattice / particle / game-like ornaments, and a custom cursor (use the native pointer).** All animation respects `prefers-reduced-motion`, handled at the library level via `MotionConfig reducedMotion="user"`, plus an explicit `usePrefersReducedMotion()` gate for anything Motion's config can't reach (raw `useSpring` transforms, animated SVG `rx/ry` attributes). **MEMORY.md "Motion exclusions" is the source of truth for this policy; if the two disagree, MEMORY.md wins.**
 - **Subtle, consistent corner radius** (`rounded-md`) on every surface (cards, panels, fields, buttons, image plates). Pills + theme toggle stay `rounded-full`. No sharp corners.
 - **Section pigment accents**: about=marigold, workshops=pichwai, custom-orders=vermillion, contact=peacock. Hero + Selected Work inherit the global terracotta. Set via `--section-accent` inline on `<main>` or a `Section` wrapper.
 - **No raw hex / rgb in components.** All color via CSS custom properties. Lone exception: `data/artworks.json` palette arrays (data, not theme) and SVG data URIs (CSS vars don't resolve there).
@@ -75,18 +75,20 @@ pnpm format
 ```text
 .claude/                  settings + project-local AI config
 app/                      Next.js App Router
-  layout.tsx              root layout, fonts, providers
-  page.tsx                home: hero / marquee / selected work / available / about teaser / CTAs
+  layout.tsx              root layout, fonts, providers, lightbox provider
+  page.tsx                home single-pager (composes components/home/*)
   about/, workshops/, custom-orders/, contact/
   work/                   gallery + per-artwork detail (statically generated)
+  sitemap.ts              static sitemap (MetadataRoute), emitted to out/sitemap.xml
   fonts.ts                next/font/google: Cormorant + Inter + Tiro Devanagari
   globals.css             @theme tokens, drop-cap, base reset
 components/
+  home/                   hero + section-shell + per-section teasers
   layout/                 site-header / site-footer / section
-  gallery/                artwork-card, chromacard, work-filter
+  gallery/                art-image, artwork-card, chromacard, work-filter, lightbox (+ context)
   forms/                  custom-order-form
   motion/                 reveal, motion-provider, smooth-scroll, split-text
-  decor/                  marquee, scroll-progress
+  decor/                  marquee, scroll-progress, ink-splash, pigment-wash, brush-stroke, paper-grain, motifs
   ui/                     button, theme-toggle, brand-icons
 lib/
   data.ts                 the data seam
@@ -94,11 +96,12 @@ lib/
 data/
   site.json, artworks.json
 public/
-  artworks/               21 JPGs, ~28 MB
+  artworks/               21 master JPGs (~28 MB); _opt/ variants generated at build
   logo.jpg, logo-180.png, CNAME, robots.txt
 .github/workflows/        ci.yml, deploy.yml (deploy.yml uploads out/)
 scripts/
-  optimize-images.mjs     stub; real sharp pipeline pending
+  optimize-images.mjs     sharp AVIF/WebP/JPG pipeline -> public/_opt/
+  prune-build.mjs         strips raw masters from out/ after build
 ```
 
 ## Operating mode

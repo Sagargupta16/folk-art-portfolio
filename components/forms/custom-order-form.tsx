@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Mail } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Mail } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { ArtStyle, CustomOrderDraft } from "@/lib/types";
@@ -44,6 +44,7 @@ export function CustomOrderForm({
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [draft, setDraft] = useState<CustomOrderDraft | null>(null);
+	const [sent, setSent] = useState(false);
 
 	function readDraft(form: HTMLFormElement): CustomOrderDraft | null {
 		const formData = new FormData(form);
@@ -77,6 +78,8 @@ export function CustomOrderForm({
 		const opened = window.open(url, "_blank", "noopener,noreferrer");
 		if (!opened) {
 			setError("Couldn't open WhatsApp. Use the email link below to send your brief instead.");
+		} else {
+			setSent(true);
 		}
 		setTimeout(() => setSubmitting(false), 1500);
 	}
@@ -96,8 +99,8 @@ export function CustomOrderForm({
 				/>
 			</Field>
 
-			<Field id="style" label="Preferred style" optional>
-				<select id="style" name="style" defaultValue="" className={inputClass}>
+			<SelectField id="style" label="Preferred style">
+				<select id="style" name="style" defaultValue="" className={selectClass}>
 					<option value="">Open to suggestion</option>
 					{availableStyles.map((s) => (
 						<option key={s} value={s}>
@@ -105,11 +108,11 @@ export function CustomOrderForm({
 						</option>
 					))}
 				</select>
-			</Field>
+			</SelectField>
 
 			<div className="grid gap-6 sm:grid-cols-2">
-				<Field id="size" label="Approx size" optional>
-					<select id="size" name="size" defaultValue="" className={inputClass}>
+				<SelectField id="size" label="Approx size">
+					<select id="size" name="size" defaultValue="" className={selectClass}>
 						<option value="">No preference</option>
 						{sizes.map((s) => (
 							<option key={s} value={s}>
@@ -117,10 +120,10 @@ export function CustomOrderForm({
 							</option>
 						))}
 					</select>
-				</Field>
+				</SelectField>
 
-				<Field id="budget" label="Budget" optional>
-					<select id="budget" name="budget" defaultValue="" className={inputClass}>
+				<SelectField id="budget" label="Budget">
+					<select id="budget" name="budget" defaultValue="" className={selectClass}>
 						<option value="">Open / not sure</option>
 						{budgets.map((b) => (
 							<option key={b} value={b}>
@@ -128,11 +131,11 @@ export function CustomOrderForm({
 							</option>
 						))}
 					</select>
-				</Field>
+				</SelectField>
 			</div>
 
-			<Field id="timeline" label="Timeline" optional>
-				<select id="timeline" name="timeline" defaultValue="" className={inputClass}>
+			<SelectField id="timeline" label="Timeline">
+				<select id="timeline" name="timeline" defaultValue="" className={selectClass}>
 					<option value="">No specific timeline</option>
 					{timelines.map((t) => (
 						<option key={t} value={t}>
@@ -140,7 +143,7 @@ export function CustomOrderForm({
 						</option>
 					))}
 				</select>
-			</Field>
+			</SelectField>
 
 			<Field id="brief" label="Brief" required>
 				<textarea
@@ -155,11 +158,27 @@ export function CustomOrderForm({
 
 			<div aria-live="polite" aria-atomic="true">
 				{error ? <p className="text-sm text-red-700 dark:text-red-400">{error}</p> : null}
+				{sent && !error ? (
+					<div className="flex items-start gap-3 rounded-md border border-(--section-accent)/40 bg-(--section-accent)/5 p-4">
+						<span
+							className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-(--section-accent) text-bg"
+							aria-hidden="true"
+						>
+							<Check size={14} />
+						</span>
+						<div>
+							<p className="text-sm font-medium text-ink">Your brief is ready in WhatsApp.</p>
+							<p className="mt-1 text-xs text-muted">
+								Review and send it there to reach us. Didn&rsquo;t open? Use the email link below.
+							</p>
+						</div>
+					</div>
+				) : null}
 			</div>
 
 			<div className="flex flex-col items-start gap-3">
 				<Button type="submit" variant="primary" size="lg" disabled={submitting}>
-					{submitting ? "Opening WhatsApp..." : submitLabel}
+					{submitting ? "Opening WhatsApp..." : sent ? "Reopen in WhatsApp" : submitLabel}
 					<ArrowRight size={16} aria-hidden="true" />
 				</Button>
 				<p className="text-xs text-muted">
@@ -181,7 +200,35 @@ export function CustomOrderForm({
 /* ----------------------------- helpers ----------------------------- */
 
 const inputClass =
-	"block w-full min-h-12 rounded-md border border-line bg-bg px-4 py-3 text-base text-ink placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30";
+	"block w-full min-h-12 rounded-md border border-line bg-bg px-4 py-3 text-base text-ink placeholder:text-muted transition-[border-color,box-shadow] duration-(--duration-fast) focus:border-(--section-accent) focus:outline-none focus:ring-2 focus:ring-(--section-accent)/30";
+
+// Selects drop the OS chevron (appearance-none) so they match the cream/ink
+// fields; a lucide chevron is layered in via the SelectField wrapper. Extra
+// right padding leaves room for it.
+const selectClass = cn(inputClass, "appearance-none pr-11 cursor-pointer");
+
+function SelectField({
+	id,
+	label,
+	children,
+}: {
+	id: string;
+	label: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<Field id={id} label={label} optional>
+			<div className="relative">
+				{children}
+				<ChevronDown
+					size={16}
+					aria-hidden="true"
+					className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted"
+				/>
+			</div>
+		</Field>
+	);
+}
 
 function Field({
 	id,

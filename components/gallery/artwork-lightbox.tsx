@@ -50,14 +50,25 @@ export function ArtworkLightbox() {
 	// The element focused before the lightbox opened, so we can restore it.
 	const triggerRef = useRef<HTMLElement | null>(null);
 
-	// Keyboard: Escape closes, arrows navigate, Tab is trapped inside the dialog.
+	// Open/close lifecycle ONLY (gated on isOpen, callbacks are stable): capture
+	// the trigger, move focus into the dialog, lock body scroll, and restore the
+	// trigger on close. Kept separate from the keydown listener so navigating
+	// between pieces does not tear this down and re-fire focus.
 	useEffect(() => {
 		if (!isOpen) return;
-
-		// Remember the trigger and move focus into the dialog.
 		triggerRef.current = document.activeElement as HTMLElement | null;
 		dialogRef.current?.focus();
+		document.body.style.overflow = "hidden";
+		return () => {
+			document.body.style.overflow = "";
+			triggerRef.current?.focus?.();
+		};
+	}, [isOpen]);
 
+	// Keyboard: Escape closes, arrows navigate, Tab is trapped inside the dialog.
+	// Deps are all stable (memoized in the context), so this binds once per open.
+	useEffect(() => {
+		if (!isOpen) return;
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
 				closeLightbox();
@@ -87,17 +98,8 @@ export function ArtworkLightbox() {
 				}
 			}
 		};
-
 		window.addEventListener("keydown", handleKeyDown);
-		// Lock page body scroll while in Zen view
-		document.body.style.overflow = "hidden";
-
-		return () => {
-			window.removeEventListener("keydown", handleKeyDown);
-			document.body.style.overflow = "";
-			// Restore focus to whatever opened the lightbox.
-			triggerRef.current?.focus?.();
-		};
+		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [isOpen, closeLightbox, nextArtwork, prevArtwork]);
 
 	// Mouse pan math to map local coordinates to scale origins
@@ -125,8 +127,12 @@ export function ArtworkLightbox() {
 	return (
 		<AnimatePresence>
 			{isOpen && activeArtwork ? (
+				// Stable key: the dialog updates in place when navigating between
+				// pieces (image + metadata swap), so keyboard focus and the trap
+				// survive. AnimatePresence still handles the open/close fade since
+				// the child is conditionally rendered on isOpen.
 				<LightboxView
-					key={activeArtwork.slug}
+					key="lightbox"
 					artwork={activeArtwork}
 					slug={deriveSlug(activeArtwork.image)}
 					hasSiblings={artworksList.length > 1}
@@ -191,10 +197,20 @@ function LightboxView({
 
 	// Defense in depth: if a negotiated <source> variant is missing, a <picture>
 	// 404s rather than falling back, so swap to the always-present master-width
-	// `<slug>.jpg` on error. LightboxView is keyed by slug, so this resets per
-	// artwork. The optimizer emits every width tier (capped at master width), so
-	// this should not normally fire -- it just guarantees the art still renders.
+	// `<slug>.jpg` on error. The optimizer emits every width tier (capped at
+	// master width), so this should not normally fire -- it just guarantees the
+	// art still renders. The dialog mounts once (stable key) and swaps in place,
+	// so reset the failed flag when the piece changes, using React's
+	// adjust-state-during-render idiom (no effect, no Biome dep friction).
 	const [srcFailed, setSrcFailed] = useState(false);
+	const [failedSlug, setFailedSlug] = useState<string | null>(null);
+	if (srcFailed && failedSlug !== slug) {
+		setSrcFailed(false);
+	}
+	const markFailed = () => {
+		setSrcFailed(true);
+		setFailedSlug(slug);
+	};
 
 	const titleId = "lightbox-title";
 
@@ -274,7 +290,7 @@ function LightboxView({
 							<motion.img
 								src={`/_opt/artworks/${slug}.jpg`}
 								alt={artwork.description ?? artwork.title}
-								onError={() => setSrcFailed(true)}
+								onError={markFailed}
 								className="h-full w-full object-cover select-none"
 								style={{
 									transformOrigin: `${panPos.x}% ${panPos.y}%`,

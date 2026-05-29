@@ -71,7 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				    invisible. This rule wins via the `<noscript>` cascade and snaps
 				    content back to visible for crawlers / no-JS visitors. */}
 				<noscript>
-					<style>{`[style*="opacity:0"],[style*="opacity: 0"]{opacity:1!important;transform:none!important;}`}</style>
+					<style>{`[style*="opacity:0"],[style*="opacity: 0"]{opacity:1!important;transform:none!important;filter:none!important;}`}</style>
 				</noscript>
 			</head>
 			<body className="font-sans">

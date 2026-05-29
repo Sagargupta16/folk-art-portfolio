@@ -2,6 +2,8 @@
 
 import { ImageOff } from "lucide-react";
 import { useState } from "react";
+import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
+import { cn } from "@/lib/utils";
 
 /**
  * Static-export image component for catalog artwork.
@@ -61,6 +63,8 @@ function jpegFallback(slug: string): string {
 
 export function ArtImage({ src, alt, className, priority = false, sizes }: ArtImageProps) {
 	const [failed, setFailed] = useState(false);
+	const [loaded, setLoaded] = useState(false);
+	const reduceMotion = usePrefersReducedMotion();
 
 	if (failed) {
 		return (
@@ -76,19 +80,46 @@ export function ArtImage({ src, alt, className, priority = false, sizes }: ArtIm
 
 	const slug = deriveSlug(src);
 
+	// Gallery-register settle: the image fades + lifts out of a soft blur as it
+	// decodes, so plates resolve into place instead of popping. Priority (LCP)
+	// images and reduced-motion users skip it. The ref callback covers the case
+	// where the image is already cached/complete before React attaches onLoad.
+	//
+	// The hidden state is an INLINE `opacity:0` (not a class) so the no-JS
+	// <noscript> net in app/layout.tsx unhides it for crawlers / JS-disabled
+	// visitors -- the same contract Reveal relies on.
+	const animate = !priority && !reduceMotion;
+	const settle = (el: HTMLImageElement | null) => {
+		// If the image is already cached/complete before React attaches onLoad,
+		// mark it loaded so it doesn't stay stuck in the hidden pre-load state.
+		if (el?.complete) setLoaded(true);
+	};
+	const imgClass = className ?? "absolute inset-0 h-full w-full object-cover";
+	const settleStyle =
+		animate && !loaded
+			? ({ opacity: 0, filter: "blur(2px)", transform: "scale(1.02)" } as const)
+			: undefined;
+
 	return (
 		<picture>
 			<source type="image/avif" srcSet={buildSrcset(slug, "avif")} sizes={sizes} />
 			<source type="image/webp" srcSet={buildSrcset(slug, "webp")} sizes={sizes} />
 			<source type="image/jpeg" srcSet={buildSrcset(slug, "jpg")} sizes={sizes} />
 			<img
+				ref={settle}
 				src={jpegFallback(slug)}
 				alt={alt}
 				loading={priority ? "eager" : "lazy"}
 				decoding={priority ? "sync" : "async"}
 				fetchPriority={priority ? "high" : "auto"}
-				className={className ?? "absolute inset-0 h-full w-full object-cover"}
+				onLoad={() => setLoaded(true)}
 				onError={() => setFailed(true)}
+				style={settleStyle}
+				className={cn(
+					imgClass,
+					animate &&
+						"transition-[opacity,transform,filter] duration-(--duration-slow) ease-out-soft motion-reduce:transition-none",
+				)}
 			/>
 		</picture>
 	);

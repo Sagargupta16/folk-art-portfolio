@@ -15,7 +15,7 @@ UI/UX enhancement pass across the conversion path, forms, and finish details. On
 ### Changed
 
 - **Form selects match the cream/ink fields** -- native OS chevron dropped (`appearance-none`) with a layered lucide chevron; focus rings now use the section-accent pigment. Inputs gain a subtle focus transition.
-- **Richer 404** ([app/not-found.tsx](app/not-found.tsx)) -- motif eyebrow + brushstroke + lead + routed CTAs (Browse the work / Home) on a peacock accent, replacing the bare text dead-end. Also switched its arbitrary `text-[var(--color-*)]` classes to the project's token utilities.
+- **Richer 404** ([app/not-found.tsx](app/not-found.tsx)) -- motif eyebrow + brushstroke + lead + routed CTAs (Browse the work / Home) on a peacock accent, replacing the bare text dead-end. Also switched its arbitrary color/tracking classes to the project's token utilities (`text-muted`, `text-accent`).
 
 ### Fixed (a11y follow-ups from the 1.15.0 review)
 

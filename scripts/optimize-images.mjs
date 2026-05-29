@@ -57,8 +57,6 @@ async function isFresh(outPath, srcMtimeMs) {
 async function processOne(srcPath) {
 	const { name } = parse(srcPath);
 	const srcStat = await stat(srcPath);
-	const meta = await sharp(srcPath).metadata();
-	const srcWidth = meta.width ?? 0;
 
 	let written = 0;
 	let skipped = 0;
@@ -83,10 +81,14 @@ async function processOne(srcPath) {
 	};
 
 	for (const w of WIDTHS) {
-		// Don't upscale -- if the master is narrower than the target width,
-		// skip that variant (browser will pick the next-smaller from srcset).
-		if (w > srcWidth) continue;
-
+		// Emit EVERY width tier, even when the master is narrower than the
+		// target. `withoutEnlargement: true` (in encodeVariant) caps the output
+		// at the master width, so there's no upscaling -- a 1504px master just
+		// yields a ~1504px "-1600" file. We must not skip the larger tiers:
+		// the runtime references fixed filenames (art-image's srcset lists all
+		// four widths; the lightbox loads `-1600` directly), and a <picture>
+		// 404s rather than falling back when a referenced <source> is missing.
+		//
 		// AVIF + WebP for modern browsers, plus a per-width mozjpeg so the
 		// no-AVIF/no-WebP fallback path is ALSO responsive (older Safari /
 		// Firefox / in-app webviews don't download a master-width JPG into a

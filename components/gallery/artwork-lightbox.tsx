@@ -189,6 +189,13 @@ function LightboxView({
 		message: buyArtworkMessage(artwork),
 	});
 
+	// Defense in depth: if a negotiated <source> variant is missing, a <picture>
+	// 404s rather than falling back, so swap to the always-present master-width
+	// `<slug>.jpg` on error. LightboxView is keyed by slug, so this resets per
+	// artwork. The optimizer emits every width tier (capped at master width), so
+	// this should not normally fire -- it just guarantees the art still renders.
+	const [srcFailed, setSrcFailed] = useState(false);
+
 	const titleId = "lightbox-title";
 
 	return (
@@ -254,13 +261,20 @@ function LightboxView({
 					>
 						{/* Optimized variants only -- the raw master is pruned from the
 						    deploy, so pointing at /artworks/ would 404. AVIF/WebP at
-						    1600w with a mozjpeg fallback, negotiated via <picture>. */}
+						    1600w (capped at master width by the optimizer) with the
+						    master-width mozjpeg as the <img> base. On error we drop the
+						    AVIF/WebP <source>s and load the master JPG directly. */}
 						<picture>
-							<source type="image/avif" srcSet={`/_opt/artworks/${slug}-1600.avif`} />
-							<source type="image/webp" srcSet={`/_opt/artworks/${slug}-1600.webp`} />
+							{srcFailed ? null : (
+								<>
+									<source type="image/avif" srcSet={`/_opt/artworks/${slug}-1600.avif`} />
+									<source type="image/webp" srcSet={`/_opt/artworks/${slug}-1600.webp`} />
+								</>
+							)}
 							<motion.img
 								src={`/_opt/artworks/${slug}.jpg`}
 								alt={artwork.description ?? artwork.title}
+								onError={() => setSrcFailed(true)}
 								className="h-full w-full object-cover select-none"
 								style={{
 									transformOrigin: `${panPos.x}% ${panPos.y}%`,

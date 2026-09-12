@@ -43,7 +43,8 @@ export async function mountAdmin(page: Page, view: Parameters<Window["mountAdmin
 		body { font-family: sans-serif; }
 		dialog { border: 0; padding: 16px; }
 		dialog[open] { display: grid; place-items: center; }
-		dialog > div { background: white; padding: 16px; }
+		dialog > div { position: relative; z-index: 10; background: white; padding: 16px; }
+		dialog > button { position: absolute; inset: 0; border: 0; background: transparent; }
 		.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 		</style></head><body><main id="fixture"></main></body></html>
 	`);

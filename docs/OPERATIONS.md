@@ -16,7 +16,7 @@ Drizzle does not generate safe down migrations automatically. Prefer a reviewed 
 
 ## Capture a coordinated backup
 
-A recovery set contains a custom-format database dump, a manifest of image references from that same state, all referenced R2 objects, and the application commit/migration boundary. The dump contains leads and the allowlist: store the bundle in an encrypted, access-controlled archive. Local examples use gitignored `.cache/recovery/`; never commit or publish a bundle.
+A recovery set contains a custom-format database dump, a manifest of image references from that same state, all referenced R2 objects, and the application commit/migration boundary. The dump contains leads and the allowlist: store the bundle in an encrypted, access-controlled archive. The verifier accepts bundles only under this checkout's gitignored `.cache/recovery/` or `.cache/operational-tests/` for synthetic tests; never commit or publish a bundle.
 
 The source capture commands are read-only. They do not delete or replace source rows or objects.
 
@@ -47,15 +47,15 @@ node scripts/verify-backup.mjs create .cache/recovery/capture --revision COMMIT_
 node scripts/verify-backup.mjs verify .cache/recovery/capture
 ```
 
-The verifier requires all 13 variants/master objects for every exported artwork, event photo, and profile photo, and hashes the dump, references, and copied objects with SHA-256. It refuses missing files, changed bytes, symlink files, and paths outside the bundle. Creation does not overwrite an existing manifest. A matching hash confirms local byte integrity, not that PostgreSQL can restore the dump or that a provider copied all source state correctly.
+The verifier requires all 13 variants/master objects for every exported artwork, event photo, and profile photo, and hashes the dump, references, and copied objects with SHA-256. It refuses missing files, changed bytes, parent traversal, symlinks or junctions in any path component, and paths outside the bundle. Bundle paths are anchored to the checkout containing the scripts; absolute paths must remain inside the approved directories. Directory names use ASCII letters, digits, spaces, periods, underscores, or hyphens, without trailing spaces/periods or Windows device names. Image filenames must follow the artwork/event/profile key contract and end in `.jpg`, `.webp`, or `.avif`. Creation does not overwrite an existing manifest. A matching hash confirms local byte integrity, not that PostgreSQL can restore the dump or that a provider copied all source state correctly.
 
-6. Move the complete bundle to the approved encrypted archive, verify the archived copy with the same command, and record access/retention. Resume edits after the complete set is captured. Confirm the live site's health after the maintenance window.
+6. Copy the complete bundle to the approved encrypted archive and record access/retention. Download a copy into a fresh directory under `.cache/recovery/` and verify it with the same command before removing the original local capture. Resume edits after the complete set is captured. Confirm the live site's health after the maintenance window.
 
 ## Restore drill in isolated resources
 
 Never run this drill against production. Use a fresh Neon branch/database and a separate R2 bucket with destination-only credentials. Confirm their identities independently of the source names before any write.
 
-1. Download one complete recovery set into a fresh local directory. Run `verify-backup.mjs verify` and `pg_restore --list`. If any required object or checksum is missing, stop; do not combine files from different snapshots casually.
+1. Download one complete recovery set into a fresh directory under this checkout's `.cache/recovery/`. Run `verify-backup.mjs verify` and `pg_restore --list`. If any required object or checksum is missing, stop; do not combine files from different snapshots casually.
 2. Restore into the empty isolated database. Do not use `--clean` or restore into an existing production database:
 
 ```sh

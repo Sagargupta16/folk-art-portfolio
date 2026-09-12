@@ -32,10 +32,15 @@ const BOOTSTRAP_TABLES = [
 	"workshops",
 ] as const;
 
-export const LOCK_BOOTSTRAP_SQL = `LOCK TABLE ${BOOTSTRAP_TABLES.map((name) => `"public"."${name}"`).join(", ")} IN SHARE ROW EXCLUSIVE MODE`;
+const quotedBootstrapTables = BOOTSTRAP_TABLES.map((name) => `"public"."${name}"`);
+const existingRows = quotedBootstrapTables
+	.map((table) => `EXISTS (SELECT 1 FROM ${table} LIMIT 1)`)
+	.join(" OR ");
+
+export const LOCK_BOOTSTRAP_SQL = `LOCK TABLE ${quotedBootstrapTables.join(", ")} IN SHARE ROW EXCLUSIVE MODE`;
 export const REQUIRE_EMPTY_CATALOG_SQL = `DO $bootstrap$
 BEGIN
-	IF ${BOOTSTRAP_TABLES.map((name) => `EXISTS (SELECT 1 FROM "public"."${name}" LIMIT 1)`).join(" OR ")} THEN
+	IF ${existingRows} THEN
 		RAISE EXCEPTION 'Catalog bootstrap refused: catalog or settings already contain data';
 	END IF;
 END;

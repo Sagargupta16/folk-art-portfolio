@@ -184,7 +184,7 @@ async function main() {
 		);
 		assert.deepEqual(
 			tables.rows.map((row) => row.name),
-			Object.keys(migrations.at(-1)?.snapshot.tables ?? {}).sort(),
+			Object.keys(migrations.at(-1)?.snapshot.tables ?? {}).sort((a, b) => a.localeCompare(b)),
 		);
 
 		await checkSeedRefusal(client);

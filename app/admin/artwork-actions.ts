@@ -186,6 +186,16 @@ export async function createArtwork(formData: FormData): Promise<ActionResult<{ 
 	}
 }
 
+function optionalPositiveInteger(formData: FormData, field: string, label: string): number | null {
+	const raw = formData.get(field);
+	if (typeof raw !== "string" || !raw.trim()) return null;
+	const value = Number(raw);
+	if (!Number.isInteger(value) || value <= 0) {
+		throw new Error(`${label} must be a positive whole number.`);
+	}
+	return value;
+}
+
 async function createArtworkUnsafe(formData: FormData): Promise<ActionResult<{ slug: string }>> {
 	await requireMaintainer();
 
@@ -206,16 +216,8 @@ async function createArtworkUnsafe(formData: FormData): Promise<ActionResult<{ s
 		.where(eq(artworks.slug, slug));
 	if (existing.length > 0) throw new Error(`An artwork with slug "${slug}" already exists.`);
 
-	const priceRaw = formData.get("priceInr");
-	const priceInr = typeof priceRaw === "string" && priceRaw.trim() ? Number(priceRaw) : null;
-	const yearRaw = formData.get("year");
-	const year = typeof yearRaw === "string" && yearRaw.trim() ? Number(yearRaw) : null;
-	if (priceInr !== null && (!Number.isInteger(priceInr) || priceInr <= 0)) {
-		throw new Error("Price must be a positive whole number.");
-	}
-	if (year !== null && (!Number.isInteger(year) || year <= 0)) {
-		throw new Error("Year must be a positive whole number.");
-	}
+	const priceInr = optionalPositiveInteger(formData, "priceInr", "Price");
+	const year = optionalPositiveInteger(formData, "year", "Year");
 
 	const buffer = await readStagedImage(stagedKey);
 	const { image, aspectRatio, palette } = await processNewArtworkImage(slug, buffer);

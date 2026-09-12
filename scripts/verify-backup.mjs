@@ -1,14 +1,18 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { lstat, readdir, readFile, realpath, writeFile } from "node:fs/promises";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
+import { confinedPath, operationalPath } from "./operational-paths.mjs";
 
 const WIDTHS = [400, 800, 1200, 1600];
 const FORMATS = ["avif", "webp", "jpg"];
 const KEY_BASE =
 	/^(?:artworks\/[a-z0-9_-]+|events\/[a-z0-9_-]+\/[a-z0-9_-]+|profile\/[a-z0-9_-]+)$/i;
+const OBJECT_FILE =
+	/^objects\/(?:artworks\/[a-z0-9_-]+|events\/[a-z0-9_-]+\/[a-z0-9_-]+|profile\/[a-z0-9_-]+)\.(?:avif|webp|jpg)$/i;
+const OBJECT_DIRECTORY = /^objects(?:\/(?:artworks|profile|events(?:\/[a-z0-9_-]+)?))?$/i;
 
 /**
  * @typedef {{ path: string, bytes: number, sha256: string }} BackupFile
@@ -33,22 +37,15 @@ export function expectedImageFiles(keyBases) {
 
 /** @param {string} root @param {string} path */
 async function safeFile(root, path) {
-	if (isAbsolute(path) || path.includes("\\") || path.split("/").includes("..")) {
-		throw new Error("Backup file paths must stay inside the bundle.");
-	}
-	const file = resolve(root, path);
-	const info = await lstat(file);
-	const resolved = await realpath(file);
-	const localPath = relative(root, resolved);
 	if (
-		info.isSymbolicLink() ||
-		!info.isFile() ||
-		localPath.startsWith(`..${sep}`) ||
-		isAbsolute(localPath)
+		typeof path !== "string" ||
+		(!["database.dump", "image-keys.json", "manifest.json"].includes(path) &&
+			!OBJECT_FILE.test(path))
 	) {
-		throw new Error("Backup files must be regular files inside the bundle.");
+		throw new Error("Backup file paths must use the bundle's approved filenames.");
 	}
-	return { file, info };
+	const file = await confinedPath(root, path, "file");
+	return { file, info: await stat(file) };
 }
 
 /** @param {string} root @param {string} path @returns {Promise<BackupFile>} */
@@ -61,26 +58,19 @@ async function describeFile(root, path) {
 
 /** @param {string} root @param {string} path @returns {Promise<string[]>} */
 async function listObjects(root, path = "objects") {
-	const directory = resolve(root, path);
-	const info = await lstat(directory);
-	const localPath = relative(root, await realpath(directory));
-	if (
-		info.isSymbolicLink() ||
-		!info.isDirectory() ||
-		localPath.startsWith(`..${sep}`) ||
-		isAbsolute(localPath)
-	) {
-		throw new Error("Backup object folders must stay inside the bundle.");
+	if (!OBJECT_DIRECTORY.test(path)) {
+		throw new Error("Backup object folders must use artwork, event, or profile namespaces.");
 	}
+	const directory = await confinedPath(root, path, "directory");
 	const files = [];
 	for (const entry of await readdir(directory, { withFileTypes: true })) {
 		const child = `${path}/${entry.name}`;
 		if (entry.isSymbolicLink()) throw new Error("Backup object folders must not contain symlinks.");
 		if (entry.isDirectory()) files.push(...(await listObjects(root, child)));
-		else if (entry.isFile()) files.push(child);
+		else if (entry.isFile() && OBJECT_FILE.test(child)) files.push(child);
 		else throw new Error("Backup object folders must contain only regular files.");
 	}
-	return files.sort();
+	return files.sort((a, b) => a.localeCompare(b));
 }
 
 /** @param {string} root */
@@ -104,7 +94,7 @@ export async function createManifest(directory, { revision, migration }) {
 	if (!/^[0-9a-f]{40}$/i.test(revision) || !/^\d{4}_[a-z0-9_]+$/i.test(migration)) {
 		throw new Error("Record the exact application commit and applied migration tag.");
 	}
-	const root = await realpath(directory);
+	const root = await operationalPath(directory, "backup", "directory");
 	const { file } = await safeFile(root, "database.dump");
 	const dump = createReadStream(file, { start: 0, end: 4 });
 	let signature = "";
@@ -118,7 +108,8 @@ export async function createManifest(directory, { revision, migration }) {
 		files.push(await describeFile(root, path));
 	}
 	const manifest = { version: 1, revision, migration, capturedAt: new Date().toISOString(), files };
-	await writeFile(resolve(root, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, {
+	const output = await confinedPath(root, "manifest.json", "output");
+	await writeFile(output, `${JSON.stringify(manifest, null, 2)}\n`, {
 		flag: "wx",
 		mode: 0o600,
 	});
@@ -129,12 +120,26 @@ export async function createManifest(directory, { revision, migration }) {
  * @param {string} directory
  */
 export async function verifyManifest(directory) {
-	const root = await realpath(directory);
+	const root = await operationalPath(directory, "backup", "directory");
 	const { file } = await safeFile(root, "manifest.json");
 	/** @type {BackupManifest} */
 	const manifest = JSON.parse(await readFile(file, "utf8"));
-	if (manifest.version !== 1 || !Array.isArray(manifest.files)) {
+	if (manifest?.version !== 1 || !Array.isArray(manifest.files)) {
 		throw new Error("Unsupported backup manifest.");
+	}
+	// Validate every entry before using any manifest-controlled filename.
+	for (const entry of manifest.files) {
+		if (
+			typeof entry?.path !== "string" ||
+			(!["database.dump", "image-keys.json"].includes(entry.path) &&
+				!OBJECT_FILE.test(entry.path)) ||
+			!Number.isSafeInteger(entry.bytes) ||
+			entry.bytes < 0 ||
+			typeof entry.sha256 !== "string" ||
+			!/^[a-f0-9]{64}$/.test(entry.sha256)
+		) {
+			throw new Error("Backup manifest contains an invalid filename or checksum entry.");
+		}
 	}
 	const paths = manifest.files.map((entry) => entry.path);
 	if (
@@ -154,34 +159,36 @@ export async function verifyManifest(directory) {
 	return manifest;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-	try {
-		const { values, positionals } = parseArgs({
-			allowPositionals: true,
-			options: { revision: { type: "string" }, migration: { type: "string" } },
-		});
-		const [command, directory] = positionals;
-		if (!directory || positionals.length !== 2 || !["create", "verify"].includes(command ?? "")) {
-			throw new Error(
-				"Usage: verify-backup.mjs create|verify DIRECTORY [--revision SHA --migration TAG]",
-			);
-		}
-		let manifest;
-		if (command === "create") {
-			if (!values.revision || !values.migration)
-				throw new Error("Create requires --revision and --migration.");
-			manifest = await createManifest(directory, {
-				revision: values.revision,
-				migration: values.migration,
-			});
-		} else {
-			manifest = await verifyManifest(directory);
-		}
-		console.log(
-			`Verified local inventory: ${manifest.files.length} files. No remote resource was contacted.`,
+async function main() {
+	const { values, positionals } = parseArgs({
+		allowPositionals: true,
+		options: { revision: { type: "string" }, migration: { type: "string" } },
+	});
+	const [command, directory] = positionals;
+	if (!directory || positionals.length !== 2 || !["create", "verify"].includes(command ?? "")) {
+		throw new Error(
+			"Usage: verify-backup.mjs create|verify DIRECTORY [--revision SHA --migration TAG]",
 		);
-	} catch (error) {
+	}
+	let manifest;
+	if (command === "create") {
+		if (!values.revision || !values.migration)
+			throw new Error("Create requires --revision and --migration.");
+		manifest = await createManifest(directory, {
+			revision: values.revision,
+			migration: values.migration,
+		});
+	} else {
+		manifest = await verifyManifest(directory);
+	}
+	console.log(
+		`Verified local inventory: ${manifest.files.length} files. No remote resource was contacted.`,
+	);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+	void main().catch((error) => {
 		console.error(error instanceof Error ? error.message : "Backup verification failed.");
 		process.exitCode = 1;
-	}
+	});
 }

@@ -8,7 +8,7 @@ export function safeAdminCallback(value: string | undefined): string {
 	if (
 		!value?.startsWith("/") ||
 		[...value].some(
-			(character) => character === "\\" || character.charCodeAt(0) <= SPACE_CODE_POINT,
+			(character) => character === "\\" || (character.codePointAt(0) ?? 0) <= SPACE_CODE_POINT,
 		)
 	) {
 		return ADMIN_HOME;

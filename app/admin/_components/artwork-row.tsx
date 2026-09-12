@@ -290,11 +290,7 @@ function ArtworkEditModal({
 						{err}
 					</p>
 				) : null}
-				{okMsg ? (
-					<p role="status" className="mt-4 text-sm text-accent">
-						{okMsg}
-					</p>
-				) : null}
+				{okMsg ? <output className="mt-4 block text-sm text-accent">{okMsg}</output> : null}
 			</div>
 
 			{/* Sticky footer: Save / Delete */}

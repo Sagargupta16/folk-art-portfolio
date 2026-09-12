@@ -146,7 +146,7 @@ For a schema change:
 
 1. Edit the schema and generate SQL with `pnpm db:generate`.
 2. Review SQL, snapshot, and journal together. Keep older migrations unchanged.
-3. Run `node scripts/check-migrations.mjs`. It rejects missing/orphaned SQL or snapshots, invalid numbering, duplicate/out-of-order timestamps, and broken snapshot ancestry.
+3. Run `node scripts/check-migrations.mjs`. It rejects missing/orphaned SQL or snapshots, unsafe filenames, invalid numbering, duplicate/out-of-order timestamps, and broken snapshot ancestry. Its optional directory argument must stay inside this checkout's `drizzle/` or `.cache/operational-tests/`; symlinks and junctions are rejected.
 4. Apply the journal to fresh disposable PostgreSQL and to a representative preview branch.
 5. Verify behavior before applying the reviewed migration to production under the release procedure.
 
@@ -156,30 +156,30 @@ File validation does not execute SQL or prove data compatibility. The disposable
 
 Baseline only the migration prefix whose resulting schema is already present. Never label pending schema changes as applied just to silence a migration error.
 
-The offline [prepare-migration-baseline.mjs](../scripts/prepare-migration-baseline.mjs) script compares two public schema dumps and generates history-only SQL. It never connects to a database or runs that SQL.
+The offline [prepare-migration-baseline.mjs](../scripts/prepare-migration-baseline.mjs) script compares two public schema dumps and generates history-only SQL. It never connects to a database or runs that SQL. Create `.cache/baseline/` in this checkout first. Inputs and output must be `.sql` files under that directory; `.cache/operational-tests/` is also accepted for synthetic tests. Use letters, digits, underscores, hyphens, and periods in filenames. The output must not exist.
 
 1. Pause schema/catalog writes and capture a coordinated backup per [OPERATIONS.md](OPERATIONS.md).
 2. Choose the last already-present migration tag. Create an empty, disposable reference database and apply only the numbered SQL files through that tag, in journal order. For example, a database matching migration `0002_slow_sprite` needs `0000`, `0001`, and `0002`, not later pending migrations.
 3. Use the same `pg_dump` executable/version to dump `public` from both the reference and target. Named libpq services below refer to externally managed credentials; no connection string belongs in this repo.
 
 ```sh
-pg_dump --dbname=service=kalchar-reference --schema-only --schema=public --no-owner --no-acl --no-comments --no-security-labels --file=.cache/reference.sql
-pg_dump --dbname=service=kalchar-target --schema-only --schema=public --no-owner --no-acl --no-comments --no-security-labels --file=.cache/target.sql
-node scripts/prepare-migration-baseline.mjs --reference .cache/reference.sql --target .cache/target.sql --through 0002_slow_sprite --output .cache/baseline.sql
+pg_dump --dbname=service=kalchar-reference --schema-only --schema=public --no-owner --no-acl --no-comments --no-security-labels --file=.cache/baseline/reference.sql
+pg_dump --dbname=service=kalchar-target --schema-only --schema=public --no-owner --no-acl --no-comments --no-security-labels --file=.cache/baseline/target.sql
+node scripts/prepare-migration-baseline.mjs --reference .cache/baseline/reference.sql --target .cache/baseline/target.sql --through 0002_slow_sprite --output .cache/baseline/plan.sql
 ```
 
 4. The script requires matching DDL and exactly the selected snapshot's public tables. It normalizes line endings and ignores only `pg_dump` version/time headers and per-run `psql` restriction tokens. Other text differences, including objects, defaults, constraints, and indexes, stop preparation. Reconcile differences explicitly and repeat the comparison. Do not remove statements from dumps to force a match.
 5. Review the generated file. While the target remains write-frozen, apply it to the exact target used for the comparison:
 
 ```sh
-psql --dbname=service=kalchar-target -X --set=ON_ERROR_STOP=1 --file=.cache/baseline.sql
+psql --dbname=service=kalchar-target -X --set=ON_ERROR_STOP=1 --file=.cache/baseline/plan.sql
 ```
 
 6. The SQL locks migration history, requires any existing history to be an exact prefix, and inserts only missing hashes/timestamps. It does not replay application DDL or data changes. Then apply genuinely pending migrations normally.
 
 Schema equality alone does not prove historical data-transform migrations ran. Inspect every selected SQL file for data changes or side effects and prove their postconditions separately before baselining them. The currently reviewed prefix through `0002` consists of schema changes.
 
-Keep the schema dumps, chosen boundary, history SQL, and review evidence in the private operation record. This repository does not assert that a live database has been baselined.
+Paths are anchored to the checkout containing the scripts, even when invoked from another working directory. Absolute paths are accepted only inside the approved directories. Parent traversal, symlinks, junctions, device names, and alternate data streams are rejected. Keep the schema dumps, chosen boundary, history SQL, and review evidence in the private operation record. This repository does not assert that a live database has been baselined.
 
 ## One-time catalog seed
 

@@ -145,11 +145,7 @@ export function UploadForm({ categories }: Readonly<{ categories: readonly strin
 						{error}
 					</p>
 				) : null}
-				{ok ? (
-					<p role="status" className="text-sm text-accent">
-						{ok}
-					</p>
-				) : null}
+				{ok ? <output className="block text-sm text-accent">{ok}</output> : null}
 			</div>
 		</form>
 	);

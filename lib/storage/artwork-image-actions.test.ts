@@ -73,6 +73,44 @@ beforeEach(() => {
 
 afterEach(() => vi.restoreAllMocks());
 
+describe("artwork numeric metadata", () => {
+	it.each([
+		["priceInr", "0", "Price"],
+		["priceInr", "-1", "Price"],
+		["priceInr", "1.5", "Price"],
+		["priceInr", "not-a-number", "Price"],
+		["year", "0", "Year"],
+		["year", "-1", "Year"],
+		["year", "1.5", "Year"],
+		["year", "not-a-number", "Year"],
+	])("rejects invalid %s value %s before writing any images", async (field, value, label) => {
+		fakes.query.mockResolvedValueOnce({ rows: [] });
+		const form = artworkForm();
+		form.set(field, value);
+		await expect(createArtwork(form)).resolves.toEqual({
+			ok: false,
+			message: `${label} must be a positive whole number.`,
+		});
+		expect(fakes.query).toHaveBeenCalledTimes(1);
+		expect(fakes.processArtwork).not.toHaveBeenCalled();
+		expect(fakes.deleteImages).not.toHaveBeenCalled();
+		expect(fakes.revalidate).not.toHaveBeenCalled();
+	});
+
+	it("stores valid numeric metadata and makes a priced artwork available", async () => {
+		fakes.query.mockImplementation(async (sql) => ({
+			rows: sql.startsWith("select") ? [] : [["same-title"]],
+		}));
+		const form = artworkForm();
+		form.set("priceInr", " 2500 ");
+		form.set("year", " 2024 ");
+		await expect(createArtwork(form)).resolves.toEqual({ ok: true, slug: "same-title" });
+		expect(fakes.query.mock.calls[1]?.[1]).toEqual(
+			expect.arrayContaining([2500, 2024, "available"]),
+		);
+	});
+});
+
 describe("artwork image ownership", () => {
 	it("a duplicate creation cleans only its own image version", async () => {
 		let published: string | undefined;

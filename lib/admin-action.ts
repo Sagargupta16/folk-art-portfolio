@@ -10,7 +10,7 @@ export function runAdminAction(operation: () => Promise<void>): Promise<ActionRe
 export async function runAdminAction(operation: () => Promise<unknown>): Promise<ActionResult> {
 	try {
 		await requireMaintainer();
-		return Object.assign({ ok: true as const }, await operation());
+		return { ok: true, ...((await operation()) as object | undefined) };
 	} catch (error) {
 		return failure(error);
 	}

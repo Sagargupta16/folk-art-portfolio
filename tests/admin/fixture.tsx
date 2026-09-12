@@ -54,8 +54,7 @@ function DialogFixture() {
 						Disabled control
 					</button>
 					<label>
-						Draft
-						<input value={text} onChange={(e) => setText(e.target.value)} />
+						Draft <input value={text} onChange={(e) => setText(e.target.value)} />
 					</label>
 					<button
 						type="button"

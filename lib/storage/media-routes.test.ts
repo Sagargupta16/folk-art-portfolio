@@ -27,6 +27,7 @@ const rejectedPaths = [
 	"/media/archive/original.jpg",
 	"/media/artworks/malicious.html",
 	"/media/artworks/malicious.svg",
+	"/media/artworks/missing-extension-dotXjpg",
 	"/media/artworks/nested/file.jpg",
 	"/media/events/fixture-event/%2e%2e/staging.jpg",
 	"/media/artworks/..%2fstaging%2ffile.jpg",

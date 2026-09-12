@@ -16,7 +16,7 @@ const useImageFixtures = process.env.KALCHAR_TEST_FIXTURES === "1";
 
 // Only generated image paths may cross the same-origin media boundary.
 // Staged masters and future private/archive prefixes must never be proxied.
-const imageFile = ":image([A-Za-z0-9_-]+\\.(?:avif|webp|jpg))";
+const imageFile = String.raw`:image([A-Za-z0-9_-]+\.(?:avif|webp|jpg))`;
 const mediaPaths = [
 	{ source: `artworks/${imageFile}`, destination: "artworks/:image" },
 	{

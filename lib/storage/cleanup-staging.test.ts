@@ -115,6 +115,18 @@ describe("staging cleanup discovery", () => {
 		expect(storage.deleteObjects).not.toHaveBeenCalled();
 	});
 
+	it("preserves progress counts and wraps an invalid timestamp as a TypeError", async () => {
+		storage.listStagedObjects.mockResolvedValueOnce(
+			page([...oldObjects(1), { Key: stagedKey(1), LastModified: new Date("invalid") }]),
+		);
+		await expect(cleanupAbandonedStaging("apply", now)).rejects.toMatchObject({
+			message: "Staging listing failed. No deletions were attempted.",
+			cause: expect.any(TypeError),
+			report: { pages: 1, listed: 2, eligible: 1, retained: 0, attempted: 0, deleted: 0 },
+		});
+		expect(storage.deleteObjects).not.toHaveBeenCalled();
+	});
+
 	it.each([
 		{ Contents: oldObjects(1), KeyCount: 1 },
 		{ Contents: oldObjects(1), KeyCount: 2, IsTruncated: false },

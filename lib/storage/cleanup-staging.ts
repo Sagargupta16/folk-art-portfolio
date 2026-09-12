@@ -1,3 +1,4 @@
+import type { _Object as ListedObject, ListObjectsV2CommandOutput } from "@aws-sdk/client-s3";
 import { assertStagedKey } from "./image-upload";
 import { DELETE_BATCH_MAX, deleteObjects, listStagedObjects } from "./r2";
 
@@ -35,14 +36,31 @@ export function parseStagingCleanupMode(args: readonly string[]): StagingCleanup
 	throw new Error("Choose --dry-run or --apply.");
 }
 
-/**
- * Finish and validate the entire listing before deleting anything. Published
- * image versions are outside this namespace and never enter the candidate set.
- */
-export async function cleanupAbandonedStaging(
-	mode: StagingCleanupMode = "dry-run",
-	now = new Date(),
-): Promise<StagingCleanupReport> {
+function validateStagedObject(object: ListedObject, seenKeys: ReadonlySet<string>) {
+	const key = object.Key;
+	if (typeof key !== "string") throw new TypeError("Missing staging object key.");
+	assertStagedKey(key);
+	if (seenKeys.has(key)) throw new Error("Duplicate staging object.");
+	const modified = object.LastModified;
+	if (!(modified instanceof Date) || !Number.isFinite(modified.getTime())) {
+		throw new TypeError("Invalid staging object modification time.");
+	}
+	return { key, modified: modified.getTime() };
+}
+
+function nextStagingToken(page: ListObjectsV2CommandOutput, seenTokens: ReadonlySet<string>) {
+	const nextToken = page.NextContinuationToken;
+	if (!page.IsTruncated) {
+		if (nextToken) throw new Error("Unexpected staging continuation token.");
+		return undefined;
+	}
+	if (typeof nextToken !== "string" || !nextToken || seenTokens.has(nextToken)) {
+		throw new Error("Missing or repeated staging continuation token.");
+	}
+	return nextToken;
+}
+
+async function discoverAbandonedStaging(mode: StagingCleanupMode, now: Date) {
 	const report: StagingCleanupReport = {
 		mode,
 		pages: 0,
@@ -75,30 +93,18 @@ export async function cleanupAbandonedStaging(
 
 			for (const object of objects) {
 				report.listed += 1;
-				if (typeof object.Key !== "string") throw new Error("Missing staging object key.");
-				assertStagedKey(object.Key);
-				if (seenKeys.has(object.Key)) throw new Error("Duplicate staging object.");
-				seenKeys.add(object.Key);
-				const modified = object.LastModified;
-				if (!(modified instanceof Date) || !Number.isFinite(modified.getTime())) {
-					throw new Error("Invalid staging object modification time.");
-				}
-				if (modified.getTime() < cutoff) {
-					candidates.push(object.Key);
+				const { key, modified } = validateStagedObject(object, seenKeys);
+				seenKeys.add(key);
+				if (modified < cutoff) {
+					candidates.push(key);
 					report.eligible += 1;
 				} else {
 					report.retained += 1;
 				}
 			}
 
-			const nextToken = page.NextContinuationToken;
-			if (!page.IsTruncated) {
-				if (nextToken) throw new Error("Unexpected staging continuation token.");
-				break;
-			}
-			if (typeof nextToken !== "string" || !nextToken || seenTokens.has(nextToken)) {
-				throw new Error("Missing or repeated staging continuation token.");
-			}
+			const nextToken = nextStagingToken(page, seenTokens);
+			if (nextToken === undefined) break;
 			seenTokens.add(nextToken);
 			continuationToken = nextToken;
 		}
@@ -109,7 +115,18 @@ export async function cleanupAbandonedStaging(
 			error,
 		);
 	}
+	return { report, candidates };
+}
 
+/**
+ * Finish and validate the entire listing before deleting anything. Published
+ * image versions are outside this namespace and never enter the candidate set.
+ */
+export async function cleanupAbandonedStaging(
+	mode: StagingCleanupMode = "dry-run",
+	now = new Date(),
+): Promise<StagingCleanupReport> {
+	const { report, candidates } = await discoverAbandonedStaging(mode, now);
 	if (mode !== "apply") return report;
 	try {
 		for (let offset = 0; offset < candidates.length; offset += DELETE_BATCH_MAX) {

@@ -90,13 +90,10 @@ export function Modal({
 				event.stopPropagation();
 				onClose();
 			}}
-			onClick={(event) => {
-				if (event.target === event.currentTarget) onClose();
-			}}
 			className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none place-items-center overflow-y-auto bg-transparent p-3 text-ink backdrop:bg-ink/40 backdrop:backdrop-blur-sm open:grid sm:p-4"
 		>
 			<div
-				className={`relative flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-(--radius-md) border border-line bg-bg shadow-e5 sm:max-h-[calc(100dvh-2rem)] ${
+				className={`relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-(--radius-md) border border-line bg-bg shadow-e5 sm:max-h-[calc(100dvh-2rem)] ${
 					size === "lg" ? "max-w-lg" : "max-w-sm"
 				}`}
 			>
@@ -114,13 +111,21 @@ export function Modal({
 							<X size={16} />
 						</button>
 					</div>
-				) : titleId ? null : (
+				) : null}
+				{!showClose && !titleId ? (
 					<h2 id={labelledBy} className="sr-only">
 						{title}
 					</h2>
-				)}
+				) : null}
 				{children}
 			</div>
+			<button
+				type="button"
+				tabIndex={-1}
+				aria-label={`Close ${title}`}
+				onClick={onClose}
+				className="absolute inset-0 cursor-default"
+			/>
 		</dialog>
 	);
 }

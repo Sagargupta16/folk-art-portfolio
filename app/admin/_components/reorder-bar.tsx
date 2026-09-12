@@ -26,11 +26,7 @@ export function ReorderBar({
 			<div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-(--container-px) py-3 xl:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
 				<p className="text-sm text-muted">{label}</p>
 				<div className="flex items-center gap-2.5">
-					{saved ? (
-						<span role="status" className="text-sm text-accent">
-							Saved
-						</span>
-					) : null}
+					{saved ? <output className="text-sm text-accent">Saved</output> : null}
 					<button
 						type="button"
 						onClick={onReset}

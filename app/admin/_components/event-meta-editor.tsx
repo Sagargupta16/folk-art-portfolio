@@ -91,11 +91,7 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 					<Check size={14} aria-hidden="true" />
 					Save details
 				</button>
-				{saved ? (
-					<span role="status" className="text-sm text-accent">
-						Saved
-					</span>
-				) : null}
+				{saved ? <output className="text-sm text-accent">Saved</output> : null}
 				{err ? (
 					<span role="alert" className="text-sm text-ruby">
 						{err}

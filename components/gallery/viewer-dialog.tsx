@@ -78,7 +78,7 @@ export function ViewerDialog({
 					if (!first || !last) return;
 					const active = document.activeElement;
 					const atBoundary = event.shiftKey ? active === first : active === last;
-					if (atBoundary || !controls.some((control) => control === active)) {
+					if (atBoundary || !(active instanceof HTMLElement) || !controls.includes(active)) {
 						event.preventDefault();
 						(event.shiftKey ? last : first).focus();
 					}

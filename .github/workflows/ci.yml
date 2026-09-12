@@ -123,16 +123,17 @@ jobs:
         env:
           POSTGRES_DB: kalchar_migration_test
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
         ports:
-          - 5432:5432
+          - "127.0.0.1:5432:5432"
         options: >-
           --health-cmd "pg_isready -U postgres -d kalchar_migration_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      MIGRATION_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kalchar_migration_test
+      MIGRATION_TEST_DATABASE_URL: postgresql://postgres@localhost:5432/kalchar_migration_test
+      PGPASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0

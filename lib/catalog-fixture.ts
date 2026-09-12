@@ -8,6 +8,12 @@ import type {
 } from "./db/schema";
 import type { Artwork, Site } from "./types";
 
+function fixtureStatus(index: number): ArtworkRow["status"] {
+	if (index === 0) return "available";
+	if (index === 1) return "sold";
+	return "archive";
+}
+
 /** Synthetic commercial/event data is used only by an explicitly selected test build. */
 export function createCatalogFixture(source: readonly Artwork[], site: Site) {
 	const artworks: ArtworkRow[] = source.map((art, index) => ({
@@ -16,7 +22,7 @@ export function createCatalogFixture(source: readonly Artwork[], site: Site) {
 		dimensions: art.dimensions ?? "30 x 40 cm",
 		description: art.description ?? null,
 		palette: art.palette ?? null,
-		status: index === 0 ? "available" : index === 1 ? "sold" : "archive",
+		status: fixtureStatus(index),
 		priceInr: index < 2 ? 1000 : null,
 	}));
 	const categories: CategoryRow[] = [...new Set(artworks.map((art) => art.style))].map(

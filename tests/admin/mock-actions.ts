@@ -73,4 +73,14 @@ export async function stageImage() {
 	return "staging/fixture";
 }
 
-export async function stageFormImages() {}
+export async function stageFormImages(formData: FormData): Promise<number> {
+	// Model the upload contract without requesting tickets or contacting storage.
+	const files = formData
+		.getAll("images")
+		.filter((value): value is File => value instanceof File && value.size > 0);
+	formData.delete("images");
+	files.forEach((_, index) => {
+		formData.append("imageKeys", `staging/fixture-${index}`);
+	});
+	return files.length;
+}

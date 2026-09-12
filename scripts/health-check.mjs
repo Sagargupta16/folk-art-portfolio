@@ -6,16 +6,13 @@ const ARTWORK_SAMPLE_SIZE = 3;
 const ARTWORK_PATH = /^\/work\/[a-z0-9]+(?:-[a-z0-9]+)*\/?$/;
 const MEDIA_PATH = /\/media\/(?:artworks|events|profile)\/[a-zA-Z0-9/_-]+\.(?:avif|webp|jpg)/;
 
-/** Parse the feed's RFC 4180 fields, including quoted newlines and escaped quotes.
- * @param {string} text
- * @returns {string[][]}
+/** @param {string} text @param {number} start
  */
-export function parseCsv(text) {
-	const rows = [];
-	let row = [];
+function readCsvField(text, start) {
 	let field = "";
 	let quoted = false;
-	for (let index = 0; index < text.length; index++) {
+	let index = start;
+	for (; index < text.length; index++) {
 		const character = text[index];
 		if (character === '"') {
 			if (quoted && text[index + 1] === '"') {
@@ -24,21 +21,38 @@ export function parseCsv(text) {
 			} else {
 				quoted = !quoted;
 			}
-		} else if (character === "," && !quoted) {
-			row.push(field);
-			field = "";
-		} else if ((character === "\n" || character === "\r") && !quoted) {
-			if (character === "\r" && text[index + 1] === "\n") index++;
-			row.push(field);
-			rows.push(row);
-			row = [];
-			field = "";
+		} else if (!quoted && /[,\r\n]/.test(character ?? "")) {
+			break;
 		} else {
 			field += character;
 		}
 	}
 	if (quoted) throw new Error("Catalog feed has an unterminated quoted field.");
-	if (field || row.length) rows.push([...row, field]);
+	return { field, index };
+}
+
+/** Parse the feed's RFC 4180 fields, including quoted newlines and escaped quotes.
+ * @param {string} text
+ * @returns {string[][]}
+ */
+export function parseCsv(text) {
+	const rows = [];
+	let row = [];
+	let index = 0;
+	while (index < text.length) {
+		const result = readCsvField(text, index);
+		if (result.index === text.length && !result.field && row.length === 0) break;
+		row.push(result.field);
+		index = result.index;
+		const separator = text[index];
+		if (separator !== ",") {
+			rows.push(row);
+			row = [];
+		}
+		if (separator === "\r" && text[index + 1] === "\n") index++;
+		index++;
+	}
+	if (row.length) rows.push([...row, ""]);
 	return rows;
 }
 
@@ -114,14 +128,14 @@ export async function runHealthChecks(baseUrl, fetcher = fetch) {
 		const path = new URL(row[linkIndex] ?? "", baseUrl).pathname;
 		if (!paths.has(path)) throw new Error("Catalog links to artwork absent from the sitemap.");
 		const imageUrl = new URL(row[imageIndex] ?? "", baseUrl);
-		const key = imageUrl.pathname.match(/\/artworks\/[a-zA-Z0-9_-]+\.(?:avif|webp|jpg)$/)?.[0];
+		const key = /\/artworks\/[a-zA-Z0-9_-]+\.(?:avif|webp|jpg)$/.exec(imageUrl.pathname)?.[0];
 		if (!key) throw new Error("Catalog image link does not follow the artwork variant contract.");
 		images.add(`/media${key}`);
 	}
 	await request("/work/", "text/html");
 	for (const path of artworkPaths.slice(0, ARTWORK_SAMPLE_SIZE)) {
 		const html = await (await request(path, "text/html")).text();
-		const image = html.match(MEDIA_PATH)?.[0];
+		const image = MEDIA_PATH.exec(html)?.[0];
 		if (!image) throw new Error(`${path} has no public catalog image.`);
 		images.add(image);
 	}
@@ -132,11 +146,13 @@ export async function runHealthChecks(baseUrl, fetcher = fetch) {
 	);
 }
 
+async function main() {
+	await runHealthChecks(new URL(process.env.HEALTHCHECK_BASE_URL ?? "https://kalchar.co.in"));
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-	try {
-		await runHealthChecks(new URL(process.env.HEALTHCHECK_BASE_URL ?? "https://kalchar.co.in"));
-	} catch (error) {
+	void main().catch((error) => {
 		console.error(error instanceof Error ? error.message : "Public health check failed.");
 		process.exitCode = 1;
-	}
+	});
 }

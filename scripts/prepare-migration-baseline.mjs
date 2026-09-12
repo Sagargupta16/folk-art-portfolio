@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
+import { basename, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { readMigrations } from "./check-migrations.mjs";
+import { operationalPath } from "./operational-paths.mjs";
 
 /** Ignore only pg_dump version/time headers and per-run psql restriction tokens.
  * @param {string} dump
@@ -31,15 +34,15 @@ export async function prepareBaseline({ reference, target, through, directory })
 	const selected = migrations.slice(0, boundary + 1);
 	const snapshot = selected.at(-1)?.snapshot;
 	if (!snapshot) throw new Error("The baseline has no snapshot.");
-	const expectedTables = Object.keys(snapshot.tables).sort();
+	const expectedTables = Object.keys(snapshot.tables).sort((a, b) => a.localeCompare(b));
 	const referenceSql = normalizeSchemaDump(reference);
 	const targetSql = normalizeSchemaDump(target);
 	if (referenceSql !== targetSql) {
 		throw new Error("Public schemas differ. Reconcile the target before preparing a baseline.");
 	}
 	const actualTables = [...referenceSql.matchAll(/^CREATE TABLE (public\.[a-z_]+) \(/gm)]
-		.map((match) => match[1])
-		.sort();
+		.map((match) => match[1] ?? "")
+		.sort((a, b) => a.localeCompare(b));
 	if (JSON.stringify(actualTables) !== JSON.stringify(expectedTables)) {
 		throw new Error("The dumps must contain exactly the selected snapshot's public tables.");
 	}
@@ -83,33 +86,43 @@ COMMIT;
 `;
 }
 
-if (process.argv[1]?.replaceAll("\\", "/").endsWith("/prepare-migration-baseline.mjs")) {
-	try {
-		const { values } = parseArgs({
-			options: {
-				reference: { type: "string" },
-				target: { type: "string" },
-				through: { type: "string" },
-				output: { type: "string" },
-				directory: { type: "string" },
-			},
-		});
-		const { reference, target, through, output, directory } = values;
-		if (!reference || !target || !through || !output) {
-			throw new Error(
-				"Required: --reference dump.sql --target dump.sql --through tag --output plan.sql",
-			);
-		}
-		const sql = await prepareBaseline({
-			reference: await readFile(reference, "utf8"),
-			target: await readFile(target, "utf8"),
-			through,
-			directory,
-		});
-		await writeFile(output, sql, { flag: "wx", mode: 0o600 });
-		console.log("Matching schemas verified. Baseline SQL written; no database was contacted.");
-	} catch (error) {
+async function main() {
+	const { values } = parseArgs({
+		options: {
+			reference: { type: "string" },
+			target: { type: "string" },
+			through: { type: "string" },
+			output: { type: "string" },
+			directory: { type: "string" },
+		},
+	});
+	const { reference, target, through, output, directory } = values;
+	if (!reference || !target || !through || !output) {
+		throw new Error(
+			"Required: --reference dump.sql --target dump.sql --through tag --output plan.sql",
+		);
+	}
+	if (
+		[reference, target, output].some((path) => !/^[a-z0-9][a-z0-9._-]*\.sql$/i.test(basename(path)))
+	) {
+		throw new Error("Baseline filenames must be simple .sql filenames.");
+	}
+	const referencePath = await operationalPath(reference, "baseline", "file");
+	const targetPath = await operationalPath(target, "baseline", "file");
+	const outputPath = await operationalPath(output, "baseline", "output");
+	const sql = await prepareBaseline({
+		reference: await readFile(referencePath, "utf8"),
+		target: await readFile(targetPath, "utf8"),
+		through,
+		directory,
+	});
+	await writeFile(outputPath, sql, { flag: "wx", mode: 0o600 });
+	console.log("Matching schemas verified. Baseline SQL written; no database was contacted.");
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+	void main().catch((error) => {
 		console.error(error instanceof Error ? error.message : "Baseline preparation failed.");
 		process.exitCode = 1;
-	}
+	});
 }

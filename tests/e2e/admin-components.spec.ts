@@ -191,9 +191,19 @@ for (const reorder of reorderings) {
 	}) => {
 		await mountAdmin(page, reorder.view);
 		const handle = page.getByRole("button", { name: `Reorder ${reorder.label}, position 1 of 3` });
+		await expect(handle).toHaveAccessibleDescription(
+			"Use the up and down arrow keys to move. Home moves to the first position; End moves to the last.",
+		);
+		const descriptionId = await handle.getAttribute("aria-describedby");
+		const descriptionIds = await page
+			.locator("button[aria-keyshortcuts]")
+			.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-describedby")));
+		expect(descriptionIds).toHaveLength(3);
+		expect(new Set(descriptionIds).size).toBe(3);
 		await handle.focus();
 		await page.keyboard.press("ArrowDown");
 		await expect(page.locator(":focus")).toHaveAttribute("aria-label", /position 2 of 3$/);
+		await expect(page.locator(":focus")).toHaveAttribute("aria-describedby", descriptionId!);
 		const save = page.getByRole("button", { name: /Save (photo )?order/ });
 		await save.click();
 		await expect(page.getByRole("alert")).toHaveText("Change was rejected.");
@@ -292,4 +302,23 @@ test("nested dialogs isolate focus, handle Escape once, and restore both trigger
 	await expect(page.locator("dialog[open]")).toHaveCount(0);
 	await expect(page.getByRole("button", { name: "Open editor" })).toBeFocused();
 	expect(await page.evaluate(() => document.body.style.overflow)).toBe("scroll");
+});
+
+test("dialog content stays open and only the top backdrop dismisses", async ({ page }) => {
+	await mountAdmin(page, "dialogs");
+	await page.getByRole("button", { name: "Open editor" }).click();
+	await page.getByLabel("Draft", { exact: true }).click();
+	await expect(page.locator("dialog[open]")).toHaveCount(1);
+	await page.getByRole("button", { name: "Delete draft", exact: true }).click();
+	const confirmation = page.getByRole("dialog", { name: "Delete draft?" });
+	await confirmation
+		.getByRole("button", { name: "Close Delete draft?", exact: true })
+		.click({ position: { x: 2, y: 2 } });
+	await expect(page.locator("dialog[open]")).toHaveCount(1);
+	await expect(page.getByRole("button", { name: "Delete draft", exact: true })).toBeFocused();
+	await page
+		.getByRole("button", { name: "Close Draft editor", exact: true })
+		.click({ position: { x: 2, y: 2 } });
+	await expect(page.locator("dialog[open]")).toHaveCount(0);
+	await expect(page.getByRole("button", { name: "Open editor" })).toBeFocused();
 });

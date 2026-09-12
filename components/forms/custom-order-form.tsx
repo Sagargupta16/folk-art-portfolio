@@ -211,46 +211,7 @@ export function CustomOrderForm({
 				</p>
 			</div>
 
-			<div aria-live="polite" aria-atomic="true">
-				{error ? (
-					<p id="brief-error" className="flex items-start gap-2 text-sm text-ruby" role="alert">
-						<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
-						<span>{error}</span>
-					</p>
-				) : null}
-				{saveStatus === "saving" ? (
-					<p className="text-sm text-muted">
-						Saving your enquiry. You can open WhatsApp while it saves.
-					</p>
-				) : null}
-				{saveStatus === "failed" ? (
-					<p className="flex items-start gap-2 text-sm text-ruby" role="alert">
-						<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
-						<span>
-							We couldn&rsquo;t confirm your enquiry was saved. Send it on WhatsApp or email below,
-							or try saving again.
-						</span>
-					</p>
-				) : null}
-				{saveStatus === "saved" && draft ? (
-					<div className="flex items-start gap-3 rounded-(--radius-md) border border-(--section-accent)/40 bg-(--section-accent)/5 p-4">
-						<span
-							className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-(--section-accent) text-bg"
-							aria-hidden="true"
-						>
-							<Check size={14} />
-						</span>
-						<div>
-							<p className="text-sm font-medium text-ink">Your enquiry is saved.</p>
-							<p className="mt-1 text-xs text-muted">
-								{draft.contact
-									? "We'll use your contact details to reply. You can also send your message on WhatsApp."
-									: "Send it on WhatsApp or email so we have a way to reply."}
-							</p>
-						</div>
-					</div>
-				) : null}
-			</div>
+			<EnquiryStatus error={error} saveStatus={saveStatus} draft={draft} />
 
 			<div className="flex flex-col items-start gap-3">
 				{saveStatus !== "saved" ? (
@@ -261,11 +222,7 @@ export function CustomOrderForm({
 						disabled={saveStatus === "saving"}
 						className="w-full whitespace-normal text-center sm:w-auto"
 					>
-						{saveStatus === "saving"
-							? "Saving enquiry..."
-							: saveStatus === "failed"
-								? "Try saving again"
-								: "Prepare enquiry"}
+						{getSaveButtonLabel(saveStatus)}
 						<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
 					</Button>
 				) : null}
@@ -303,6 +260,65 @@ export function CustomOrderForm({
 }
 
 /* ----------------------------- helpers ----------------------------- */
+
+function getSaveButtonLabel(saveStatus: SaveStatus): string {
+	if (saveStatus === "saving") return "Saving enquiry...";
+	if (saveStatus === "failed") return "Try saving again";
+	return "Prepare enquiry";
+}
+
+function EnquiryStatus({
+	error,
+	saveStatus,
+	draft,
+}: Readonly<{
+	error: string | null;
+	saveStatus: SaveStatus;
+	draft: CustomOrderDraft | null;
+}>) {
+	return (
+		<div aria-live="polite" aria-atomic="true">
+			{error ? (
+				<p id="brief-error" className="flex items-start gap-2 text-sm text-ruby" role="alert">
+					<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
+					<span>{error}</span>
+				</p>
+			) : null}
+			{saveStatus === "saving" ? (
+				<p className="text-sm text-muted">
+					Saving your enquiry. You can open WhatsApp while it saves.
+				</p>
+			) : null}
+			{saveStatus === "failed" ? (
+				<p className="flex items-start gap-2 text-sm text-ruby" role="alert">
+					<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
+					<span>
+						We couldn&rsquo;t confirm your enquiry was saved. Send it on WhatsApp or email below, or
+						try saving again.
+					</span>
+				</p>
+			) : null}
+			{saveStatus === "saved" && draft ? (
+				<div className="flex items-start gap-3 rounded-(--radius-md) border border-(--section-accent)/40 bg-(--section-accent)/5 p-4">
+					<span
+						className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-(--section-accent) text-bg"
+						aria-hidden="true"
+					>
+						<Check size={14} />
+					</span>
+					<div>
+						<p className="text-sm font-medium text-ink">Your enquiry is saved.</p>
+						<p className="mt-1 text-xs text-muted">
+							{draft.contact
+								? "We'll use your contact details to reply. You can also send your message on WhatsApp."
+								: "Send it on WhatsApp or email so we have a way to reply."}
+						</p>
+					</div>
+				</div>
+			) : null}
+		</div>
+	);
+}
 
 const inputClass =
 	"block w-full min-h-12 rounded-(--radius-sm) border border-line bg-bg px-4 py-3 text-base text-ink placeholder:text-muted transition-[border-color,box-shadow] duration-(--duration-fast) focus:border-(--section-accent) focus:outline-none focus:ring-2 focus:ring-(--section-accent)/30";

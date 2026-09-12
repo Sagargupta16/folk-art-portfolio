@@ -1,6 +1,7 @@
 "use client";
 
 import { GripVertical } from "lucide-react";
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 /** The drag grip also supports moving a row without a pointer. */
@@ -19,12 +20,14 @@ export function ReorderHandle({
 	onMove: (to: number) => void;
 	className?: string;
 }>) {
+	const descriptionId = useId();
+
 	return (
 		<button
 			type="button"
 			disabled={disabled || count < 2}
 			aria-label={`Reorder ${label}, position ${index + 1} of ${count}`}
-			aria-description="Use the up and down arrow keys to move. Home moves to the first position; End moves to the last."
+			aria-describedby={descriptionId}
 			aria-keyshortcuts="ArrowUp ArrowDown Home End"
 			onKeyDown={(event) => {
 				const positions: Record<string, number> = {
@@ -44,6 +47,10 @@ export function ReorderHandle({
 			)}
 		>
 			<GripVertical size={16} aria-hidden="true" />
+			<span id={descriptionId} className="sr-only">
+				Use the up and down arrow keys to move. Home moves to the first position; End moves to the
+				last.
+			</span>
 		</button>
 	);
 }

@@ -32,7 +32,9 @@ async function main() {
 		process.exit(1);
 	}
 
-	const masters = files.filter((f) => extname(f).toLowerCase() === ".jpg").sort();
+	const masters = files
+		.filter((f) => extname(f).toLowerCase() === ".jpg")
+		.sort((a, b) => a.localeCompare(b));
 	if (masters.length === 0) {
 		console.error("No master .jpg files found to process.");
 		process.exit(1);

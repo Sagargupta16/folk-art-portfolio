@@ -11,7 +11,7 @@ build/
 .netlify/
 .next/
 out/
-tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # Env / secrets
 .env
@@ -23,6 +23,9 @@ tsconfig.tsbuildinfo
 *.pfx
 secrets.json
 credentials.json
+*.dump
+*.backup
+/backups/
 
 # Logs
 *.log

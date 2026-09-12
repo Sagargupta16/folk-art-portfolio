@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/admin-auth";
 import { getSetting } from "@/lib/data";
 import { AdminPageHeader } from "../_components/admin-page-header";
 import { ProfileManager } from "../_components/profile-manager";
@@ -6,9 +7,10 @@ import { ProfileManager } from "../_components/profile-manager";
 export const maxDuration = 60;
 
 export default async function AdminProfilePage() {
+	await requireAdminPage();
 	const [imageKey, showHomeIntro] = await Promise.all([
-		getSetting<string>("profileImage"),
-		getSetting<boolean>("showHomeIntro"),
+		getSetting("profileImage"),
+		getSetting("showHomeIntro"),
 	]);
 
 	return (

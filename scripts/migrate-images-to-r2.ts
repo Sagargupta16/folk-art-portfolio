@@ -14,11 +14,12 @@
  * `<R2_PUBLIC_BASE_URL>/artworks/<slug>-<width>.<ext>`, the exact <picture>
  * srcset contract in components/gallery/art-image.tsx.
  *
- * Idempotent: re-running regenerates + overwrites the same keys. Safe.
+ * Re-running overwrites original seed keys. Use an isolated restore bucket or
+ * an explicitly approved regeneration window. Later admin image versions are
+ * not regenerated from these masters. --dry-run lists inputs without using R2.
  */
 import { readdir, readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
-import { processArtworkImage } from "../lib/storage/process-artwork-image";
 
 const MASTER_DIR = join(process.cwd(), "public", "artworks");
 
@@ -31,12 +32,17 @@ async function main() {
 		process.exit(1);
 	}
 
-	const masters = files.filter((f) => extname(f).toLowerCase() === ".jpg");
+	const masters = files.filter((f) => extname(f).toLowerCase() === ".jpg").sort();
 	if (masters.length === 0) {
 		console.error("No master .jpg files found to process.");
 		process.exit(1);
 	}
 
+	if (process.argv.includes("--dry-run")) {
+		console.log(JSON.stringify({ count: masters.length, masters }));
+		return;
+	}
+	const { processArtworkImage } = await import("../lib/storage/process-artwork-image");
 	console.log(`Processing ${masters.length} masters -> R2 (artworks/) ...`);
 	let done = 0;
 	// Bounded concurrency: each master fans out to ~13 sharp encodes + uploads,

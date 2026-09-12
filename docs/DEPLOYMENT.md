@@ -40,11 +40,11 @@ pnpm build
 | `AUTH_GOOGLE_ID` | Google OAuth client id |
 | `AUTH_GOOGLE_SECRET` | Google OAuth client secret |
 
-Keep the local, Vercel production, Vercel preview, and GitHub Actions values aligned. `.env.example` is the checked-in contract; actual values must never be committed.
+Keep the variable contract consistent while isolating actual credentials/resources for local, Vercel production, and preview. GitHub Actions public builds use fixtures and do not need production DB/R2/OAuth secrets. `.env.example` is the checked-in contract; actual values must never be committed.
 
 ## CI
 
-`.github/workflows/ci.yml` runs for pull requests and pushes to `main` and `dev`, plus manual dispatch. It has two jobs:
+`.github/workflows/ci.yml` runs for pull requests and pushes to `main` and `dev`, plus manual dispatch. The workflow file is authoritative for job names and dependency versions.
 
 ### Secret scan
 
@@ -57,19 +57,23 @@ Keep the local, Vercel production, Vercel preview, and GitHub Actions values ali
 1. Install the pinned pnpm and Node 22.
 2. Install dependencies from the frozen lockfile.
 3. Run Biome.
-4. Reject a schema change without a committed SQL migration.
+4. Validate migration SQL, snapshots, and journal, and reject a schema change without a migration.
 5. Run the elevation-token drift guard.
-6. Run strict TypeScript.
-7. Run Vitest.
-8. Build the production application with encrypted secrets.
+6. Run application and operational-script TypeScript checks and the production dependency audit.
+7. Run Vitest, offline operational checks, and migration integration checks.
+8. Build with `KALCHAR_TEST_FIXTURES=1`, using fixture catalog rows and local media without production service credentials.
 9. Install Chromium.
 10. Run desktop and mobile Playwright tests, including axe WCAG scans.
 
-The job timeout is 20 minutes. Workflow permissions default to read-only repository access. Action dependencies are pinned to immutable commits.
+Migration checks apply the journal to disposable PostgreSQL separately from the fixture build. `scripts/check-migrations-db.ts` accepts only a local `MIGRATION_TEST_DATABASE_URL` naming `kalchar_migration_test`; it refuses existing tables and also checks seed/concurrency/category behavior. In-memory PostgreSQL regression cases cover fresh and upgrade paths.
+
+Fixture mode does not authenticate users, bypass allowlist checks, or permit writes. It rejects `VERCEL=1`, so a fixture flag cannot silently replace the live catalog on Vercel. This also lets public fork pull requests run build/browser checks without receiving production secrets.
+
+Workflow permissions default to read-only repository access. Action dependencies are pinned to immutable commits.
 
 ## Health monitoring
 
-`.github/workflows/health.yml` checks production every day and on manual dispatch. `scripts/health-check.mjs` validates the homepage, sitemap, commerce feed, and public logo. A green health check confirms public serving only; it does not replace OAuth, R2 upload, database-write, or restore drills.
+`.github/workflows/health.yml` checks production every day and on manual dispatch. `scripts/health-check.mjs` validates core endpoints, feed-to-sitemap consistency, representative artwork details, and sampled media bytes. A green result confirms public serving in those states; it does not replace OAuth, R2 upload, database-write, or restore drills.
 
 See [OPERATIONS.md](OPERATIONS.md) for backup, restore, lead-retention, and incident procedures.
 
@@ -79,10 +83,11 @@ Schema changes ship as committed SQL in `drizzle/`. Apply the migration to previ
 
 ```sh
 pnpm db:generate
+node scripts/check-migrations.mjs
 pnpm db:migrate
 ```
 
-Create a Neon branch or snapshot immediately before production migration. The application should remain backward-compatible until migration completion.
+Use the same migration path for a fresh database. Existing databases created with `db:push` need the verified baseline procedure in [DATABASE.md](DATABASE.md). Create a Neon branch or snapshot and a matching image backup before production migration. The application must remain compatible until migration completion; do not infer compatibility merely because a migration adds constraints.
 
 ## DNS
 

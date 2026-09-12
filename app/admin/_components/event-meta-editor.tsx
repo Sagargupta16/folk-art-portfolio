@@ -18,8 +18,9 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 	const [description, setDescription] = useState(event.description ?? "");
 	const [saved, setSaved] = useState(false);
 
-	const onSave = () =>
-		run(
+	const onSave = () => {
+		setSaved(false);
+		return run(
 			() =>
 				updateEventMeta(event.id, {
 					title: title.trim(),
@@ -32,6 +33,7 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 				setTimeout(() => setSaved(false), SAVED_CONFIRMATION_MS);
 			},
 		);
+	};
 
 	return (
 		<div className="space-y-2">
@@ -39,6 +41,7 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 				<div className={adminLabel}>
 					<label htmlFor={`event-title-${event.id}`}>Title</label>
 					<input
+						disabled={pending}
 						id={`event-title-${event.id}`}
 						value={title}
 						onChange={(e) => setTitle(e.target.value)}
@@ -48,6 +51,7 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 				<div className={adminLabel}>
 					<label htmlFor={`event-date-${event.id}`}>Event date</label>
 					<input
+						disabled={pending}
 						id={`event-date-${event.id}`}
 						type="date"
 						value={date}
@@ -58,6 +62,7 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 				<div className={`${adminLabel} sm:col-span-2`}>
 					<label htmlFor={`event-category-${event.id}`}>Category</label>
 					<input
+						disabled={pending}
 						id={`event-category-${event.id}`}
 						value={category}
 						onChange={(e) => setCategory(e.target.value)}
@@ -67,6 +72,7 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 				<div className={`${adminLabel} sm:col-span-2`}>
 					<label htmlFor={`event-description-${event.id}`}>Description</label>
 					<textarea
+						disabled={pending}
 						id={`event-description-${event.id}`}
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
@@ -85,8 +91,16 @@ export function EventMetaEditor({ event }: Readonly<{ event: Event }>) {
 					<Check size={14} aria-hidden="true" />
 					Save details
 				</button>
-				{saved ? <span className="text-sm text-accent">Saved</span> : null}
-				{err ? <span className="text-sm text-ruby">{err}</span> : null}
+				{saved ? (
+					<span role="status" className="text-sm text-accent">
+						Saved
+					</span>
+				) : null}
+				{err ? (
+					<span role="alert" className="text-sm text-ruby">
+						{err}
+					</span>
+				) : null}
 			</div>
 		</div>
 	);

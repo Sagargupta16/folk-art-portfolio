@@ -14,11 +14,11 @@ The app builds and serves against three external services. You need credentials 
 
 | Service | What it backs | Without it |
 | --- | --- | --- |
-| Neon Postgres | the catalog (`artworks`, `workshops`, `maintainers`) | the data seam has nothing to read -- gallery/work pages are empty. Get a `DATABASE_URL` per [DATABASE.md](DATABASE.md). |
+| Neon Postgres | catalog, events, settings, lookups, leads, testimonials, and allowlist | real-data builds fail when catalog queries cannot connect. Get a separate development `DATABASE_URL` per [DATABASE.md](DATABASE.md). |
 | Cloudflare R2 | artwork image variants | `<picture>` srcsets 404. Get the `R2_*` values per [IMAGES.md](IMAGES.md). |
 | Google OAuth | admin sign-in | `/admin` is unreachable. Get `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` per [AUTH.md](AUTH.md). |
 
-The public marketing pages (about, workshops, contact, custom-orders) render without any of these, since their copy comes from `data/site.json` through the synchronous `getSite()`, not the DB.
+Several marketing pages also read profile settings, examples, workshops, and presets from Neon. Synchronous site copy alone does not make a normal production build independent of the database. For public UI work and CI, `KALCHAR_TEST_FIXTURES=1` supplies deterministic catalog rows through the data seam and maps media to safe local assets. It does not grant admin access or permit database writes and is rejected on Vercel.
 
 ## First-time setup
 
@@ -37,10 +37,11 @@ cp .env.example .env.local
 #   (NEXT_PUBLIC_IMAGE_BASE_URL is the same value as R2_PUBLIC_BASE_URL,
 #    exposed to the client because the gallery is a client component.)
 
-# 3. Create the tables in your Neon database.
-pnpm db:push
+# 3. Validate and apply committed migrations to an isolated database.
+node scripts/check-migrations.mjs
+pnpm db:migrate
 
-# 4. Seed the catalog rows from data/artworks.json.
+# 4. Bootstrap an empty catalog once. Existing content/settings cause refusal.
 pnpm db:seed
 
 # 5. Upload the image variants from public/artworks/ to R2.
@@ -51,14 +52,16 @@ pnpm dev          # http://localhost:3000
 pnpm dev --port 3001  # alternate when 3000 is occupied; register the matching OAuth callback
 ```
 
-Steps 3 to 5 are one-time per environment (or when the schema, seed data, or master images change). After the first run, day-to-day work is just `pnpm dev`. `AUTH_SECRET` is generated with `npx auth secret` (noted in [.env.example](../.env.example)); the admin allowlist is not an env var -- it is the `maintainers` table, seeded with the root account and editable from `/admin/maintainers`.
+Seeding is one-time, not a way to replay changed JSON or restore deleted items. Future schema changes use new reviewed migrations. The image command writes stable seed keys and needs its own deliberate regeneration window. Day-to-day work is `pnpm dev`. The maintainer allowlist is the `maintainers` table, not an env var; provision the first root separately as described in [AUTH.md](AUTH.md). Catalog seeding does not create an account.
+
+An existing database created with `db:push` must follow the [baseline procedure](DATABASE.md#existing-database-created-with-dbpush) before using migration history. Never apply the full journal blindly to an already-pushed schema.
 
 ```mermaid
 %%{init: {'theme':'dark','themeVariables':{'primaryColor':'#6366f1','primaryTextColor':'#fff','primaryBorderColor':'#818cf8','lineColor':'#94a3b8','clusterBkg':'#1e293b','clusterBorder':'#334155'}}}%%
 flowchart LR
     install["pnpm install"] --> env["cp .env.example<br/>.env.local + fill"]
-    env --> push["pnpm db:push<br/>(tables)"]
-    push --> seed["pnpm db:seed<br/>(catalog rows)"]
+    env --> migrations["pnpm db:migrate<br/>(reviewed journal)"]
+    migrations --> seed["pnpm db:seed<br/>(empty catalog only)"]
     seed --> images["pnpm db:images<br/>(R2 variants)"]
     images --> dev["pnpm dev<br/>localhost:3000"]
 
@@ -84,17 +87,32 @@ Every script from [package.json](../package.json), what it runs, and when you re
 | `pnpm lint:fix` | `biome check --write` | Apply Biome's safe lint fixes and formatting in place. |
 | `pnpm format` | `biome format --write` | Format only (no lint rules), in place. |
 | `pnpm typecheck` | `tsc --noEmit` | Strict TypeScript check, no emit. Run before a PR alongside lint. |
+| `pnpm exec tsc -p tsconfig.scripts.json` | TypeScript including TS/MJS scripts | Check operational scripts, including JavaScript via `checkJs`. |
 | `pnpm test` | `vitest run` | Unit tests for domain helpers, validation, rate limiting, and storage compensation. |
 | `pnpm test:e2e` | `playwright test` | Desktop and mobile Chromium checks, including axe accessibility scans. Uses port 3001 by default. |
 | `pnpm test:all` | unit + browser suites | Full automated test pass after a production build. |
-| `pnpm health` | `node scripts/health-check.mjs` | Check production HTML, sitemap, catalog feed, and logo responses. |
+| `pnpm health` | `node scripts/health-check.mjs` | Check public catalog links, sampled detail pages, and real media bytes as well as core endpoints. |
+| `node scripts/check-migrations.mjs` | Offline artifact validation | Verify journal numbering/timestamps, SQL files, and snapshot ancestry. |
+| `pnpm exec tsx scripts/check-migrations-db.ts` | Disposable PostgreSQL integration check | Apply migrations twice; check bootstrap refusal/concurrency and category constraints. Requires local `MIGRATION_TEST_DATABASE_URL` with database `kalchar_migration_test`. |
+| `node --test scripts/operational.test.mjs` | Local operational regression checks | Exercise malformed migration artifacts, baseline drift, backup integrity, and public health without external resources. |
 | `pnpm db:push` | `drizzle-kit push` | Push schema directly to a disposable local database only. |
 | `pnpm db:generate` | `drizzle-kit generate` | Generate the reviewable SQL migration required for a schema change. |
 | `pnpm db:migrate` | `drizzle-kit migrate` | Apply the generated migration files to the database. |
-| `pnpm db:seed` | `tsx --env-file=.env.local scripts/migrate-json-to-db.ts` | Seed catalog rows from `data/artworks.json` into Neon. One-time per environment. |
+| `pnpm db:seed` | `tsx --env-file-if-exists=.env.local scripts/migrate-json-to-db.ts` | Locked one-time catalog bootstrap with a persistent marker. Refuses populated content/settings. |
 | `pnpm db:images` | `tsx --env-file=.env.local scripts/migrate-images-to-r2.ts` | Generate + upload artwork image variants from `public/artworks/` to R2. One-time per environment. |
 
-The `db:seed` and `db:images` scripts read `.env.local` explicitly via `tsx --env-file`; the rest inherit env the usual Next/Vercel way. See [DATABASE.md](DATABASE.md) for the schema/push details and [IMAGES.md](IMAGES.md) for the variant pipeline.
+`db:seed` loads `.env.local` if it exists and also accepts explicitly supplied environment variables. The image command loads its configured local environment; Drizzle Kit loads it through its configuration. Offline migration, baseline, backup, and script checks do not load that file. The disposable PostgreSQL check accepts only its separate test URL. See [DATABASE.md](DATABASE.md) for migration/baseline commands, [IMAGES.md](IMAGES.md) for image writes, and [OPERATIONS.md](OPERATIONS.md) for offline backup verification.
+
+To preview public fixtures in PowerShell without production services:
+
+```powershell
+$env:KALCHAR_TEST_FIXTURES = "1"
+pnpm build
+pnpm test:e2e
+Remove-Item Env:KALCHAR_TEST_FIXTURES
+```
+
+Keep fixture builds separate from real-data builds. Clear the flag before a real-data build; fixture mode intentionally refuses all database access and maintainer admission.
 
 ## Local dev notes
 
@@ -150,7 +168,7 @@ These are the project rules from [CLAUDE.md](../CLAUDE.md) that gate every contr
 
 - **Branch off `dev`.** Feature branches are `feat/*`, `fix/*`, `chore/*`; they PR into `dev`. `main` is branch-protected.
 - **Conventional commits:** `feat`, `fix`, `refactor`, `docs`, `test`, `chore`. Lowercase, imperative, no trailing period.
-- **Update [CHANGELOG.md](../CHANGELOG.md) and bump `package.json` `version` on every PR.** Pre-1.0.0: patch (`0.x.Y`) for typo/link/image/new artwork, minor (`0.X.0`) for new section / content-model change / stack swap. Add a real top entry under the chosen version, no `[Unreleased]` placeholder.
+- **Update [CHANGELOG.md](../CHANGELOG.md) and bump `package.json` `version` on every PR.** Patch (`x.y.Z`) for narrow fixes/content changes, minor (`x.Y.0`) for new capabilities or content-model changes, and major for breaking product milestones. Add a real top entry under the chosen version, no `[Unreleased]` placeholder.
 - **Never push without explicit per-session approval.** Never force-push `main`, amend published commits, or skip hooks (`--no-verify`). Stage files by name, never `git add .`.
 
 ## Making a change
@@ -175,4 +193,4 @@ flowchart TB
     style pr fill:#10b981,color:#fff,stroke:#34d399
 ```
 
-Local verification mirrors CI: lint, typecheck, unit tests, build, and Playwright browser tests. Do not claim a change works on types/lint alone. Run the built app and exercise the actual page or admin flow before opening the PR. See [DEPLOYMENT.md](DEPLOYMENT.md) for what happens after merge.
+Local verification mirrors CI: lint, application/script typechecks, unit and operational checks, migration application, build, and Playwright. The public fixture build and disposable database tests serve different purposes; neither proves production OAuth, bucket policies, or restore readiness. Run the actual changed behavior in its appropriate isolated environment. See [DEPLOYMENT.md](DEPLOYMENT.md) for release gates.

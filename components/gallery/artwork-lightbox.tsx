@@ -7,26 +7,29 @@ import {
 	ImageIcon,
 	MessageCircle,
 	Ruler,
-	X,
 	ZoomIn,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ARTWORK_IMAGE_BASE, artworkImageKey } from "@/lib/image-base";
+import { getCtaCopy, isPositivePrice } from "@/lib/catalog";
+import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
+import { artworkPreloadSrcset } from "@/lib/image-base";
 import { siteConfig } from "@/lib/site-config";
 import { formatInr } from "@/lib/utils";
 import { buildWhatsAppLink, buyArtworkMessage } from "@/lib/whatsapp";
+import { ArtImage } from "./art-image";
 import { Chromacard } from "./chromacard";
 import { useLightbox } from "./lightbox-context";
 import { ShareButton } from "./share-button";
+import { ViewerDialog } from "./viewer-dialog";
 
 /** Minimum horizontal travel (px) before a touch counts as a swipe. */
 const SWIPE_THRESHOLD_PX = 50;
-const LIGHTBOX_FADE_SECONDS = 0.2;
 const LIGHTBOX_PANEL_SPRING = { type: "spring", damping: 28, stiffness: 340 } as const;
 const LIGHTBOX_ZOOM_SPRING = { type: "spring", stiffness: 200, damping: 25 } as const;
-const MOBILE_PRELOAD_WIDTH = 800;
-const DESKTOP_PRELOAD_WIDTH = 1600;
+/** Shared by the displayed picture and neighbour preloads at every viewport. */
+const LIGHTBOX_IMAGE_SIZES =
+	"(min-width: 1024px) 640px, (min-width: 768px) 60vw, calc(100vw - 64px)";
 
 export function ArtworkLightbox() {
 	const {
@@ -42,45 +45,7 @@ export function ArtworkLightbox() {
 	const [zoom, setZoom] = useState(false);
 	const [panPos, setPanPos] = useState({ x: 50, y: 50 });
 	const imageRef = useRef<HTMLElement>(null);
-	const dialogRef = useRef<HTMLDivElement>(null);
-	const triggerRef = useRef<HTMLElement | null>(null);
-
-	useEffect(() => {
-		if (!isOpen) return;
-		triggerRef.current = document.activeElement as HTMLElement | null;
-		dialogRef.current?.focus();
-		document.body.style.overflow = "hidden";
-		return () => {
-			document.body.style.overflow = "";
-			triggerRef.current?.focus?.();
-		};
-	}, [isOpen]);
-
-	useEffect(() => {
-		if (!isOpen) return;
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") closeLightbox();
-			else if (e.key === "ArrowRight") nextArtwork();
-			else if (e.key === "ArrowLeft") prevArtwork();
-			else if (e.key === "Tab" && dialogRef.current) {
-				const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-					'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-				);
-				if (focusable.length === 0) return;
-				const first = focusable[0];
-				const last = focusable[focusable.length - 1];
-				if (e.shiftKey && document.activeElement === first) {
-					e.preventDefault();
-					last?.focus();
-				} else if (!e.shiftKey && document.activeElement === last) {
-					e.preventDefault();
-					first?.focus();
-				}
-			}
-		};
-		globalThis.addEventListener("keydown", handleKeyDown);
-		return () => globalThis.removeEventListener("keydown", handleKeyDown);
-	}, [isOpen, closeLightbox, nextArtwork, prevArtwork]);
+	const reduceMotion = usePrefersReducedMotion();
 
 	// Warm the immediate neighbours' AVIF once the current piece settles, so
 	// arrow/swipe to the next plate is near-instant. One each side only, and
@@ -90,23 +55,28 @@ export function ArtworkLightbox() {
 		if (!isOpen || !activeArtwork || artworksList.length < 2) return;
 		const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
 			?.saveData;
-		const reduceMotion = globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches;
 		if (saveData || reduceMotion) return;
-		const preloadWidth = globalThis.matchMedia("(max-width: 767px)").matches
-			? MOBILE_PRELOAD_WIDTH
-			: DESKTOP_PRELOAD_WIDTH;
 		const i = artworksList.findIndex((a) => a.slug === activeArtwork.slug);
 		if (i === -1) return;
 		const neighbours = [
 			artworksList[(i + 1) % artworksList.length],
 			artworksList[(i - 1 + artworksList.length) % artworksList.length],
 		];
-		for (const n of neighbours) {
-			if (!n) continue;
-			const img = new Image();
-			img.src = `${ARTWORK_IMAGE_BASE}/${artworkImageKey(n.image)}-${preloadWidth}.avif`;
-		}
-	}, [isOpen, activeArtwork, artworksList]);
+		const images = new Set(neighbours.flatMap((artwork) => (artwork ? [artwork.image] : [])));
+		const preloads = [...images].map((image) => {
+			const link = document.createElement("link");
+			link.rel = "preload";
+			link.as = "image";
+			link.type = "image/avif";
+			link.imageSrcset = artworkPreloadSrcset(image);
+			link.imageSizes = LIGHTBOX_IMAGE_SIZES;
+			document.head.append(link);
+			return link;
+		});
+		return () => {
+			for (const preload of preloads) preload.remove();
+		};
+	}, [isOpen, activeArtwork, artworksList, reduceMotion]);
 
 	const handleMouseMove = useCallback(
 		(e: React.MouseEvent) => {
@@ -145,14 +115,15 @@ export function ArtworkLightbox() {
 				<LightboxContent
 					key="lightbox"
 					artwork={activeArtwork}
-					slug={artworkImageKey(activeArtwork.image)}
 					hasSiblings={artworksList.length > 1}
 					whatsappPhone={whatsappPhone}
 					zoom={zoom}
 					panPos={panPos}
-					dialogRef={dialogRef}
 					imageRef={imageRef}
-					onClose={closeLightbox}
+					onClose={() => {
+						setZoom(false);
+						closeLightbox();
+					}}
 					onNext={() => {
 						setZoom(false);
 						nextArtwork();
@@ -177,12 +148,10 @@ export function ArtworkLightbox() {
 
 interface LightboxContentProps {
 	artwork: NonNullable<ReturnType<typeof useLightbox>["activeArtwork"]>;
-	slug: string;
 	hasSiblings: boolean;
 	whatsappPhone: string;
 	zoom: boolean;
 	panPos: { x: number; y: number };
-	dialogRef: React.RefObject<HTMLDivElement | null>;
 	imageRef: React.RefObject<HTMLElement | null>;
 	onClose: () => void;
 	onNext: () => void;
@@ -196,12 +165,10 @@ interface LightboxContentProps {
 
 function LightboxContent({
 	artwork,
-	slug,
 	hasSiblings,
 	whatsappPhone,
 	zoom,
 	panPos,
-	dialogRef,
 	imageRef,
 	onClose,
 	onNext,
@@ -216,54 +183,26 @@ function LightboxContent({
 		phoneE164NoPlus: whatsappPhone,
 		message: buyArtworkMessage(artwork),
 	});
-
-	const [srcFailed, setSrcFailed] = useState(false);
-	const [failedSlug, setFailedSlug] = useState<string | null>(null);
-	if (srcFailed && failedSlug !== slug) {
-		setSrcFailed(false);
-	}
+	const cta = getCtaCopy(isPositivePrice(artwork.priceInr), artwork.status === "sold");
 
 	return (
-		<motion.div
-			ref={dialogRef}
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="lightbox-title"
-			tabIndex={-1}
-			initial={{ opacity: 0 }}
-			animate={{ opacity: 1 }}
-			exit={{ opacity: 0 }}
-			transition={{ duration: LIGHTBOX_FADE_SECONDS }}
-			className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 p-4 backdrop-blur-md focus:outline-none md:p-8"
+		<ViewerDialog
+			labelledBy="lightbox-title"
+			onClose={onClose}
+			onNext={hasSiblings ? onNext : undefined}
+			onPrevious={hasSiblings ? onPrev : undefined}
 		>
-			<button
-				type="button"
-				aria-label="Close lightbox"
-				onClick={onClose}
-				className="absolute inset-0 cursor-zoom-out"
-			/>
-
-			{/* Close button */}
-			<button
-				type="button"
-				onClick={onClose}
-				aria-label="Close"
-				className="absolute right-4 top-4 z-[110] flex h-11 w-11 items-center justify-center rounded-full bg-bg-soft text-ink border border-line shadow-e2 transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
-			>
-				<X size={18} />
-			</button>
-
 			{/* Main container */}
 			<motion.div
 				initial={{ opacity: 0, scale: 0.96, y: 12 }}
 				animate={{ opacity: 1, scale: 1, y: 0 }}
 				exit={{ opacity: 0, scale: 0.96, y: 12 }}
 				transition={LIGHTBOX_PANEL_SPRING}
-				className="relative z-10 grid h-full w-full max-w-5xl overflow-hidden rounded-(--radius-lg) border border-line bg-bg shadow-e5 md:grid-cols-12"
+				className="relative z-10 grid h-full w-full max-w-5xl overflow-x-hidden overflow-y-auto rounded-(--radius-lg) border border-line bg-bg shadow-e5 md:grid-cols-12 md:grid-rows-[minmax(0,1fr)] md:overflow-hidden"
 			>
 				{/* Image panel */}
 				<div
-					className="relative flex flex-1 items-center justify-center bg-bg-soft p-4 md:col-span-8 md:p-6"
+					className="relative flex flex-1 items-center justify-center bg-bg-soft p-4 md:col-span-8 md:min-h-0 md:p-6"
 					onTouchStart={onTouchStart}
 					onTouchEnd={onTouchEnd}
 				>
@@ -281,35 +220,29 @@ function LightboxContent({
 						onMouseLeave={onZoomLeave}
 						className="relative aspect-3/4 max-h-[80svh] overflow-hidden rounded-(--radius-md) shadow-hairline cursor-zoom-in m-0"
 					>
-						<picture>
-							{srcFailed ? null : (
-								<>
-									<source type="image/avif" srcSet={`${ARTWORK_IMAGE_BASE}/${slug}-1600.avif`} />
-									<source type="image/webp" srcSet={`${ARTWORK_IMAGE_BASE}/${slug}-1600.webp`} />
-								</>
-							)}
-							<motion.img
-								src={`${ARTWORK_IMAGE_BASE}/${slug}.jpg`}
+						<motion.div
+							className="h-full w-full select-none"
+							style={{ transformOrigin: `${panPos.x}% ${panPos.y}%` }}
+							animate={{ scale: zoom ? 1.8 : 1 }}
+							transition={LIGHTBOX_ZOOM_SPRING}
+						>
+							<ArtImage
+								src={`/artworks/${artwork.image}`}
 								alt={artwork.description ?? artwork.title}
-								onError={() => {
-									setSrcFailed(true);
-									setFailedSlug(slug);
-								}}
-								className="h-full w-full object-cover select-none"
-								style={{ transformOrigin: `${panPos.x}% ${panPos.y}%` }}
-								animate={{ scale: zoom ? 1.8 : 1 }}
-								transition={LIGHTBOX_ZOOM_SPRING}
+								sizes={LIGHTBOX_IMAGE_SIZES}
+								priority
+								className="h-full w-full object-cover"
 							/>
-						</picture>
+						</motion.div>
 
-						<div className="pointer-events-none absolute bottom-3 right-3 hidden items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[0.55rem] uppercase tracking-[var(--tracking-meta)] text-white opacity-60 backdrop-blur-sm [@media(hover:hover)_and_(pointer:fine)]:inline-flex">
+						<div className="pointer-events-none absolute bottom-3 right-3 hidden items-center gap-1 rounded-full bg-ink/90 px-2.5 py-1 text-[0.55rem] uppercase tracking-[var(--tracking-meta)] text-bg backdrop-blur-sm [@media(hover:hover)_and_(pointer:fine)]:inline-flex">
 							<ZoomIn size={11} aria-hidden="true" />
 							<span className="hidden sm:inline">Hover to zoom</span>
 						</div>
 
 						{/* Mobile swipe hint */}
 						{hasSiblings ? (
-							<div className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[0.55rem] uppercase tracking-[var(--tracking-meta)] text-white backdrop-blur-sm opacity-60 sm:hidden">
+							<div className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-ink/90 px-2.5 py-1 text-[0.55rem] uppercase tracking-[var(--tracking-meta)] text-bg backdrop-blur-sm sm:hidden">
 								<ArrowLeft size={9} />
 								Swipe
 								<ArrowRight size={9} />
@@ -319,7 +252,7 @@ function LightboxContent({
 				</div>
 
 				{/* Metadata sidebar */}
-				<div className="flex flex-col justify-between border-t border-line bg-bg p-5 md:col-span-4 md:border-l md:border-t-0 md:p-6">
+				<div className="flex flex-col justify-between border-t border-line bg-bg p-5 md:col-span-4 md:min-h-0 md:overflow-y-auto md:border-l md:border-t-0 md:p-6">
 					<div>
 						<span className="t-eyebrow text-accent">{artwork.style}</span>
 						<h2 id="lightbox-title" className="t-display mt-2 text-2xl md:text-3xl">
@@ -369,18 +302,17 @@ function LightboxContent({
 							className="flex w-full items-center justify-center gap-2 rounded-(--radius-sm) bg-accent px-4 py-3 text-xs uppercase tracking-[var(--tracking-meta)] font-medium text-bg shadow-e2 transition-colors duration-(--duration-fast) hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
 						>
 							<MessageCircle size={16} />
-							Enquire on WhatsApp
+							{cta.label}
 						</a>
-						{/* Shareable deep link: opens THIS piece's modal for whoever receives it. */}
 						<ShareButton
 							title={`${artwork.title} by Megha Seth`}
-							url={`${siteConfig.url}/work?piece=${artwork.slug}`}
+							url={`${siteConfig.url}/work/${artwork.slug}/`}
 							className="w-full justify-center"
 						/>
 					</div>
 				</div>
 			</motion.div>
-		</motion.div>
+		</ViewerDialog>
 	);
 }
 

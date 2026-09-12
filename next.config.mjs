@@ -12,6 +12,19 @@
  */
 
 const imageBaseUrl = process.env.NEXT_PUBLIC_IMAGE_BASE_URL?.replace(/\/$/, "");
+const useImageFixtures = process.env.KALCHAR_TEST_FIXTURES === "1";
+
+// Only generated image paths may cross the same-origin media boundary.
+// Staged masters and future private/archive prefixes must never be proxied.
+const imageFile = ":image([A-Za-z0-9_-]+\\.(?:avif|webp|jpg))";
+const mediaPaths = [
+	{ source: `artworks/${imageFile}`, destination: "artworks/:image" },
+	{
+		source: `events/:eventId([A-Za-z0-9_-]+)/${imageFile}`,
+		destination: "events/:eventId/:image",
+	},
+	{ source: `profile/${imageFile}`, destination: "profile/:image" },
+];
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -22,11 +35,20 @@ const nextConfig = {
 	reactStrictMode: true,
 	productionBrowserSourceMaps: false,
 	async rewrites() {
-		if (!imageBaseUrl) return [];
+		if (!imageBaseUrl && !useImageFixtures) return [];
+		return mediaPaths.map(({ source, destination }) => ({
+			source: `/media/${source}`,
+			destination: useImageFixtures ? "/logo.jpg" : `${imageBaseUrl}/${destination}`,
+		}));
+	},
+	async headers() {
 		return [
 			{
 				source: "/media/:path*",
-				destination: `${imageBaseUrl}/:path*`,
+				headers: [
+					{ key: "X-Content-Type-Options", value: "nosniff" },
+					{ key: "Content-Security-Policy", value: "default-src 'none'; sandbox" },
+				],
 			},
 		];
 	},

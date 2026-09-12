@@ -11,33 +11,32 @@
  * inside a server action with a sanitized digest in production
  * (see lib/action-result.ts).
  */
-import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { type ActionResult, failure } from "@/lib/action-result";
 import { db } from "@/lib/db/client";
 import { artworks } from "@/lib/db/schema";
 import { artworkImageKey, R2_ARTWORK_IMAGE_BASE } from "@/lib/image-base";
-import {
-	deleteArtworkImages,
-	extractPalette,
-	processArtworkImage,
-} from "@/lib/storage/process-artwork-image";
+import { cleanupFailedImageWrite, ImageConflictError } from "@/lib/storage/image-mutation";
+import { extractPalette, processNewArtworkImage } from "@/lib/storage/process-artwork-image";
 import { discardStagedImages, readStagedImage } from "@/lib/storage/staged-upload";
 import type { ArtworkStatus } from "@/lib/types";
 import { formString, nextOrderSql, requireMaintainer, slugify } from "./_helpers";
+import { saveCompleteOrder } from "./_reorder";
 
 const ARTWORK_STATUSES = new Set<ArtworkStatus>(["archive", "available", "sold"]);
 
-function revalidateCatalog(slug?: string) {
+function revalidateCatalog() {
 	revalidatePath("/");
 	revalidatePath("/work");
+	// Every detail page includes catalog-derived previous/next links.
+	revalidatePath("/work/[slug]", "page");
+	revalidatePath("/custom-orders");
 	revalidatePath("/admin");
 	// The Meta Commerce feed and the sitemap both derive from the catalog, so a
 	// price/status/create/delete change must refresh them too or they go stale.
 	revalidatePath("/catalog.csv");
 	revalidatePath("/sitemap.xml");
-	if (slug) revalidatePath(`/work/${slug}`);
 }
 
 /**
@@ -117,12 +116,13 @@ async function updateArtworkUnsafe(
 		.where(eq(artworks.slug, slug))
 		.returning({ slug: artworks.slug });
 	if (updated.length === 0) throw new Error("Artwork not found.");
-	revalidateCatalog(slug);
+	revalidateCatalog();
 	return { ok: true };
 }
 
 /**
- * Replace an artwork image using a new key, then retire the old variants.
+ * Replace an artwork image using a new key. Published versions stay in R2
+ * so a database restore can still resolve its image references.
  * Failures come back as data so the real reason survives to the admin UI in
  * production (see lib/action-result).
  */
@@ -146,8 +146,7 @@ async function replaceArtworkImageUnsafe(slug: string, formData: FormData): Prom
 	const stagedKey = formString(formData, "imageKey").trim();
 	if (!stagedKey) throw new Error("An image file is required.");
 	const buffer = await readStagedImage(stagedKey);
-	const nextImageKey = `${slug}-${randomUUID()}`;
-	const { aspectRatio, palette } = await processArtworkImage(nextImageKey, buffer);
+	const { image, aspectRatio, palette } = await processNewArtworkImage(slug, buffer);
 	await discardStagedImages([stagedKey]).catch((error) => {
 		console.error("Staged upload cleanup failed after replacement.", error);
 	});
@@ -155,22 +154,21 @@ async function replaceArtworkImageUnsafe(slug: string, formData: FormData): Prom
 		const updated = await db
 			.update(artworks)
 			.set({
-				image: `${nextImageKey}.jpg`,
+				image,
 				aspectRatio,
 				palette: palette.length > 0 ? palette : null,
 			})
-			.where(eq(artworks.slug, slug))
+			.where(and(eq(artworks.slug, slug), eq(artworks.image, row.image)))
 			.returning({ slug: artworks.slug });
-		if (updated.length === 0) throw new Error("Artwork no longer exists.");
+		if (updated.length === 0) {
+			throw new ImageConflictError("Artwork image changed. Refresh and try again.");
+		}
 	} catch (error) {
-		await deleteArtworkImages(nextImageKey).catch(() => {});
+		await cleanupFailedImageWrite([`artworks/${artworkImageKey(image)}`], error);
 		throw error;
 	}
 
-	await deleteArtworkImages(artworkImageKey(row.image)).catch((error) => {
-		console.error("Artwork image cleanup failed after replacement.", error);
-	});
-	revalidateCatalog(slug);
+	revalidateCatalog();
 	return { ok: true };
 }
 
@@ -220,38 +218,42 @@ async function createArtworkUnsafe(formData: FormData): Promise<ActionResult<{ s
 	}
 
 	const buffer = await readStagedImage(stagedKey);
-	const { aspectRatio, palette } = await processArtworkImage(slug, buffer);
+	const { image, aspectRatio, palette } = await processNewArtworkImage(slug, buffer);
 	await discardStagedImages([stagedKey]).catch((error) => {
 		console.error("Staged upload cleanup failed after create.", error);
 	});
 
 	try {
-		await db.insert(artworks).values({
-			slug,
-			title,
-			style,
-			medium,
-			image: `${slug}.jpg`,
-			aspectRatio,
-			// Computed in the INSERT to avoid an extra application round-trip.
-			// Read queries include a stable secondary key for concurrent ties.
-			order: nextOrderSql(artworks),
-			featured: false,
-			description: formString(formData, "description").trim() || null,
-			dimensions: formString(formData, "dimensions").trim() || null,
-			year,
-			palette: palette.length > 0 ? palette : null,
-			priceInr,
-			status: priceInr ? "available" : "archive",
-		});
-	} catch (err) {
-		// The variants were already uploaded; if the row insert fails (concurrent
-		// duplicate slug, network), remove them so R2 doesn't accumulate orphans.
-		await deleteArtworkImages(slug).catch(() => {});
-		throw err;
+		const inserted = await db
+			.insert(artworks)
+			.values({
+				slug,
+				title,
+				style,
+				medium,
+				image,
+				aspectRatio,
+				// Read queries include a stable secondary key for concurrent ties.
+				order: nextOrderSql(artworks),
+				featured: false,
+				description: formString(formData, "description").trim() || null,
+				dimensions: formString(formData, "dimensions").trim() || null,
+				year,
+				palette: palette.length > 0 ? palette : null,
+				priceInr,
+				status: priceInr ? "available" : "archive",
+			})
+			.onConflictDoNothing({ target: artworks.slug })
+			.returning({ slug: artworks.slug });
+		if (inserted.length === 0) {
+			throw new ImageConflictError(`An artwork with slug "${slug}" already exists.`);
+		}
+	} catch (error) {
+		await cleanupFailedImageWrite([`artworks/${artworkImageKey(image)}`], error);
+		throw error;
 	}
 
-	revalidateCatalog(slug);
+	revalidateCatalog();
 	return { ok: true, slug };
 }
 
@@ -276,11 +278,15 @@ async function regeneratePaletteUnsafe(slug: string): Promise<ActionResult> {
 	if (!res.ok) throw new Error("Could not fetch the master image.");
 	const buffer = Buffer.from(await res.arrayBuffer());
 	const palette = await extractPalette(buffer);
-	await db
+	const updated = await db
 		.update(artworks)
 		.set({ palette: palette.length > 0 ? palette : null })
-		.where(eq(artworks.slug, slug));
-	revalidateCatalog(slug);
+		.where(and(eq(artworks.slug, slug), eq(artworks.image, row.image)))
+		.returning({ slug: artworks.slug });
+	if (updated.length === 0) {
+		throw new ImageConflictError("Artwork image changed. Refresh and try again.");
+	}
+	revalidateCatalog();
 	return { ok: true };
 }
 
@@ -296,20 +302,17 @@ export async function reorderArtworks(slugs: string[]): Promise<ActionResult> {
 
 async function reorderArtworksUnsafe(slugs: string[]): Promise<ActionResult> {
 	await requireMaintainer();
-	const queries = slugs.map((slug, i) =>
-		db
-			.update(artworks)
-			.set({ order: i + 1 })
-			.where(eq(artworks.slug, slug)),
-	);
-	if (queries.length > 0) {
-		await db.batch(queries as [(typeof queries)[number], ...Array<(typeof queries)[number]>]);
-	}
+	await saveCompleteOrder({
+		table: artworks,
+		key: artworks.slug,
+		ids: slugs,
+		label: "Artwork",
+	});
 	revalidateCatalog();
 	return { ok: true };
 }
 
-/** Delete an artwork row + all its R2 image variants. */
+/** Remove an artwork from the catalog, retaining published images for recovery. */
 export async function deleteArtwork(slug: string): Promise<ActionResult> {
 	try {
 		return await deleteArtworkUnsafe(slug);
@@ -321,15 +324,7 @@ export async function deleteArtwork(slug: string): Promise<ActionResult> {
 
 async function deleteArtworkUnsafe(slug: string): Promise<ActionResult> {
 	await requireMaintainer();
-	const [row] = await db
-		.select({ image: artworks.image })
-		.from(artworks)
-		.where(eq(artworks.slug, slug));
-	if (!row) return { ok: true };
 	await db.delete(artworks).where(eq(artworks.slug, slug));
-	await deleteArtworkImages(artworkImageKey(row.image)).catch((error) => {
-		console.error("Artwork image cleanup failed after deletion.", error);
-	});
-	revalidateCatalog(slug);
+	revalidateCatalog();
 	return { ok: true };
 }

@@ -1,8 +1,10 @@
+import { requireAdminPage } from "@/lib/admin-auth";
 import { getAllOrderPresets } from "@/lib/data";
 import { AdminPageHeader } from "../_components/admin-page-header";
 import { PresetManager } from "../_components/preset-manager";
 
 export default async function AdminPresetsPage() {
+	await requireAdminPage();
 	const presets = await getAllOrderPresets();
 
 	return (

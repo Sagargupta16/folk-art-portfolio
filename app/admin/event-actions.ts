@@ -7,25 +7,27 @@
  * revalidates the affected paths so the public site + admin lists update.
  */
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import type { ActionResult } from "@/lib/action-result";
+import { runAdminAction } from "@/lib/admin-action";
 import { db } from "@/lib/db/client";
 import { events, settings } from "@/lib/db/schema";
 import {
-	deleteEventImages,
-	processEventImage,
-	processImageVariants,
-} from "@/lib/storage/process-artwork-image";
+	cleanupFailedImageWrite,
+	discardUncommittedImages,
+	ImageConflictError,
+} from "@/lib/storage/image-mutation";
+import { processEventImage, processNewImageVariants } from "@/lib/storage/process-artwork-image";
 import { discardStagedImages, readStagedImage } from "@/lib/storage/staged-upload";
-import { formString, nextOrderSql, requireMaintainer } from "./_helpers";
+import { formString, nextOrderSql } from "./_helpers";
 
 // --- Event actions ---
 
-function revalidateEvents(id?: string) {
+function revalidateEvents() {
 	revalidatePath("/");
 	revalidatePath("/events");
 	revalidatePath("/admin/events");
-	if (id) revalidatePath(`/events/${id}`);
 }
 
 /**
@@ -41,10 +43,35 @@ function formImageKeys(formData: FormData): string[] {
 	return keys;
 }
 
-/** Process one staged photo for an event, returning its stored R2 key-base. */
-async function uploadEventPhoto(eventId: string, stagedKey: string): Promise<string> {
-	const buffer = await readStagedImage(stagedKey);
-	return processEventImage(eventId, randomUUID(), buffer);
+/** Process photos in selection order; failed batches have never been published. */
+async function uploadEventPhotos(eventId: string, stagedKeys: string[]): Promise<string[]> {
+	const images: string[] = [];
+	try {
+		for (const stagedKey of stagedKeys) {
+			const buffer = await readStagedImage(stagedKey);
+			images.push(await processEventImage(eventId, buffer));
+		}
+		return images;
+	} catch (error) {
+		await discardUncommittedImages(images);
+		throw error;
+	} finally {
+		await discardStagedImages(stagedKeys).catch((error) => {
+			console.error("Staged event upload cleanup failed.", error);
+		});
+	}
+}
+
+/** Compare the array read before processing so concurrent edits cannot be lost. */
+async function writeEventImages(id: string, previous: string[], images: string[]): Promise<void> {
+	const updated = await db
+		.update(events)
+		.set({ images })
+		.where(and(eq(events.id, id), eq(events.images, previous)))
+		.returning({ id: events.id });
+	if (updated.length === 0) {
+		throw new ImageConflictError("Event photos changed. Refresh and try again.");
+	}
 }
 
 /** Parse the "eventDate" field into a Date, defaulting to now on a bad value. */
@@ -55,46 +82,33 @@ function parseEventDate(formData: FormData): Date {
 }
 
 /** Create an event from form fields + a batch of uploaded photos. */
-export async function createEvent(formData: FormData): Promise<{ id: string }> {
-	await requireMaintainer();
+export async function createEvent(formData: FormData): Promise<ActionResult<{ id: string }>> {
+	return runAdminAction(async () => {
+		const title = formString(formData, "title").trim();
+		if (!title) throw new Error("Title is required.");
 
-	const title = formString(formData, "title").trim();
-	if (!title) throw new Error("Title is required.");
-
-	const id = randomUUID();
-	const stagedKeys = formImageKeys(formData);
-	// Process sequentially so a partial failure leaves a contiguous set, and the
-	// stored order matches the order the maintainer picked them.
-	const images: string[] = [];
-	try {
-		for (const stagedKey of stagedKeys) {
-			images.push(await uploadEventPhoto(id, stagedKey));
+		const id = randomUUID();
+		const images = await uploadEventPhotos(id, formImageKeys(formData));
+		try {
+			await db.insert(events).values({
+				id,
+				title,
+				description: formString(formData, "description").trim() || null,
+				eventDate: parseEventDate(formData),
+				category: formString(formData, "category").trim() || null,
+				images,
+				featured: false,
+				// Computed in the INSERT to avoid an extra application round-trip.
+				order: nextOrderSql(events),
+			});
+		} catch (error) {
+			await cleanupFailedImageWrite(images, error);
+			throw error;
 		}
 
-		await db.insert(events).values({
-			id,
-			title,
-			description: formString(formData, "description").trim() || null,
-			eventDate: parseEventDate(formData),
-			category: formString(formData, "category").trim() || null,
-			images,
-			featured: false,
-			// Computed in the INSERT to avoid an extra application round-trip.
-			order: nextOrderSql(events),
-		});
-	} catch (err) {
-		// Photos already uploaded for this event are unreferenced if the insert
-		// (or a later upload) fails -- remove them so R2 doesn't accumulate orphans.
-		if (images.length > 0) await deleteEventImages(images).catch(() => {});
-		throw err;
-	} finally {
-		await discardStagedImages(stagedKeys).catch((error) => {
-			console.error("Staged upload cleanup failed after event create.", error);
-		});
-	}
-
-	revalidateEvents(id);
-	return { id };
+		revalidateEvents();
+		return { id };
+	});
 }
 
 /** Update an event's editable text fields (title, description, date, category). */
@@ -106,78 +120,73 @@ export async function updateEventMeta(
 		eventDate?: string;
 		category?: string | null;
 	},
-): Promise<void> {
-	await requireMaintainer();
-	const patch: Partial<typeof events.$inferInsert> = {
-		title: fields.title,
-		description: fields.description,
-		category: fields.category,
-	};
-	if (fields.eventDate) {
-		const parsed = new Date(fields.eventDate);
-		if (!Number.isNaN(parsed.getTime())) patch.eventDate = parsed;
-	}
-	await db.update(events).set(patch).where(eq(events.id, id));
-	revalidateEvents(id);
+): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const patch: Partial<typeof events.$inferInsert> = {
+			title: fields.title,
+			description: fields.description,
+			category: fields.category,
+		};
+		if (fields.eventDate) {
+			const parsed = new Date(fields.eventDate);
+			if (!Number.isNaN(parsed.getTime())) patch.eventDate = parsed;
+		}
+		const updated = await db
+			.update(events)
+			.set(patch)
+			.where(eq(events.id, id))
+			.returning({ id: events.id });
+		if (updated.length === 0) throw new Error("Event not found.");
+		revalidateEvents();
+	});
 }
 
 /** Add more photos to an existing event (appended after the current set). */
-export async function addEventImages(id: string, formData: FormData): Promise<void> {
-	await requireMaintainer();
-	const [row] = await db.select().from(events).where(eq(events.id, id));
-	if (!row) throw new Error("Event not found.");
-	const stagedKeys = formImageKeys(formData);
-	const added: string[] = [];
-	try {
-		for (const stagedKey of stagedKeys) {
-			added.push(await uploadEventPhoto(id, stagedKey));
-		}
+export async function addEventImages(id: string, formData: FormData): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const [row] = await db.select().from(events).where(eq(events.id, id));
+		if (!row) throw new Error("Event not found.");
+		const added = await uploadEventPhotos(id, formImageKeys(formData));
 		if (added.length === 0) return;
-		await db
-			.update(events)
-			.set({ images: [...(row.images ?? []), ...added] })
-			.where(eq(events.id, id));
-	} catch (err) {
-		if (added.length > 0) await deleteEventImages(added).catch(() => {});
-		throw err;
-	} finally {
-		await discardStagedImages(stagedKeys).catch((error) => {
-			console.error("Staged upload cleanup failed after adding event images.", error);
-		});
-	}
-	revalidateEvents(id);
+		try {
+			await writeEventImages(id, row.images, [...row.images, ...added]);
+		} catch (error) {
+			await cleanupFailedImageWrite(added, error);
+			throw error;
+		}
+		revalidateEvents();
+	});
 }
 
-/** Remove one photo from an event (drops the row reference + its R2 variants). */
-export async function removeEventImage(id: string, keyBase: string): Promise<void> {
-	await requireMaintainer();
-	const [row] = await db.select().from(events).where(eq(events.id, id));
-	if (!row) throw new Error("Event not found.");
-	const current = row.images ?? [];
-	if (!current.includes(keyBase)) throw new Error("Event image not found.");
-	const next = current.filter((k) => k !== keyBase);
-	await db.update(events).set({ images: next }).where(eq(events.id, id));
-	await deleteEventImages([keyBase]).catch((error) => {
-		console.error("Event image cleanup failed after removal.", error);
+/** Remove a photo reference, retaining its published version for recovery. */
+export async function removeEventImage(id: string, keyBase: string): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const [row] = await db.select().from(events).where(eq(events.id, id));
+		if (!row) throw new Error("Event not found.");
+		const current = row.images;
+		if (!current.includes(keyBase)) throw new Error("Event image not found.");
+		const next = current.filter((k) => k !== keyBase);
+		await writeEventImages(id, current, next);
+		revalidateEvents();
 	});
-	revalidateEvents(id);
 }
 
 /** Reorder an event's photos by providing the new key-base sequence. */
-export async function reorderEventImages(id: string, keyBases: string[]): Promise<void> {
-	await requireMaintainer();
-	const [row] = await db.select().from(events).where(eq(events.id, id));
-	if (!row) throw new Error("Event not found.");
-	const current = row.images ?? [];
-	const owned = new Set(current);
-	const requested = new Set(keyBases);
-	const isExactPermutation =
-		keyBases.length === current.length &&
-		requested.size === current.length &&
-		keyBases.every((keyBase) => owned.has(keyBase));
-	if (!isExactPermutation) throw new Error("Photo list changed. Refresh and try again.");
-	await db.update(events).set({ images: keyBases }).where(eq(events.id, id));
-	revalidateEvents(id);
+export async function reorderEventImages(id: string, keyBases: string[]): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const [row] = await db.select().from(events).where(eq(events.id, id));
+		if (!row) throw new Error("Event not found.");
+		const current = row.images;
+		const owned = new Set(current);
+		const requested = new Set(keyBases);
+		const isExactPermutation =
+			keyBases.length === current.length &&
+			requested.size === current.length &&
+			keyBases.every((keyBase) => owned.has(keyBase));
+		if (!isExactPermutation) throw new Error("Photo list changed. Refresh and try again.");
+		await writeEventImages(id, current, keyBases);
+		revalidateEvents();
+	});
 }
 
 /**
@@ -185,22 +194,32 @@ export async function reorderEventImages(id: string, keyBases: string[]): Promis
  * events to the top (ahead of the date-desc order), and the home strip prefers
  * them. "Featured" and "pinned" are the same flag.
  */
-export async function setEventFeatured(id: string, featured: boolean): Promise<void> {
-	await requireMaintainer();
-	await db.update(events).set({ featured }).where(eq(events.id, id));
-	revalidateEvents(id);
+export async function setEventFeatured(id: string, featured: boolean): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const updated = await db
+			.update(events)
+			.set({ featured })
+			.where(eq(events.id, id))
+			.returning({ id: events.id });
+		if (updated.length === 0) throw new Error("Event not found.");
+		revalidateEvents();
+	});
 }
 
-/** Delete an event row + all its R2 image variants. */
-export async function deleteEvent(id: string): Promise<void> {
-	await requireMaintainer();
-	const [row] = await db.select().from(events).where(eq(events.id, id));
-	if (!row) return;
-	await db.delete(events).where(eq(events.id, id));
-	await deleteEventImages(row.images ?? []).catch((error) => {
-		console.error("Event image cleanup failed after deletion.", error);
+/** Delete an unchanged event, retaining published image versions for recovery. */
+export async function deleteEvent(id: string): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const [row] = await db.select().from(events).where(eq(events.id, id));
+		if (!row) return;
+		const deleted = await db
+			.delete(events)
+			.where(and(eq(events.id, id), eq(events.images, row.images)))
+			.returning({ id: events.id });
+		if (deleted.length === 0) {
+			throw new ImageConflictError("Event photos changed. Refresh and try again.");
+		}
+		revalidateEvents();
 	});
-	revalidateEvents(id);
 }
 
 // --- Settings actions (artist profile) ---
@@ -211,54 +230,70 @@ function revalidateProfile() {
 	revalidatePath("/admin/profile");
 }
 
+function profileImageMatches(value: unknown) {
+	return and(
+		eq(settings.key, "profileImage"),
+		value === null ? isNull(settings.value) : eq(settings.value, value),
+	);
+}
+
 /** Upload (or replace) the artist profile photo; stores its R2 key-base. */
-export async function setProfileImage(formData: FormData): Promise<void> {
-	await requireMaintainer();
-	const stagedKey = formString(formData, "imageKey").trim();
-	if (!stagedKey) throw new Error("An image file is required.");
-	const buffer = await readStagedImage(stagedKey);
-	const [current] = await db.select().from(settings).where(eq(settings.key, "profileImage"));
-	const oldKeyBase = typeof current?.value === "string" ? current.value : undefined;
-	const keyBase = `profile/artist-${randomUUID()}`;
-	await processImageVariants(keyBase, buffer);
-	await discardStagedImages([stagedKey]).catch((error) => {
-		console.error("Staged upload cleanup failed after profile image upload.", error);
-	});
-	try {
-		await db
-			.insert(settings)
-			.values({ key: "profileImage", value: keyBase })
-			.onConflictDoUpdate({ target: settings.key, set: { value: keyBase } });
-	} catch (error) {
-		await deleteEventImages([keyBase]).catch(() => {});
-		throw error;
-	}
-	if (oldKeyBase) {
-		await deleteEventImages([oldKeyBase]).catch((error) => {
-			console.error("Profile image cleanup failed after replacement.", error);
+export async function setProfileImage(formData: FormData): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const stagedKey = formString(formData, "imageKey").trim();
+		if (!stagedKey) throw new Error("An image file is required.");
+		const buffer = await readStagedImage(stagedKey);
+		const [current] = await db.select().from(settings).where(eq(settings.key, "profileImage"));
+		const { keyBase } = await processNewImageVariants("profile/artist", buffer);
+		await discardStagedImages([stagedKey]).catch((error) => {
+			console.error("Staged upload cleanup failed after profile image upload.", error);
 		});
-	}
-	revalidateProfile();
+		try {
+			const updated = current
+				? await db
+						.update(settings)
+						.set({ value: keyBase })
+						.where(profileImageMatches(current.value))
+						.returning({ key: settings.key })
+				: await db
+						.insert(settings)
+						.values({ key: "profileImage", value: keyBase })
+						.onConflictDoNothing({ target: settings.key })
+						.returning({ key: settings.key });
+			if (updated.length === 0) {
+				throw new ImageConflictError("Profile photo changed. Refresh and try again.");
+			}
+		} catch (error) {
+			await cleanupFailedImageWrite([keyBase], error);
+			throw error;
+		}
+		revalidateProfile();
+	});
 }
 
 /** Remove the artist profile photo (reverts About to the monogram fallback). */
-export async function clearProfileImage(): Promise<void> {
-	await requireMaintainer();
-	const [current] = await db.select().from(settings).where(eq(settings.key, "profileImage"));
-	const keyBase = typeof current?.value === "string" ? current.value : "profile/artist";
-	await db.delete(settings).where(eq(settings.key, "profileImage"));
-	await deleteEventImages([keyBase]).catch((error) => {
-		console.error("Profile image cleanup failed after removal.", error);
+export async function clearProfileImage(): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const [current] = await db.select().from(settings).where(eq(settings.key, "profileImage"));
+		if (!current) return;
+		const deleted = await db
+			.delete(settings)
+			.where(profileImageMatches(current.value))
+			.returning({ key: settings.key });
+		if (deleted.length === 0) {
+			throw new ImageConflictError("Profile photo changed. Refresh and try again.");
+		}
+		revalidateProfile();
 	});
-	revalidateProfile();
 }
 
 /** Toggle whether the short artist intro shows on the home page. */
-export async function setShowHomeIntro(show: boolean): Promise<void> {
-	await requireMaintainer();
-	await db
-		.insert(settings)
-		.values({ key: "showHomeIntro", value: show })
-		.onConflictDoUpdate({ target: settings.key, set: { value: show } });
-	revalidateProfile();
+export async function setShowHomeIntro(show: boolean): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		await db
+			.insert(settings)
+			.values({ key: "showHomeIntro", value: show })
+			.onConflictDoUpdate({ target: settings.key, set: { value: show } });
+		revalidateProfile();
+	});
 }

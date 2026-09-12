@@ -51,8 +51,8 @@ export default async function HomePage() {
 		getAllWorkshops(),
 		getCategoryNames(),
 		getRecentEvents(3),
-		getSetting<boolean>("showHomeIntro"),
-		getSetting<string>("profileImage"),
+		getSetting("showHomeIntro"),
+		getSetting("profileImage"),
 		getFeaturedTestimonials(),
 	]);
 	const phone = extractPhoneFromWaUrl(site.contact.whatsapp.url);

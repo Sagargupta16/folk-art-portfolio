@@ -12,11 +12,13 @@ import { useCallback, useRef, useState } from "react";
 export function useReorder<T>(
 	items: T[],
 	onReorder: (next: T[]) => void,
+	disabled = false,
 ): {
 	dragging: number | null;
 	over: number | null;
+	move: (from: number, to: number) => void;
 	dragProps: (index: number) => {
-		draggable: true;
+		draggable: boolean;
 		onDragStart: () => void;
 		onDragOver: (e: React.DragEvent) => void;
 		onDrop: () => void;
@@ -33,30 +35,32 @@ export function useReorder<T>(
 		dragItem.current = null;
 	}, []);
 
+	const move = useCallback(
+		(from: number, to: number) => {
+			if (disabled || from === to || from < 0 || to < 0 || to >= items.length) return;
+			const next = [...items];
+			const moved = next.splice(from, 1)[0];
+			if (moved === undefined) return;
+			next.splice(to, 0, moved);
+			onReorder(next);
+		},
+		[disabled, items, onReorder],
+	);
+
 	const drop = useCallback(
 		(index: number) => {
 			const from = dragItem.current;
-			if (from === null || from === index) {
-				reset();
-				return;
-			}
-			const next = [...items];
-			const moved = next.splice(from, 1)[0];
-			if (moved === undefined) {
-				reset();
-				return;
-			}
-			next.splice(index, 0, moved);
-			onReorder(next);
+			if (from !== null) move(from, index);
 			reset();
 		},
-		[items, onReorder, reset],
+		[move, reset],
 	);
 
 	const dragProps = useCallback(
 		(index: number) => ({
-			draggable: true as const,
+			draggable: !disabled,
 			onDragStart: () => {
+				if (disabled) return;
 				dragItem.current = index;
 				setDragging(index);
 			},
@@ -67,8 +71,8 @@ export function useReorder<T>(
 			onDrop: () => drop(index),
 			onDragEnd: reset,
 		}),
-		[drop, reset],
+		[disabled, drop, reset],
 	);
 
-	return { dragging, over, dragProps };
+	return { dragging, over, dragProps, move };
 }

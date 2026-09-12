@@ -14,8 +14,7 @@ const STATUSES: readonly LeadStatus[] = ["new", "contacted", "closed"];
 /**
  * Admin queue for captured custom-order leads. Each lead shows its brief +
  * chosen options, a status dropdown (new/contacted/closed), and a delete
- * control (the PII-removal path). Mirrors the optimistic list pattern used by
- * the other admin managers.
+ * control (the PII-removal path). Changes appear after the server accepts them.
  */
 export function LeadsManager({ leads: initial }: Readonly<{ leads: Lead[] }>) {
 	const { pending, err, run } = useAdminAction();
@@ -23,8 +22,10 @@ export function LeadsManager({ leads: initial }: Readonly<{ leads: Lead[] }>) {
 	const confirm = useConfirm();
 
 	const onStatus = (id: string, status: LeadStatus) => {
-		setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
-		run(() => setLeadStatus(id, status));
+		run(
+			() => setLeadStatus(id, status),
+			() => setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l))),
+		);
 	};
 
 	const onDelete = async (id: string) => {
@@ -35,21 +36,24 @@ export function LeadsManager({ leads: initial }: Readonly<{ leads: Lead[] }>) {
 			destructive: true,
 		});
 		if (!ok) return;
-		setLeads((prev) => prev.filter((l) => l.id !== id));
-		run(() => deleteLead(id));
-	};
-
-	if (leads.length === 0) {
-		return (
-			<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
-				No enquiries yet. Custom-order briefs submitted from the site appear here.
-			</p>
+		run(
+			() => deleteLead(id),
+			() => setLeads((prev) => prev.filter((l) => l.id !== id)),
 		);
-	}
+	};
 
 	return (
 		<div className="space-y-3">
-			{err ? <p className="text-sm text-ruby">{err}</p> : null}
+			{err ? (
+				<p role="alert" className="text-sm text-ruby">
+					{err}
+				</p>
+			) : null}
+			{leads.length === 0 ? (
+				<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
+					No enquiries on this page. Custom-order briefs submitted from the site appear here.
+				</p>
+			) : null}
 			<ul className="space-y-3">
 				{leads.map((lead) => (
 					<li key={lead.id} className="rounded-(--radius-sm) border border-line bg-bg-soft/40 p-4">
@@ -60,6 +64,9 @@ export function LeadsManager({ leads: initial }: Readonly<{ leads: Lead[] }>) {
 									{lead.style ? <span className="text-muted"> · {lead.style}</span> : null}
 								</p>
 								<p className="mt-0.5 text-xs text-muted">{formatEventDate(lead.createdAt)}</p>
+								{lead.contact ? (
+									<p className="mt-1 break-words text-xs text-muted">Contact: {lead.contact}</p>
+								) : null}
 							</div>
 							<div className="flex items-center gap-2">
 								<label className="sr-only" htmlFor={`status-${lead.id}`}>

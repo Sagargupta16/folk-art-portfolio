@@ -14,6 +14,17 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { serverEnv } from "../env";
 import * as schema from "./schema";
 
-const sql = neon(serverEnv.databaseUrl);
+function createDatabase() {
+	return drizzle({ client: neon(serverEnv.databaseUrl), schema });
+}
 
-export const db = drizzle({ client: sql, schema });
+type Database = ReturnType<typeof createDatabase>;
+
+/** Fixture builds cannot accidentally query or mutate an externally configured database. */
+export const db: Database = serverEnv.testFixtures
+	? new Proxy({} as Database, {
+			get() {
+				throw new Error("Database access is disabled in catalog fixture mode.");
+			},
+		})
+	: createDatabase();

@@ -23,11 +23,31 @@ export type Success<T> = { ok: true } & T;
 
 export type ActionResult<T = unknown> = Success<T> | Failure;
 
+const DATABASE_MESSAGES: Record<string, string> = {
+	"23505": "An item with that name or identifier already exists.",
+	"23503": "The selected category no longer exists. Refresh and choose a category.",
+	"23001": "This category is still used by artwork. Reassign the pieces first.",
+	"23514": "A value does not meet the catalog rules. Check the form and try again.",
+};
+const MAX_ERROR_CAUSES = 4;
+const RETRY_MESSAGE = "Something went wrong. Please try again.";
+
 /** Wrap a caught error as a failure the client can display. */
 export function failure(error: unknown): Failure {
+	let current = error;
+	for (let depth = 0; depth < MAX_ERROR_CAUSES && current && typeof current === "object"; depth++) {
+		const details = current as { code?: unknown; cause?: unknown };
+		if (typeof details.code === "string") {
+			return { ok: false, message: DATABASE_MESSAGES[details.code] ?? RETRY_MESSAGE };
+		}
+		current = details.cause;
+	}
 	return {
 		ok: false,
-		message: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+		message:
+			error instanceof Error && error.name === "Error" && !error.cause
+				? error.message
+				: RETRY_MESSAGE,
 	};
 }
 

@@ -16,6 +16,7 @@ import { sql } from "drizzle-orm";
 import {
 	boolean,
 	check,
+	index,
 	integer,
 	jsonb,
 	pgTable,
@@ -29,7 +30,9 @@ export const artworks = pgTable(
 	{
 		slug: text("slug").primaryKey(),
 		title: text("title").notNull(),
-		style: text("style").notNull(),
+		style: text("style")
+			.notNull()
+			.references(() => categories.name, { onUpdate: "cascade", onDelete: "restrict" }),
 		medium: text("medium").notNull(),
 		year: integer("year"),
 		dimensions: text("dimensions"),
@@ -155,15 +158,14 @@ export const orderPresets = pgTable(
 /**
  * Art categories (formerly the fixed "styles" enum in site.json). Editable
  * from /admin so new traditions can be added without a code change. The
- * artwork `style` column stores the category `name` (free text), so renaming
- * a category does not orphan rows -- the admin rename action updates matching
- * artworks too (see app/admin/actions.ts).
+ * Artwork styles reference the unique category name. Postgres cascades a
+ * rename atomically and refuses to delete a category still used by artwork.
  */
 export const categories = pgTable(
 	"categories",
 	{
 		id: text("id").primaryKey(),
-		name: text("name").notNull(),
+		name: text("name").notNull().unique("categories_name_unique"),
 		order: integer("order").notNull(),
 	},
 	(table) => [
@@ -197,14 +199,9 @@ export const maintainers = pgTable(
 /**
  * Custom-order enquiries, captured before the visitor is handed to WhatsApp.
  *
- * The custom-order form has always built a pre-filled WhatsApp message; now it
- * also persists the brief here first, so an enquiry survives even when an
- * in-app browser blocks the WhatsApp popup (the funnel used to lose it). This
- * is the durable record the funnel never had. The write is fire-and-forget:
- * the WhatsApp hand-off still fires if this insert fails, so the always-works
- * link never regresses.
- *
- * Holds buyer-supplied PII (name + free-text brief), so keep it minimal and
+ * An optional contact address lets maintainers reply to a saved enquiry even
+ * when the visitor does not complete the separate WhatsApp handoff.
+ * Holds buyer-supplied PII (name, contact and brief), so keep it minimal and
  * expose a delete path in admin. `status` drives the /admin/leads queue.
  */
 export const leads = pgTable(
@@ -212,6 +209,7 @@ export const leads = pgTable(
 	{
 		id: text("id").primaryKey(),
 		name: text("name"),
+		contact: text("contact"),
 		style: text("style"),
 		size: text("size"),
 		budget: text("budget"),
@@ -223,7 +221,12 @@ export const leads = pgTable(
 	},
 	(table) => [
 		check("leads_brief_not_blank", sql`length(trim(${table.brief})) > 0`),
+		check(
+			"leads_contact_length",
+			sql`${table.contact} is null or length(${table.contact}) between 1 and 200`,
+		),
 		check("leads_status_valid", sql`${table.status} in ('new', 'contacted', 'closed')`),
+		index("leads_created_at_id_idx").on(table.createdAt.desc(), table.id),
 	],
 );
 

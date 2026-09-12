@@ -12,13 +12,15 @@
  */
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import type { ActionResult } from "@/lib/action-result";
+import { runAdminAction } from "@/lib/admin-action";
 import { db } from "@/lib/db/client";
-// `artworks` is read (never written) here: deleteCategory blocks removal of a
-// category that pieces still reference.
+// The foreign key is the final guard if a concurrent save races category deletion.
 import { artworks, categories, orderPresets, workshops } from "@/lib/db/schema";
 import { addMaintainer, removeMaintainer } from "@/lib/maintainers";
 import type { OrderPresetKind } from "@/lib/types";
 import { formString, getNextOrder, nextOrderSql, requireMaintainer, slugify } from "./_helpers";
+import { saveCompleteOrder } from "./_reorder";
 
 function revalidateWorkshops() {
 	revalidatePath("/");
@@ -29,70 +31,75 @@ function revalidateWorkshops() {
 // --- Workshop actions ---
 
 /** Create a workshop from form fields. */
-export async function createWorkshop(formData: FormData): Promise<{ slug: string }> {
-	await requireMaintainer();
+export async function createWorkshop(formData: FormData): Promise<ActionResult<{ slug: string }>> {
+	return runAdminAction(async () => {
+		const title = formString(formData, "title").trim();
+		const blurb = formString(formData, "blurb").trim();
+		if (!title || !blurb) throw new Error("Title and blurb are required.");
 
-	const title = formString(formData, "title").trim();
-	const blurb = formString(formData, "blurb").trim();
-	if (!title || !blurb) throw new Error("Title and blurb are required.");
+		const slug = slugify(title);
+		if (!slug) throw new Error("Title must contain letters or numbers.");
 
-	const slug = slugify(title);
-	if (!slug) throw new Error("Title must contain letters or numbers.");
+		const existing = await db
+			.select({ slug: workshops.slug })
+			.from(workshops)
+			.where(eq(workshops.slug, slug));
+		if (existing.length > 0) throw new Error(`A workshop with slug "${slug}" already exists.`);
 
-	const existing = await db
-		.select({ slug: workshops.slug })
-		.from(workshops)
-		.where(eq(workshops.slug, slug));
-	if (existing.length > 0) throw new Error(`A workshop with slug "${slug}" already exists.`);
+		const durationRaw = formString(formData, "durationHours");
+		const durationHours = durationRaw ? Number(durationRaw) : null;
+		if (durationHours !== null && (!Number.isFinite(durationHours) || durationHours <= 0)) {
+			throw new Error("Duration must be a positive number.");
+		}
 
-	const durationRaw = formString(formData, "durationHours");
-	const durationHours = durationRaw ? Number(durationRaw) : null;
-	if (durationHours !== null && (!Number.isFinite(durationHours) || durationHours <= 0)) {
-		throw new Error("Duration must be a positive number.");
-	}
+		await db.insert(workshops).values({
+			slug,
+			title,
+			blurb,
+			durationHours,
+			order: nextOrderSql(workshops),
+		});
 
-	await db.insert(workshops).values({
-		slug,
-		title,
-		blurb,
-		durationHours,
-		order: nextOrderSql(workshops),
+		revalidateWorkshops();
+		return { slug };
 	});
-
-	revalidateWorkshops();
-	return { slug };
 }
 
 /** Update a workshop's editable fields. */
 export async function updateWorkshop(
 	slug: string,
 	fields: { title?: string; blurb?: string; durationHours?: number | null },
-): Promise<void> {
-	await requireMaintainer();
-	await db.update(workshops).set(fields).where(eq(workshops.slug, slug));
-	revalidateWorkshops();
+): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const updated = await db
+			.update(workshops)
+			.set(fields)
+			.where(eq(workshops.slug, slug))
+			.returning({ slug: workshops.slug });
+		if (updated.length === 0) throw new Error("Workshop not found.");
+		revalidateWorkshops();
+	});
 }
 
 /** Reorder workshops by providing the new slug sequence. */
-export async function reorderWorkshops(slugs: string[]): Promise<void> {
-	await requireMaintainer();
-	const queries = slugs.map((slug, i) =>
-		db
-			.update(workshops)
-			.set({ order: i + 1 })
-			.where(eq(workshops.slug, slug)),
-	);
-	if (queries.length > 0) {
-		await db.batch(queries as [(typeof queries)[number], ...Array<(typeof queries)[number]>]);
-	}
-	revalidateWorkshops();
+export async function reorderWorkshops(slugs: string[]): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		await saveCompleteOrder({
+			table: workshops,
+			key: workshops.slug,
+			ids: slugs,
+			label: "Workshop",
+		});
+		revalidateWorkshops();
+	});
 }
 
 /** Delete a workshop. */
-export async function deleteWorkshop(slug: string): Promise<void> {
-	await requireMaintainer();
-	await db.delete(workshops).where(eq(workshops.slug, slug));
-	revalidateWorkshops();
+export async function deleteWorkshop(slug: string): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		await db.delete(workshops).where(eq(workshops.slug, slug));
+		revalidateWorkshops();
+	});
 }
 
 // --- Custom-order preset actions ---
@@ -103,50 +110,60 @@ function revalidateOrderPresets() {
 }
 
 /** Add a preset option of a given kind (size / budget / timeline). */
-export async function createOrderPreset(kind: OrderPresetKind, label: string): Promise<void> {
-	await requireMaintainer();
-	const trimmed = label.trim();
-	if (!trimmed) throw new Error("Label is required.");
-	const orderRows = await db.select({ order: orderPresets.order }).from(orderPresets);
-	const nextOrder = getNextOrder(orderRows);
-	// id must be stable + unique; derive from kind + a monotonic suffix.
-	const id = `${kind}-${nextOrder}-${trimmed
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.slice(0, 24)}`;
-	await db.insert(orderPresets).values({ id, kind, label: trimmed, order: nextOrder });
-	revalidateOrderPresets();
+export async function createOrderPreset(
+	kind: OrderPresetKind,
+	label: string,
+): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const trimmed = label.trim();
+		if (!trimmed) throw new Error("Label is required.");
+		const orderRows = await db.select({ order: orderPresets.order }).from(orderPresets);
+		const nextOrder = getNextOrder(orderRows);
+		// id must be stable + unique; derive from kind + a monotonic suffix.
+		const id = `${kind}-${nextOrder}-${trimmed
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, "-")
+			.slice(0, 24)}`;
+		await db.insert(orderPresets).values({ id, kind, label: trimmed, order: nextOrder });
+		revalidateOrderPresets();
+	});
 }
 
 /** Rename a preset. */
-export async function updateOrderPreset(id: string, label: string): Promise<void> {
-	await requireMaintainer();
-	const trimmed = label.trim();
-	if (!trimmed) throw new Error("Label is required.");
-	await db.update(orderPresets).set({ label: trimmed }).where(eq(orderPresets.id, id));
-	revalidateOrderPresets();
+export async function updateOrderPreset(id: string, label: string): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const trimmed = label.trim();
+		if (!trimmed) throw new Error("Label is required.");
+		const updated = await db
+			.update(orderPresets)
+			.set({ label: trimmed })
+			.where(eq(orderPresets.id, id))
+			.returning({ id: orderPresets.id });
+		if (updated.length === 0) throw new Error("Preset not found.");
+		revalidateOrderPresets();
+	});
 }
 
 /** Reorder presets within a kind by providing the new id sequence. */
-export async function reorderOrderPresets(ids: string[]): Promise<void> {
-	await requireMaintainer();
-	const queries = ids.map((id, i) =>
-		db
-			.update(orderPresets)
-			.set({ order: i + 1 })
-			.where(eq(orderPresets.id, id)),
-	);
-	if (queries.length > 0) {
-		await db.batch(queries as [(typeof queries)[number], ...Array<(typeof queries)[number]>]);
-	}
-	revalidateOrderPresets();
+export async function reorderOrderPresets(ids: string[]): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		await saveCompleteOrder({
+			table: orderPresets,
+			key: orderPresets.id,
+			group: orderPresets.kind,
+			ids,
+			label: "Preset",
+		});
+		revalidateOrderPresets();
+	});
 }
 
 /** Delete a preset. */
-export async function deleteOrderPreset(id: string): Promise<void> {
-	await requireMaintainer();
-	await db.delete(orderPresets).where(eq(orderPresets.id, id));
-	revalidateOrderPresets();
+export async function deleteOrderPreset(id: string): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		await db.delete(orderPresets).where(eq(orderPresets.id, id));
+		revalidateOrderPresets();
+	});
 }
 
 // --- Category actions ---
@@ -154,58 +171,53 @@ export async function deleteOrderPreset(id: string): Promise<void> {
 function revalidateCategories() {
 	revalidatePath("/");
 	revalidatePath("/work");
+	revalidatePath("/work/[slug]", "page");
+	revalidatePath("/catalog.csv");
 	revalidatePath("/custom-orders");
 	revalidatePath("/admin");
 	revalidatePath("/admin/categories");
 }
 
 /** Add a new art category. */
-export async function createCategory(name: string): Promise<void> {
-	await requireMaintainer();
-	const trimmed = name.trim();
-	if (!trimmed) throw new Error("Category name is required.");
-	const id = slugify(trimmed);
-	if (!id) throw new Error("Name must contain letters or numbers.");
-	const existing = await db
-		.select({ id: categories.id })
-		.from(categories)
-		.where(eq(categories.id, id));
-	if (existing.length > 0) throw new Error(`A category like "${trimmed}" already exists.`);
-	await db.insert(categories).values({ id, name: trimmed, order: nextOrderSql(categories) });
-	revalidateCategories();
+export async function createCategory(name: string): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const trimmed = name.trim();
+		if (!trimmed) throw new Error("Category name is required.");
+		const id = slugify(trimmed);
+		if (!id) throw new Error("Name must contain letters or numbers.");
+		const existing = await db
+			.select({ id: categories.id })
+			.from(categories)
+			.where(eq(categories.id, id));
+		if (existing.length > 0) throw new Error(`A category like "${trimmed}" already exists.`);
+		await db.insert(categories).values({ id, name: trimmed, order: nextOrderSql(categories) });
+		revalidateCategories();
+	});
 }
 
 /**
- * Rename a category. Also updates every artwork whose `style` matches the old
- * name, so renaming never orphans rows (artworks store the name, not the id).
+ * Postgres cascades the unique category name to artwork in the same statement.
  */
-export async function renameCategory(id: string, name: string): Promise<void> {
-	await requireMaintainer();
-	const trimmed = name.trim();
-	if (!trimmed) throw new Error("Category name is required.");
-	const [row] = await db.select().from(categories).where(eq(categories.id, id));
-	if (!row) throw new Error("Category not found.");
-	if (row.name === trimmed) return;
-	await db.batch([
-		db.update(categories).set({ name: trimmed }).where(eq(categories.id, id)),
-		db.update(artworks).set({ style: trimmed }).where(eq(artworks.style, row.name)),
-	]);
-	revalidateCategories();
+export async function renameCategory(id: string, name: string): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const trimmed = name.trim();
+		if (!trimmed) throw new Error("Category name is required.");
+		const updated = await db
+			.update(categories)
+			.set({ name: trimmed })
+			.where(eq(categories.id, id))
+			.returning({ id: categories.id });
+		if (updated.length === 0) throw new Error("Category not found.");
+		revalidateCategories();
+	});
 }
 
 /** Reorder categories by providing the new id sequence. */
-export async function reorderCategories(ids: string[]): Promise<void> {
-	await requireMaintainer();
-	const queries = ids.map((id, i) =>
-		db
-			.update(categories)
-			.set({ order: i + 1 })
-			.where(eq(categories.id, id)),
-	);
-	if (queries.length > 0) {
-		await db.batch(queries as [(typeof queries)[number], ...Array<(typeof queries)[number]>]);
-	}
-	revalidateCategories();
+export async function reorderCategories(ids: string[]): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		await saveCompleteOrder({ table: categories, key: categories.id, ids, label: "Category" });
+		revalidateCategories();
+	});
 }
 
 /**
@@ -213,33 +225,37 @@ export async function reorderCategories(ids: string[]): Promise<void> {
  * must reassign those pieces first, so we never leave artworks pointing at a
  * category that no longer exists in the picker.
  */
-export async function deleteCategory(id: string): Promise<void> {
-	await requireMaintainer();
-	const [row] = await db.select().from(categories).where(eq(categories.id, id));
-	if (!row) return;
-	const inUse = await db
-		.select({ slug: artworks.slug })
-		.from(artworks)
-		.where(eq(artworks.style, row.name));
-	if (inUse.length > 0) {
-		throw new Error(
-			`"${row.name}" is used by ${inUse.length} piece${inUse.length === 1 ? "" : "s"}. Reassign them first.`,
-		);
-	}
-	await db.delete(categories).where(eq(categories.id, id));
-	revalidateCategories();
+export async function deleteCategory(id: string): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const [row] = await db.select().from(categories).where(eq(categories.id, id));
+		if (!row) return;
+		const inUse = await db
+			.select({ slug: artworks.slug })
+			.from(artworks)
+			.where(eq(artworks.style, row.name));
+		if (inUse.length > 0) {
+			throw new Error(
+				`"${row.name}" is used by ${inUse.length} piece${inUse.length === 1 ? "" : "s"}. Reassign them first.`,
+			);
+		}
+		await db.delete(categories).where(eq(categories.id, id));
+		revalidateCategories();
+	});
 }
 
 // --- Maintainer roster actions ---
 
-export async function inviteMaintainer(email: string, name?: string): Promise<void> {
-	const by = await requireMaintainer();
-	await addMaintainer(email, by, name);
-	revalidatePath("/admin/maintainers");
+export async function inviteMaintainer(email: string, name?: string): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		const by = await requireMaintainer();
+		await addMaintainer(email, by, name);
+		revalidatePath("/admin/maintainers");
+	});
 }
 
-export async function revokeMaintainer(email: string): Promise<void> {
-	await requireMaintainer();
-	await removeMaintainer(email); // throws if root
-	revalidatePath("/admin/maintainers");
+export async function revokeMaintainer(email: string): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		await removeMaintainer(email); // throws if root
+		revalidatePath("/admin/maintainers");
+	});
 }

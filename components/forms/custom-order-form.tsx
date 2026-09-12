@@ -1,10 +1,10 @@
 "use client";
 
 import { AlertCircle, ArrowRight, Check, ChevronDown, ImageUp, Mail } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { submitLead } from "@/app/admin/lead-actions";
 import { StylePicker, type StyleSample } from "@/components/forms/style-picker";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import type { ArtStyle, CustomOrderDraft } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { buildWhatsAppLink, customOrderMailto, customOrderMessage } from "@/lib/whatsapp";
@@ -12,18 +12,13 @@ import { buildWhatsAppLink, customOrderMailto, customOrderMessage } from "@/lib/
 /**
  * Custom-order form.
  *
- * Phase 1 has no backend. The form collects fields locally, builds a
- * pre-filled WhatsApp message (or mailto fallback) via lib/whatsapp.ts,
- * and opens the chosen channel on submit. Phase 2 can add a server
- * action that also stores the lead -- the form shape (CustomOrderDraft)
- * stays the same.
- *
- * Preset dropdowns (sizes, budgets, timelines) are driven by the
- * `data/site.json` customOrders arrays so the artist can edit options
- * without touching code.
+ * Prepares explicit WhatsApp/email links while saving the brief independently.
+ * Persistence status never claims that a message was opened or sent.
+ * Catalog presets are supplied by the server through the data seam.
  */
-/** Re-enable the submit button this long after opening the WhatsApp tab. */
-const SUBMIT_RESET_MS = 1500;
+const MAX_BRIEF_LENGTH = 4000;
+const MAX_CONTACT_LENGTH = 200;
+type SaveStatus = "idle" | "saving" | "saved" | "failed";
 
 interface CustomOrderFormProps {
 	phoneE164NoPlus: string;
@@ -49,13 +44,12 @@ export function CustomOrderForm({
 	submitLabel,
 	fallbackEmailLabel,
 }: Readonly<CustomOrderFormProps>) {
-	const [submitting, setSubmitting] = useState(false);
+	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 	const [error, setError] = useState<string | null>(null);
 	const [draft, setDraft] = useState<CustomOrderDraft | null>(null);
-	const [sent, setSent] = useState(false);
+	const submissionVersion = useRef(0);
 
-	function readDraft(form: HTMLFormElement): CustomOrderDraft | null {
-		const formData = new FormData(form);
+	function readDraft(formData: FormData): CustomOrderDraft | null {
 		const briefMessage = (formData.get("brief") as string | null)?.trim() ?? "";
 		if (!briefMessage) {
 			setError("Tell us a bit about what you'd like.");
@@ -64,6 +58,7 @@ export function CustomOrderForm({
 		const styleVal = formData.get("style") as string | null;
 		return {
 			name: (formData.get("name") as string | null)?.trim() || undefined,
+			contact: (formData.get("contact") as string | null)?.trim() || undefined,
 			style: (styleVal as CustomOrderDraft["style"]) || undefined,
 			size: (formData.get("size") as string | null) || undefined,
 			budget: (formData.get("budget") as string | null) || undefined,
@@ -72,44 +67,43 @@ export function CustomOrderForm({
 		};
 	}
 
-	function onSubmit(e: FormEvent<HTMLFormElement>) {
+	async function onSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setError(null);
-		const next = readDraft(e.currentTarget);
+		const formData = new FormData(e.currentTarget);
+		const next = readDraft(formData);
 		if (!next) return;
+		const version = ++submissionVersion.current;
 		setDraft(next);
-		// Persist the brief BEFORE the WhatsApp hand-off, so a blocked in-app
-		// popup no longer loses the lead. Fire-and-forget: submitLead never
-		// throws and we don't await it, so the WhatsApp open below is never
-		// gated on the DB write.
-		void submitLead(new FormData(e.currentTarget));
-		const url = buildWhatsAppLink({ phoneE164NoPlus, message: customOrderMessage(next) });
-		setSubmitting(true);
-		// `window.open` returns null when blocked (popup blocker, in-app
-		// browser like Instagram). Surface the email fallback explicitly so
-		// the user has a recovery path; the mailto link below also renders.
-		const opened = globalThis.open(url, "_blank", "noopener,noreferrer");
-		if (opened) {
-			setSent(true);
-		} else {
-			setError("Couldn't open WhatsApp. Use the email link below to send your brief instead.");
+		setSaveStatus("saving");
+		try {
+			const result = await submitLead(formData);
+			if (submissionVersion.current === version) {
+				setSaveStatus(result.ok ? "saved" : "failed");
+			}
+		} catch {
+			if (submissionVersion.current === version) setSaveStatus("failed");
 		}
-		setTimeout(() => setSubmitting(false), SUBMIT_RESET_MS);
 	}
 
 	const mailtoHref = draft ? customOrderMailto(emailUrl, draft) : null;
-
-	let submitText: string;
-	if (submitting) {
-		submitText = "Opening WhatsApp...";
-	} else if (sent) {
-		submitText = "Reopen in WhatsApp";
-	} else {
-		submitText = submitLabel;
-	}
+	const whatsappHref = draft
+		? buildWhatsAppLink({ phoneE164NoPlus, message: customOrderMessage(draft) })
+		: null;
 
 	return (
-		<form onSubmit={onSubmit} className="space-y-6" noValidate>
+		<form
+			onSubmit={onSubmit}
+			onChange={() => {
+				// An old response must not mark an edited brief as saved.
+				submissionVersion.current += 1;
+				setDraft(null);
+				setSaveStatus("idle");
+				setError(null);
+			}}
+			className="space-y-6"
+			noValidate
+		>
 			{/* Honeypot: hidden from users + assistive tech; bots fill it and the
 			    lead is silently dropped server-side. Not display:none (some bots
 			    skip those) -- off-screen + aria-hidden + no tab stop. */}
@@ -127,6 +121,9 @@ export function CustomOrderForm({
 					name="brief"
 					rows={5}
 					required
+					maxLength={MAX_BRIEF_LENGTH}
+					aria-invalid={error ? true : undefined}
+					aria-describedby={error ? "brief-error" : undefined}
 					placeholder="Describe the piece: subject, colors, the occasion, anything you'd like reflected."
 					className={cn(inputClass, "resize-y")}
 				/>
@@ -183,7 +180,24 @@ export function CustomOrderForm({
 				</Field>
 			</div>
 
-			{/* Reference-image expectation, made explicit (Phase 1 has no upload). */}
+			<Field id="contact" label="Email or WhatsApp number" optional>
+				<input
+					id="contact"
+					name="contact"
+					type="text"
+					maxLength={MAX_CONTACT_LENGTH}
+					autoCapitalize="none"
+					spellCheck={false}
+					aria-describedby="contact-hint"
+					placeholder="Where can we reply?"
+					className={inputClass}
+				/>
+				<p id="contact-hint" className="mt-2 text-xs text-muted">
+					Leave a way for us to reply if you cannot send your message on WhatsApp.
+				</p>
+			</Field>
+
+			{/* Reference images are shared in the conversation. */}
 			<div className="flex items-start gap-3 rounded-(--radius-md) border border-line bg-bg-soft p-3.5">
 				<span
 					className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-bg text-(--section-accent) ring-1 ring-line"
@@ -197,46 +211,41 @@ export function CustomOrderForm({
 				</p>
 			</div>
 
-			<div aria-live="polite" aria-atomic="true">
-				{error ? (
-					<p className="flex items-start gap-2 text-sm text-ruby" role="alert">
-						<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
-						<span>{error}</span>
-					</p>
-				) : null}
-				{sent && !error ? (
-					<div className="flex items-start gap-3 rounded-(--radius-md) border border-(--section-accent)/40 bg-(--section-accent)/5 p-4">
-						<span
-							className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-(--section-accent) text-bg"
-							aria-hidden="true"
-						>
-							<Check size={14} />
-						</span>
-						<div>
-							<p className="text-sm font-medium text-ink">Your brief is ready in WhatsApp.</p>
-							<p className="mt-1 text-xs text-muted">
-								Review and send it there to reach us. Didn&rsquo;t open? Use the email link below.
-							</p>
-						</div>
-					</div>
-				) : null}
-			</div>
+			<EnquiryStatus error={error} saveStatus={saveStatus} draft={draft} />
 
 			<div className="flex flex-col items-start gap-3">
-				<Button
-					type="submit"
-					variant="primary"
-					size="lg"
-					disabled={submitting}
-					className="w-full whitespace-normal text-center sm:w-auto"
-				>
-					{submitText}
-					<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
-				</Button>
+				{saveStatus !== "saved" ? (
+					<Button
+						type="submit"
+						variant={draft ? "secondary" : "primary"}
+						size="lg"
+						disabled={saveStatus === "saving"}
+						className="w-full whitespace-normal text-center sm:w-auto"
+					>
+						{getSaveButtonLabel(saveStatus)}
+						<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
+					</Button>
+				) : null}
+				{whatsappHref ? (
+					<a
+						href={whatsappHref}
+						target="_blank"
+						rel="noopener noreferrer"
+						className={cn(
+							buttonVariants({ variant: "primary", size: "lg" }),
+							"w-full whitespace-normal text-center sm:w-auto",
+						)}
+					>
+						{submitLabel}
+						<ArrowRight size={16} aria-hidden="true" className="shrink-0" />
+					</a>
+				) : null}
 				<p className="text-xs text-muted">
-					You&rsquo;ll review the message in WhatsApp before it sends.
+					Open WhatsApp to review and send your message. If it does not open, use email below.
 				</p>
-				<p className="text-xs text-muted">We keep your brief only to reply to your enquiry.</p>
+				<p className="text-xs text-muted">
+					We use your brief and contact details only to reply to your enquiry.
+				</p>
 				{mailtoHref ? (
 					<a
 						href={mailtoHref}
@@ -251,6 +260,65 @@ export function CustomOrderForm({
 }
 
 /* ----------------------------- helpers ----------------------------- */
+
+function getSaveButtonLabel(saveStatus: SaveStatus): string {
+	if (saveStatus === "saving") return "Saving enquiry...";
+	if (saveStatus === "failed") return "Try saving again";
+	return "Prepare enquiry";
+}
+
+function EnquiryStatus({
+	error,
+	saveStatus,
+	draft,
+}: Readonly<{
+	error: string | null;
+	saveStatus: SaveStatus;
+	draft: CustomOrderDraft | null;
+}>) {
+	return (
+		<div aria-live="polite" aria-atomic="true">
+			{error ? (
+				<p id="brief-error" className="flex items-start gap-2 text-sm text-ruby" role="alert">
+					<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
+					<span>{error}</span>
+				</p>
+			) : null}
+			{saveStatus === "saving" ? (
+				<p className="text-sm text-muted">
+					Saving your enquiry. You can open WhatsApp while it saves.
+				</p>
+			) : null}
+			{saveStatus === "failed" ? (
+				<p className="flex items-start gap-2 text-sm text-ruby" role="alert">
+					<AlertCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />
+					<span>
+						We couldn&rsquo;t confirm your enquiry was saved. Send it on WhatsApp or email below, or
+						try saving again.
+					</span>
+				</p>
+			) : null}
+			{saveStatus === "saved" && draft ? (
+				<div className="flex items-start gap-3 rounded-(--radius-md) border border-(--section-accent)/40 bg-(--section-accent)/5 p-4">
+					<span
+						className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-(--section-accent) text-bg"
+						aria-hidden="true"
+					>
+						<Check size={14} />
+					</span>
+					<div>
+						<p className="text-sm font-medium text-ink">Your enquiry is saved.</p>
+						<p className="mt-1 text-xs text-muted">
+							{draft.contact
+								? "We'll use your contact details to reply. You can also send your message on WhatsApp."
+								: "Send it on WhatsApp or email so we have a way to reply."}
+						</p>
+					</div>
+				</div>
+			) : null}
+		</div>
+	);
+}
 
 const inputClass =
 	"block w-full min-h-12 rounded-(--radius-sm) border border-line bg-bg px-4 py-3 text-base text-ink placeholder:text-muted transition-[border-color,box-shadow] duration-(--duration-fast) focus:border-(--section-accent) focus:outline-none focus:ring-2 focus:ring-(--section-accent)/30";

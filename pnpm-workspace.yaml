@@ -7,7 +7,6 @@ overrides:
   # because nanoid 4+ is ESM-only and postcss requires the CJS 3.x line.
   "nanoid@<3.3.18": ">=3.3.18 <4"
   esbuild: ">=0.28.1"
-  # next ships sharp 0.34.5 as an optional dep for its image optimizer, which
-  # carries the libvips CVE-2026-33327 chain; pin it to the version our own
-  # R2 variant pipeline already uses so only one copy is installed.
-  sharp: "^0.35.3"
+  # Keep Next's optional image optimizer and our R2 pipeline on the same
+  # patched native parser, including the GHSA-rgj7-g3m4-5g8c fixes.
+  sharp: "^0.35.4"

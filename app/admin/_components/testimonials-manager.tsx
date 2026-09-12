@@ -33,8 +33,10 @@ export function TestimonialsManager({
 	const [items, setItems] = useServerSyncedList(initial);
 
 	const onFeature = (id: string, featured: boolean) => {
-		setItems((prev) => prev.map((t) => (t.id === id ? { ...t, featured } : t)));
-		run(() => setTestimonialFeatured(id, featured));
+		run(
+			() => setTestimonialFeatured(id, featured),
+			() => setItems((prev) => prev.map((t) => (t.id === id ? { ...t, featured } : t))),
+		);
 	};
 
 	const onDelete = async (id: string) => {
@@ -45,8 +47,10 @@ export function TestimonialsManager({
 			destructive: true,
 		});
 		if (!ok) return;
-		setItems((prev) => prev.filter((t) => t.id !== id));
-		run(() => deleteTestimonial(id));
+		run(
+			() => deleteTestimonial(id),
+			() => setItems((prev) => prev.filter((t) => t.id !== id)),
+		);
 	};
 
 	return (
@@ -54,10 +58,14 @@ export function TestimonialsManager({
 			<CreateForm
 				pending={pending}
 				artworkSlugs={artworkSlugs}
-				onCreate={(fd, reset) => run(() => createTestimonial(fd).then(() => undefined), reset)}
+				onCreate={(fd, reset) => run(() => createTestimonial(fd), reset)}
 			/>
 
-			{err ? <p className="text-sm text-ruby">{err}</p> : null}
+			{err ? (
+				<p role="alert" className="text-sm text-ruby">
+					{err}
+				</p>
+			) : null}
 
 			{items.length === 0 ? (
 				<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
@@ -194,7 +202,12 @@ function CreateForm({
 				<button type="submit" disabled={pending} className={adminBtnPrimary}>
 					{pending ? "Adding..." : "Add"}
 				</button>
-				<button type="button" onClick={() => setOpen(false)} className={adminBtn}>
+				<button
+					type="button"
+					disabled={pending}
+					onClick={() => setOpen(false)}
+					className={adminBtn}
+				>
 					Cancel
 				</button>
 			</div>

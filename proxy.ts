@@ -4,8 +4,8 @@
  * Wraps every /admin request with the Auth.js session check: an unauthenticated
  * visitor is redirected to the branded /login page, then back. The signIn
  * callback in auth.ts further restricts WHO may complete login (maintainers
- * table), so this just enforces "must be logged in" -- the allowlist is
- * enforced at login.
+ * table). Private page reads and server actions separately check the current
+ * allowlist through lib/admin-auth.ts, including after a session is revoked.
  *
  * The Auth.js `auth()` wrapper supplies the default export Next runs as the
  * proxy; `config.matcher` scopes it to /admin. Runs on the Node.js runtime.

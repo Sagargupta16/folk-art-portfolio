@@ -6,10 +6,10 @@ import type { Artwork } from "@/lib/types";
 interface LightboxContextType {
 	isOpen: boolean;
 	activeArtwork: Artwork | null;
-	artworksList: Artwork[];
+	artworksList: readonly Artwork[];
 	/** WhatsApp phone (E.164, no `+`) for the enquiry CTA. Supplied server-side. */
 	whatsappPhone: string;
-	openLightbox: (artwork: Artwork, list?: Artwork[]) => void;
+	openLightbox: (artwork: Artwork, list?: readonly Artwork[]) => void;
 	closeLightbox: () => void;
 	nextArtwork: () => void;
 	prevArtwork: () => void;
@@ -19,8 +19,7 @@ const LightboxContext = createContext<LightboxContextType | undefined>(undefined
 
 /**
  * `whatsappPhone` is read once on the server (from the data seam) and passed
- * in, so the client-side lightbox never reaches through the seam itself --
- * which keeps the Phase 2 DB swap a server-only change.
+ * in, so the client-side lightbox never reaches through the data seam itself.
  */
 export function LightboxProvider({
 	children,
@@ -31,7 +30,7 @@ export function LightboxProvider({
 }>) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [activeArtwork, setActiveArtwork] = useState<Artwork | null>(null);
-	const [artworksList, setArtworksList] = useState<Artwork[]>([]);
+	const [artworksList, setArtworksList] = useState<readonly Artwork[]>([]);
 
 	// Mirror the latest active piece + list in a ref so the navigation callbacks
 	// can read current state without listing it as a dependency. That keeps the
@@ -39,11 +38,11 @@ export function LightboxProvider({
 	// focus effects don't tear down and rebuild on every navigation (which would
 	// thrash keyboard focus). Pure-read updaters keep this StrictMode-safe.
 	const activeRef = useRef<Artwork | null>(null);
-	const listRef = useRef<Artwork[]>([]);
+	const listRef = useRef<readonly Artwork[]>([]);
 	activeRef.current = activeArtwork;
 	listRef.current = artworksList;
 
-	const openLightbox = useCallback((artwork: Artwork, list: Artwork[] = []) => {
+	const openLightbox = useCallback((artwork: Artwork, list: readonly Artwork[] = []) => {
 		setActiveArtwork(artwork);
 		setArtworksList(list.length > 0 ? list : [artwork]);
 		setIsOpen(true);

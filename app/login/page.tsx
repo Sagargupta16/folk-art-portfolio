@@ -14,9 +14,11 @@ import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, signIn } from "@/auth";
+import { signIn } from "@/auth";
 import { GoogleIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
+import { getAdminAccess } from "@/lib/admin-auth";
+import { safeAdminCallback } from "@/lib/admin-callback";
 import { getSite } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -28,26 +30,14 @@ interface LoginPageProps {
 	searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 }
 
-/**
- * Only allow the `callbackUrl` query param when it's a same-origin relative
- * path (one leading slash, not "//host"), else fall back to /admin. Without
- * this, `?callbackUrl=https://evil.com` turns the raw `redirect()` below into
- * an open redirect (CWE-601) an attacker can point a signed-in maintainer at.
- * The only legitimate callers (proxy.ts, admin/layout.tsx) always pass a
- * relative /admin path, so this is behaviour-preserving.
- */
-function safeCallback(callbackUrl: string | undefined): string {
-	return callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : "/admin";
-}
-
 export default async function LoginPage({ searchParams }: Readonly<LoginPageProps>) {
 	const { callbackUrl, error } = await searchParams;
 	const { brand } = getSite();
-	const redirectTo = safeCallback(callbackUrl);
+	const redirectTo = safeAdminCallback(callbackUrl);
 
 	// Already signed in: skip the form, go where they were headed.
-	const session = await auth();
-	if (session?.user) redirect(redirectTo);
+	const { email, allowed } = await getAdminAccess();
+	if (email) redirect(allowed ? redirectTo : "/access-denied");
 
 	return (
 		<main className="grid min-h-dvh place-items-center px-(--container-px) py-16">

@@ -2,8 +2,8 @@
  * Shared types for the catalog and supporting domain models.
  *
  * These types are the contract between `lib/data.ts` (the data seam) and the
- * UI in `app/` + `components/`. When Phase 2 swaps the seam to a database,
- * these types stay -- only the loader implementation changes.
+ * UI in `app/` + `components/`. Database row nulls are mapped to optional
+ * fields at that boundary.
  */
 
 /**
@@ -58,7 +58,7 @@ export interface Workshop {
  * A community activity (workshop held, class, exhibition, meetup). Each is a
  * small photo gallery. `eventDate` is an ISO date string (not a Date) so it
  * crosses the server/client boundary cleanly. `images` is an ordered list of
- * R2 key-bases; the first is the cover. The gallery shows up to 5 inline and
+ * R2 key-bases; the first is the cover. The gallery shows up to 6 inline and
  * surfaces the rest behind a "+N more" lightbox entry.
  */
 export interface Event {
@@ -171,16 +171,17 @@ export interface Site {
 }
 
 /**
- * Shape of a custom-order request. Phase 1 routes this to WhatsApp via a
- * pre-filled message; Phase 2 stores it as a row and adds an admin queue.
+ * Shape of a custom-order request, saved as a lead and offered as a pre-filled
+ * WhatsApp message. Contact is optional and used for replies to saved leads.
  *
  * `size`, `budget`, `timeline` are free-string presets (driven by the
- * `customOrders.sizes/budgets/timelines` arrays in `data/site.json`)
+ * database presets, with seed-copy defaults)
  * rather than enums, because the artist can edit those lists without
  * touching code.
  */
 export interface CustomOrderDraft {
 	name?: string;
+	contact?: string;
 	style?: ArtStyle | "Open to suggestion";
 	size?: string;
 	budget?: string;
@@ -203,13 +204,13 @@ export interface Testimonial {
 export type LeadStatus = "new" | "contacted" | "closed";
 
 /**
- * A persisted custom-order enquiry (the Phase 2 row the CustomOrderDraft
- * docstring promised). Mirrors the draft fields plus admin triage metadata.
+ * A persisted custom-order enquiry with private admin triage metadata.
  * `createdAt` is an ISO string so it crosses the server/client boundary.
  */
 export interface Lead {
 	id: string;
 	name?: string;
+	contact?: string;
 	style?: string;
 	size?: string;
 	budget?: string;

@@ -6,6 +6,7 @@ import { ArtImage } from "@/components/gallery/art-image";
 import { Chromacard } from "@/components/gallery/chromacard";
 import { useLightbox } from "@/components/gallery/lightbox-context";
 import { Badge } from "@/components/ui/badge";
+import { isPositivePrice } from "@/lib/catalog";
 import type { Artwork } from "@/lib/types";
 import { cn, formatInr } from "@/lib/utils";
 
@@ -27,12 +28,12 @@ export function ArtworkCard({
 	const handleClick = (e: React.MouseEvent) => {
 		if (!e.metaKey && !e.ctrlKey && e.button === 0) {
 			e.preventDefault();
-			openLightbox(artwork, siblings ? [...siblings] : undefined);
+			openLightbox(artwork, siblings);
 		}
 	};
 
 	const imgSrc = `/artworks/${artwork.image}`;
-	const isAvailable = typeof artwork.priceInr === "number";
+	const isAvailable = isPositivePrice(artwork.priceInr);
 	const isSold = artwork.status === "sold";
 
 	return (
@@ -47,7 +48,7 @@ export function ArtworkCard({
 				<ArtImage
 					src={imgSrc}
 					alt={artwork.description ?? `${artwork.title}, ${artwork.style}`}
-					sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+					sizes="(min-width: 1152px) 350px, (min-width: 1024px) 30vw, calc((100vw - 56px) / 2)"
 					className="absolute inset-0 h-full w-full object-cover transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-[1.03]"
 					priority={priority}
 				/>

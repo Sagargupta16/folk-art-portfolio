@@ -12,6 +12,7 @@
  * can store it on the artwork row for layout.
  */
 
+import { randomUUID } from "node:crypto";
 import { VARIANT_WIDTHS as WIDTHS } from "../image-base";
 import { MAX_IMAGE_PIXELS, validateImageBuffer } from "./image-upload";
 import { deleteObjects, uploadObject } from "./r2";
@@ -105,46 +106,56 @@ export async function processImageVariants(
 	await validateImageBuffer(master);
 	const sharp = await loadSharp();
 	const sharpOptions = { failOn: "error" as const, limitInputPixels: MAX_IMAGE_PIXELS };
-	const meta = await sharp(master, sharpOptions).rotate().metadata();
-	const aspectRatio = meta.width && meta.height ? meta.width / meta.height : 0.75;
+	const meta = await sharp(master, sharpOptions).metadata();
+	const aspectRatio = meta.autoOrient.width / meta.autoOrient.height;
 
 	const keys: string[] = [];
 	const put = async (key: string, buf: Buffer, type: string) => {
-		// Track before sending so an ambiguous network failure still attempts
-		// cleanup for an object that may have reached R2.
-		keys.push(key);
 		await uploadObject(key, buf, type);
+		keys.push(key);
 	};
 
-	try {
-		for (const w of WIDTHS) {
-			const resized = sharp(master, sharpOptions)
-				.rotate()
-				.withMetadata({ orientation: undefined })
-				.resize({ width: w, withoutEnlargement: true });
-			const [avif, webp, jpg] = await Promise.all([
-				resized.clone().avif(AVIF_OPTS).toBuffer(),
-				resized.clone().webp(WEBP_OPTS).toBuffer(),
-				resized.clone().jpeg(JPEG_OPTS).toBuffer(),
-			]);
-			await put(`${keyBase}-${w}.avif`, avif, "image/avif");
-			await put(`${keyBase}-${w}.webp`, webp, "image/webp");
-			await put(`${keyBase}-${w}.jpg`, jpg, "image/jpeg");
-		}
-
-		// Master-width mozjpeg fallback (the bare <img src>).
-		const masterJpg = await sharp(master, sharpOptions)
-			.rotate()
-			.withMetadata({ orientation: undefined })
-			.jpeg(JPEG_OPTS)
-			.toBuffer();
-		await put(`${keyBase}.jpg`, masterJpg, "image/jpeg");
-	} catch (error) {
-		await deleteObjects(keys).catch(() => {});
-		throw error;
+	for (const w of WIDTHS) {
+		// sharp strips EXIF, XMP and IPTC by default. Auto-orient pixels without
+		// opting back into metadata retention on any public derivative.
+		const resized = sharp(master, sharpOptions)
+			.autoOrient()
+			.resize({ width: w, withoutEnlargement: true });
+		const [avif, webp, jpg] = await Promise.all([
+			resized.clone().avif(AVIF_OPTS).toBuffer(),
+			resized.clone().webp(WEBP_OPTS).toBuffer(),
+			resized.clone().jpeg(JPEG_OPTS).toBuffer(),
+		]);
+		await put(`${keyBase}-${w}.avif`, avif, "image/avif");
+		await put(`${keyBase}-${w}.webp`, webp, "image/webp");
+		await put(`${keyBase}-${w}.jpg`, jpg, "image/jpeg");
 	}
 
+	// Stable keys are also used by the seed migration. Never delete them after
+	// a failed overwrite; cleanup belongs to the owner of a new image version.
+	const masterJpg = await sharp(master, sharpOptions).autoOrient().jpeg(JPEG_OPTS).toBuffer();
+	await put(`${keyBase}.jpg`, masterJpg, "image/jpeg");
+
 	return { keys, aspectRatio };
+}
+
+/** Mint an exclusively owned image version so a failed upload can be removed safely. */
+export async function processNewImageVariants(
+	keyPrefix: string,
+	master: Buffer,
+): Promise<{ keyBase: string; keys: string[]; aspectRatio: number }> {
+	await validateImageBuffer(master);
+	const keyBase = `${keyPrefix}-${randomUUID()}`;
+	try {
+		return { keyBase, ...(await processImageVariants(keyBase, master)) };
+	} catch (error) {
+		// Include requests with unknown outcomes: this version has never been
+		// published, and no other upload attempt shares its keys.
+		await deleteObjects(variantKeys(keyBase)).catch((cleanupError) => {
+			console.error("Uncommitted image upload cleanup failed.", cleanupError);
+		});
+		throw error;
+	}
 }
 
 /** Every R2 key written for one image key-base (variants + master fallback). */
@@ -164,23 +175,23 @@ export async function processArtworkImage(slug: string, master: Buffer): Promise
 	return { keys, aspectRatio, palette };
 }
 
-/** Remove every variant for a slug from R2 (used when deleting an artwork). */
-export async function deleteArtworkImages(slug: string): Promise<void> {
-	await deleteObjects(variantKeys(`artworks/${slug}`));
+/** Process a new catalog version, returning the filename stored on the artwork. */
+export async function processNewArtworkImage(
+	slug: string,
+	master: Buffer,
+): Promise<ProcessedImage & { image: string }> {
+	await validateImageBuffer(master);
+	const palette = await extractPalette(master);
+	const { keyBase, keys, aspectRatio } = await processNewImageVariants(`artworks/${slug}`, master);
+	return { keys, aspectRatio, palette, image: `${keyBase.slice("artworks/".length)}.jpg` };
 }
 
 /**
- * Process one event photo into the variant set under "events/<id>/<imageId>"
- * and return that key-base for storage on the event row. The caller generates
- * a stable `imageId` so reordering the array never re-touches R2.
+ * Process one event photo under a new immutable key-base. Reordering its array
+ * reference never re-touches R2.
  */
-export async function processEventImage(
-	eventId: string,
-	imageId: string,
-	master: Buffer,
-): Promise<string> {
-	const keyBase = `events/${eventId}/${imageId}`;
-	await processImageVariants(keyBase, master);
+export async function processEventImage(eventId: string, master: Buffer): Promise<string> {
+	const { keyBase } = await processNewImageVariants(`events/${eventId}/photo`, master);
 	return keyBase;
 }
 

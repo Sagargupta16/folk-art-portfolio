@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, GripVertical, Plus, Trash2, X } from "lucide-react";
+import { Check, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { OrderPreset, OrderPresetKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ import {
 	adminIconBtnDestructive,
 	adminIconBtnPrimary,
 } from "./controls";
+import { ReorderHandle } from "./reorder-handle";
 import { useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
@@ -63,12 +64,16 @@ function PresetGroup({
 	// reorder baseline in step.
 	const [items, setItems] = useServerSyncedList(initial, setBaseline);
 	const [newLabel, setNewLabel] = useState("");
-	const { dragging, over, dragProps } = useReorder(items, setItems);
+	const { dragging, over, dragProps, move } = useReorder(items, setItems, pending);
 
 	const handleDelete = (id: string) => {
-		setItems((prev) => prev.filter((i) => i.id !== id));
-		setBaseline((prev) => prev.filter((i) => i.id !== id));
-		run(() => deleteOrderPreset(id));
+		run(
+			() => deleteOrderPreset(id),
+			() => {
+				setItems((prev) => prev.filter((i) => i.id !== id));
+				setBaseline((prev) => prev.filter((i) => i.id !== id));
+			},
+		);
 	};
 
 	const hasOrderChanges = items.some((item, i) => item.id !== baseline[i]?.id);
@@ -119,6 +124,15 @@ function PresetGroup({
 						<PresetItem
 							preset={p}
 							pending={pending}
+							reorderHandle={
+								<ReorderHandle
+									label={p.label}
+									index={i}
+									count={items.length}
+									disabled={pending}
+									onMove={(to) => move(i, to)}
+								/>
+							}
 							onSave={(label) => run(() => updateOrderPreset(p.id, label))}
 							onDelete={async () => {
 								const ok = await confirm({
@@ -132,9 +146,9 @@ function PresetGroup({
 					</li>
 				))}
 				{items.length === 0 ? (
-					<p className="rounded-(--radius-sm) border border-dashed border-line p-4 text-center text-xs text-muted">
+					<li className="rounded-(--radius-sm) border border-dashed border-line p-4 text-center text-xs text-muted">
 						No options yet. Add one below.
-					</p>
+					</li>
 				) : null}
 			</ul>
 
@@ -163,7 +177,11 @@ function PresetGroup({
 				</button>
 			</form>
 
-			{err ? <p className="mt-2 text-xs text-ruby">{err}</p> : null}
+			{err ? (
+				<p role="alert" className="mt-2 text-xs text-ruby">
+					{err}
+				</p>
+			) : null}
 		</section>
 	);
 }
@@ -171,12 +189,14 @@ function PresetGroup({
 function PresetItem({
 	preset,
 	pending,
+	reorderHandle,
 	onSave,
 	onDelete,
 }: Readonly<{
 	preset: OrderPreset;
 	pending: boolean;
-	onSave: (label: string) => void;
+	reorderHandle: React.ReactNode;
+	onSave: (label: string) => Promise<boolean>;
 	onDelete: () => void;
 }>) {
 	const [editing, setEditing] = useState(false);
@@ -185,13 +205,15 @@ function PresetItem({
 	if (!editing) {
 		return (
 			<div className="flex items-center gap-3 p-2.5">
-				<span aria-hidden="true" className="cursor-grab text-muted active:cursor-grabbing">
-					<GripVertical size={14} />
-				</span>
+				{reorderHandle}
 				<span className="flex-1 truncate text-sm">{preset.label}</span>
 				<button
 					type="button"
-					onClick={() => setEditing(true)}
+					disabled={pending}
+					onClick={() => {
+						setLabel(preset.label);
+						setEditing(true);
+					}}
 					className={`${adminBtn} min-w-11 px-2 py-1`}
 				>
 					Edit
@@ -212,6 +234,7 @@ function PresetItem({
 	return (
 		<div className="flex items-center gap-2 p-2.5">
 			<input
+				disabled={pending}
 				value={label}
 				onChange={(e) => setLabel(e.target.value)}
 				aria-label={`Edit ${preset.label}`}
@@ -222,9 +245,8 @@ function PresetItem({
 			<button
 				type="button"
 				disabled={pending}
-				onClick={() => {
-					onSave(label.trim());
-					setEditing(false);
+				onClick={async () => {
+					if (await onSave(label.trim())) setEditing(false);
 				}}
 				aria-label={`Save ${preset.label}`}
 				className={adminIconBtnPrimary}
@@ -233,6 +255,7 @@ function PresetItem({
 			</button>
 			<button
 				type="button"
+				disabled={pending}
 				onClick={() => {
 					setLabel(preset.label);
 					setEditing(false);

@@ -35,11 +35,17 @@ pnpm dev          # http://localhost:3000  (needs .env.local for DB/R2/auth)
 pnpm dev --port 3001  # alternate port; Google OAuth must allow its exact callback
 pnpm build        # next build
 pnpm typecheck
+pnpm exec tsc -p tsconfig.scripts.json
 pnpm lint
 pnpm format
 pnpm test         # vitest unit suite (pure functions, no Neon/R2)
-# DB/images:  pnpm db:push | db:seed | db:images
+pnpm test:e2e     # production-browser and accessibility checks
+# DB/images: pnpm db:migrate | db:seed | db:images
 ```
+
+Vitest and Playwright are the automated regression suites; the repository is not test-less. Operational scripts have their own TypeScript scope in `tsconfig.scripts.json`. CI public builds use `KALCHAR_TEST_FIXTURES=1` without production secrets and verify migrations separately against disposable PostgreSQL. Fixture mode does not bypass authorization and must not run on Vercel.
+
+Fresh databases use committed migrations. `db:seed` is a locked, one-time bootstrap that refuses populated catalog/settings tables and writes a persistent marker. Existing pushed databases require schema comparison before recording a migration baseline; see [docs/DATABASE.md](docs/DATABASE.md).
 
 `devIndicators: false` is set in `next.config.mjs` (the in-app DevTools panel was crashing HMR on Windows + pnpm; kept off as a dev-stability flag). Secrets live in `.env.local` (gitignored); the contract is in `.env.example`.
 
@@ -82,7 +88,7 @@ pnpm test         # vitest unit suite (pure functions, no Neon/R2)
 ## What's on disk
 
 ```text
-.claude/                  AI config (committed)
+.claude/                  local AI config (gitignored)
   settings.json           project permission allowlist + sonar-secrets hooks
   settings.local.json     per-user overrides (gitignored)
   hooks/sonar-secrets/    PreToolUse/UserPromptSubmit secret-scan wrappers (no-op without `sonar`)
@@ -93,7 +99,7 @@ app/                      Next.js App Router
   about/, workshops/, custom-orders/, contact/
   work/                   "Artwork" gallery + per-artwork detail (SSG from Neon);
                           in-page "Available to buy" filter is the store surface
-  events/                 community events: multi-image galleries (5 inline + "+N more")
+  events/                 community events: multi-image galleries (6 inline + "+N more")
   admin/                  dashboard + events + profile + maintainers + leads +
                           testimonials (dynamic; actions.ts + event-actions.ts +
                           lead-actions.ts + testimonial-actions.ts + _helpers.ts)
@@ -119,8 +125,12 @@ public/
   logo.jpg, logo-180.png, robots.txt
 drizzle.config.ts         Drizzle Kit (postgresql / Neon)
 scripts/
-  migrate-json-to-db.ts   pnpm db:seed -- JSON -> Neon rows
+  migrate-json-to-db.ts   guarded one-time JSON bootstrap
   migrate-images-to-r2.ts pnpm db:images -- upload variants -> R2
+  check-migrations.mjs    migration journal / SQL / snapshot validation
+  check-migrations-db.ts  disposable PostgreSQL migration + seed checks
+  prepare-migration-baseline.mjs  offline baseline SQL preparation
+  verify-backup.mjs       local backup inventory + checksum verification
 .github/workflows/        ci.yml (full verify) + health.yml (scheduled checks);
                           deploy.yml = retired Pages fallback (manual-only)
 docs/                     engineering docs (index in docs/README.md):

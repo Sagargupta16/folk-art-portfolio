@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/admin-auth";
 import { getAllArtworkSlugs, getAllTestimonials } from "@/lib/data";
 import { AdminPageHeader } from "../_components/admin-page-header";
 import { TestimonialsManager } from "../_components/testimonials-manager";
@@ -5,6 +6,7 @@ import { TestimonialsManager } from "../_components/testimonials-manager";
 export const dynamic = "force-dynamic";
 
 export default async function AdminTestimonialsPage() {
+	await requireAdminPage();
 	const [testimonials, slugs] = await Promise.all([getAllTestimonials(), getAllArtworkSlugs()]);
 
 	return (

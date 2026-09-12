@@ -23,8 +23,6 @@ interface ProfileManagerProps {
 export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileManagerProps>) {
 	const confirm = useConfirm();
 	const { pending, err, run } = useAdminAction();
-	const [hasImage, setHasImage] = useState(Boolean(imageKey));
-	const [intro, setIntro] = useState(showHomeIntro);
 	const [fileName, setFileName] = useState<string | null>(null);
 
 	const onUpload = (form: HTMLFormElement) => {
@@ -36,10 +34,9 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 				// Upload the master to R2 first, then submit just its staged key.
 				fd.delete("image");
 				fd.set("imageKey", await stageImage(file));
-				await setProfileImage(fd);
+				return setProfileImage(fd);
 			},
 			() => {
-				setHasImage(true);
 				setFileName(null);
 				form.reset();
 			},
@@ -52,20 +49,14 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 			body: "The About page and home will fall back to the monogram.",
 			confirmLabel: "Remove",
 		});
-		if (ok)
-			run(
-				() => clearProfileImage(),
-				() => setHasImage(false),
-			);
+		if (ok) run(() => clearProfileImage());
 	};
 
 	const onToggleIntro = () => {
-		const next = !intro;
-		setIntro(next);
-		run(() => setShowHomeIntro(next));
+		run(() => setShowHomeIntro(!showHomeIntro));
 	};
 
-	const previewSrc = hasImage && imageKey ? `${IMAGE_ORIGIN}/${imageKey}-400.webp` : null;
+	const previewSrc = imageKey ? `${IMAGE_ORIGIN}/${imageKey}-400.webp` : null;
 
 	return (
 		<div className="space-y-8">
@@ -97,10 +88,13 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 							}}
 							className="space-y-3"
 						>
-							<label className={`${adminBtn} cursor-pointer px-3 py-2`}>
+							<label
+								className={`${adminBtn} cursor-pointer px-3 py-2 focus-within:ring-2 focus-within:ring-accent`}
+							>
 								<ImagePlus size={14} />
 								{fileName ?? "Choose photo"}
 								<input
+									disabled={pending}
 									name="image"
 									type="file"
 									accept="image/jpeg,image/png,image/webp"
@@ -119,7 +113,7 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 							) : null}
 						</form>
 
-						{hasImage ? (
+						{imageKey ? (
 							<button
 								type="button"
 								disabled={pending}
@@ -146,7 +140,7 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 					<button
 						type="button"
 						role="switch"
-						aria-checked={intro}
+						aria-checked={showHomeIntro}
 						aria-label="Show artist intro on home"
 						disabled={pending}
 						onClick={onToggleIntro}
@@ -156,13 +150,13 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 							aria-hidden="true"
 							className={cn(
 								"relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-								intro ? "bg-accent" : "bg-bg-muted",
+								showHomeIntro ? "bg-accent" : "bg-bg-muted",
 							)}
 						>
 							<span
 								className={cn(
 									"inline-block h-5 w-5 rounded-full bg-bg shadow transition-transform",
-									intro ? "translate-x-5" : "translate-x-0.5",
+									showHomeIntro ? "translate-x-5" : "translate-x-0.5",
 								)}
 							/>
 						</span>
@@ -170,7 +164,11 @@ export function ProfileManager({ imageKey, showHomeIntro }: Readonly<ProfileMana
 				</div>
 			</section>
 
-			{err ? <p className="text-sm text-ruby">{err}</p> : null}
+			{err ? (
+				<p role="alert" className="text-sm text-ruby">
+					{err}
+				</p>
+			) : null}
 		</div>
 	);
 }

@@ -1,32 +1,50 @@
 /**
  * One-shot bootstrap: data/*.json -> Neon Postgres rows.
  *
- * Run after `pnpm db:push` has created the tables and the env vars are set
+ * Run after `pnpm db:migrate` has created the tables and the env vars are set
  * (see .env.example and docs/DATABASE.md):
  *   pnpm db:seed
  *
- * INSERT-IF-ABSENT: every insert uses onConflictDoNothing, so re-running is
- * SAFE -- it only adds rows whose primary key (slug / id) doesn't already
- * exist. It never overwrites an existing row and never resurrects a deleted
- * one. This means admin changes made through /admin (reorders, edits,
- * deletions) survive a re-seed. To wipe and re-import from JSON, clear the
- * tables first (manual, intentional) then run this.
+ * Refuses a populated catalog or settings table. The guard, inserts, and
+ * persistent bootstrap marker run in one locked transaction, so failed or
+ * concurrent bootstraps cannot leave a partial seed or resurrect deletions.
+ * Existing maintainer rows are allowed and are never modified.
  *
  * Image variants are uploaded separately by `pnpm db:images`
  * (scripts/migrate-images-to-r2.ts).
  */
-// DATABASE_URL is loaded via `tsx --env-file=.env.local` (see the db:seed script).
+// db:seed optionally loads .env.local; explicitly supplied environment values also work.
+import { drizzle } from "drizzle-orm/neon-http";
 import artworksJson from "../data/artworks.json";
 import siteJson from "../data/site.json";
-import { db } from "../lib/db/client";
-import { artworks, categories, orderPresets, workshops } from "../lib/db/schema";
+import { deriveStatus } from "../lib/catalog";
+import { artworks, categories, orderPresets, settings, workshops } from "../lib/db/schema";
 import type { Artwork, Workshop } from "../lib/types";
 
-function deriveStatus(a: Artwork): "archive" | "available" | "sold" {
-	if (a.status) return a.status;
-	if (typeof a.priceInr === "number") return "available";
-	return "archive";
-}
+const BOOTSTRAP_TABLES = [
+	"artworks",
+	"categories",
+	"events",
+	"leads",
+	"order_presets",
+	"settings",
+	"testimonials",
+	"workshops",
+] as const;
+
+const quotedBootstrapTables = BOOTSTRAP_TABLES.map((name) => `"public"."${name}"`);
+const existingRows = quotedBootstrapTables
+	.map((table) => `EXISTS (SELECT 1 FROM ${table} LIMIT 1)`)
+	.join(" OR ");
+
+export const LOCK_BOOTSTRAP_SQL = `LOCK TABLE ${quotedBootstrapTables.join(", ")} IN SHARE ROW EXCLUSIVE MODE`;
+export const REQUIRE_EMPTY_CATALOG_SQL = `DO $bootstrap$
+BEGIN
+	IF ${existingRows} THEN
+		RAISE EXCEPTION 'Catalog bootstrap refused: catalog or settings already contain data';
+	END IF;
+END;
+$bootstrap$;`;
 
 function slugifyId(input: string): string {
 	return input
@@ -37,85 +55,101 @@ function slugifyId(input: string): string {
 		.replace(/-$/, "");
 }
 
-async function main() {
+export function buildSeedData() {
 	const items = (artworksJson as { items: Artwork[] }).items;
-	console.log(`Seeding ${items.length} artworks (insert-if-absent)...`);
-	for (const a of items) {
-		await db
-			.insert(artworks)
-			.values({
-				slug: a.slug,
-				title: a.title,
-				style: a.style,
-				medium: a.medium,
-				year: a.year,
-				dimensions: a.dimensions,
-				aspectRatio: a.aspectRatio,
-				featured: a.featured,
-				order: a.order,
-				description: a.description,
-				image: a.image,
-				palette: a.palette ?? null,
-				status: deriveStatus(a),
-				priceInr: a.priceInr,
-			})
-			.onConflictDoNothing({ target: artworks.slug });
-	}
+	const artworkRows = items.map((a) => ({
+		slug: a.slug,
+		title: a.title,
+		style: a.style,
+		medium: a.medium,
+		year: a.year,
+		dimensions: a.dimensions,
+		aspectRatio: a.aspectRatio,
+		featured: a.featured,
+		order: a.order,
+		description: a.description,
+		image: a.image,
+		palette: a.palette ?? null,
+		status: deriveStatus(a),
+		priceInr: a.priceInr,
+	}));
 
 	const shops = (siteJson as { workshops?: Workshop[] }).workshops ?? [];
-	console.log(`Seeding ${shops.length} workshops (insert-if-absent)...`);
-	for (const w of shops) {
-		await db
-			.insert(workshops)
-			.values({
-				slug: w.slug,
-				title: w.title,
-				blurb: w.blurb,
-				durationHours: w.durationHours,
-				order: w.order,
-			})
-			.onConflictDoNothing({ target: workshops.slug });
-	}
+	const workshopRows = shops.map((w) => ({
+		slug: w.slug,
+		title: w.title,
+		blurb: w.blurb,
+		durationHours: w.durationHours,
+		order: w.order,
+	}));
 
 	// Custom-order presets: sizes / budgets / timelines from site.json.
-	const co = (siteJson as { sections?: { customOrders?: Record<string, string[]> } }).sections
-		?.customOrders;
+	const co = siteJson.sections.customOrders;
 	const presetKinds: Array<["size" | "budget" | "timeline", string[]]> = [
 		["size", co?.sizes ?? []],
 		["budget", co?.budgets ?? []],
 		["timeline", co?.timelines ?? []],
 	];
-	const presetCount = presetKinds.reduce((n, [, labels]) => n + labels.length, 0);
-	console.log(`Seeding ${presetCount} order presets (insert-if-absent)...`);
-	for (const [kind, labels] of presetKinds) {
-		for (let i = 0; i < labels.length; i++) {
-			const label = labels[i];
-			if (!label) continue;
-			const id = `${kind}-${i + 1}`;
-			await db
-				.insert(orderPresets)
-				.values({ id, kind, label, order: i + 1 })
-				.onConflictDoNothing({ target: orderPresets.id });
-		}
-	}
+	const presetRows = presetKinds.flatMap(([kind, labels]) =>
+		labels.filter(Boolean).map((label, index) => ({
+			id: `${kind}-${index + 1}`,
+			kind,
+			label,
+			order: index + 1,
+		})),
+	);
 
 	// Categories from site.json styles array.
 	const styleList = (siteJson as { styles?: string[] }).styles ?? [];
-	console.log(`Seeding ${styleList.length} categories (insert-if-absent)...`);
-	for (let i = 0; i < styleList.length; i++) {
-		const name = styleList[i];
-		if (!name) continue;
-		const id = slugifyId(name);
-		await db
-			.insert(categories)
-			.values({ id, name, order: i + 1 })
-			.onConflictDoNothing({ target: categories.id });
-	}
-
-	console.log("Seed complete. (Existing rows were left untouched.)");
+	const categoryRows = styleList.filter(Boolean).map((name, index) => ({
+		id: slugifyId(name),
+		name,
+		order: index + 1,
+	}));
+	return { artworkRows, workshopRows, presetRows, categoryRows };
 }
 
-main().catch((err) => {
-	console.error("Seed failed:", err);
-	process.exit(1);
-});
+export function buildSeedStatements() {
+	const db = drizzle.mock();
+	const data = buildSeedData();
+	return [
+		{ sql: LOCK_BOOTSTRAP_SQL, params: [] },
+		{ sql: REQUIRE_EMPTY_CATALOG_SQL, params: [] },
+		db.insert(categories).values(data.categoryRows).toSQL(),
+		db.insert(artworks).values(data.artworkRows).toSQL(),
+		db.insert(workshops).values(data.workshopRows).toSQL(),
+		db.insert(orderPresets).values(data.presetRows).toSQL(),
+		db
+			.insert(settings)
+			.values({
+				key: "catalogBootstrap",
+				value: { source: "data/*.json", completedAt: new Date().toISOString() },
+			})
+			.toSQL(),
+	];
+}
+
+async function main() {
+	const data = buildSeedData();
+	if (process.argv.includes("--dry-run")) {
+		console.log(
+			JSON.stringify(
+				Object.fromEntries(Object.entries(data).map(([table, rows]) => [table, rows.length])),
+			),
+		);
+		return;
+	}
+	const { db } = await import("../lib/db/client");
+	await db.$client.transaction(
+		buildSeedStatements().map((statement) => db.$client.query(statement.sql, statement.params)),
+	);
+
+	console.log("Catalog bootstrap complete. Future seed runs will be refused.");
+}
+
+if (process.argv[1]?.replaceAll("\\", "/").endsWith("/migrate-json-to-db.ts")) {
+	main().catch((error) => {
+		console.error(error instanceof Error ? error.message : "Catalog bootstrap failed.");
+		process.exitCode = 1;
+	});
+}

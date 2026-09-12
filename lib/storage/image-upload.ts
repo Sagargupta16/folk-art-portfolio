@@ -39,13 +39,22 @@ export function stagingKey(): string {
 }
 
 /**
- * Reject a staged key that is not one we minted. Keeps a caller from pointing
- * the processor at an arbitrary object in the bucket.
+ * Accept only the staging/UUID shape we mint. Prefix checks alone also accept
+ * nested paths and references outside the staging namespace after normalization.
  */
 export function assertStagedKey(key: string): void {
-	if (!key.startsWith(STAGING_PREFIX) || key.includes("..")) {
+	if (!/^staging\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(key)) {
 		throw new Error("Invalid upload reference.");
 	}
+}
+
+/** Reject other decoders before handing untrusted bytes to the native parser. */
+function hasSupportedSignature(buffer: Buffer): boolean {
+	const jpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+	const png = buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+	const webp =
+		buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP";
+	return jpeg || png || webp;
 }
 
 /**
@@ -53,6 +62,9 @@ export function assertStagedKey(key: string): void {
  * The same pixel limit is also passed to every sharp pipeline.
  */
 export async function validateImageBuffer(buffer: Buffer): Promise<void> {
+	if (!hasSupportedSignature(buffer)) {
+		throw new Error("Image content must be JPEG, PNG, or WebP.");
+	}
 	const sharp = await loadSharp();
 	let metadata: Metadata;
 	try {

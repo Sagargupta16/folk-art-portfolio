@@ -60,6 +60,25 @@ describe("buyArtworkMessage", () => {
 	it("omits the price line when unpriced", () => {
 		expect(buyArtworkMessage(artwork())).not.toContain("Listed price");
 	});
+	it("asks for a similar commission when the piece is sold, even with an old price", () => {
+		const message = buyArtworkMessage(artwork({ status: "sold", priceInr: 12500 }));
+		expect(message).toContain('I saw "Radha Krishna" (Madhubani) has found a home');
+		expect(message).toContain("commission a similar piece");
+		expect(message).not.toContain("Listed price");
+		expect(message).not.toContain("Is this still available?");
+	});
+	it.each([
+		undefined,
+		0,
+		-1,
+		Number.NaN,
+		Number.POSITIVE_INFINITY,
+	])("does not offer to buy an unpriced archive piece (%s)", (priceInr) => {
+		const message = buyArtworkMessage(artwork({ status: "archive", priceInr }));
+		expect(message).toContain("similar piece or a commission");
+		expect(message).not.toContain("I'd like to buy");
+		expect(message).not.toContain("Listed price");
+	});
 	it("carries no literal double dash (house rule)", () => {
 		expect(buyArtworkMessage(artwork({ priceInr: 500 }))).not.toContain(" -- ");
 	});
@@ -71,11 +90,13 @@ describe("customOrderMessage", () => {
 		const msg = customOrderMessage(draft);
 		expect(msg).toContain("Style: Pichwai");
 		expect(msg).not.toContain("Budget:");
+		expect(msg).not.toContain("Contact:");
 		expect(msg).toContain("A peacock please");
 	});
 	it("includes every field when all are set", () => {
 		const msg = customOrderMessage({
 			name: "Asha",
+			contact: "asha@example.com",
 			style: "Gond",
 			size: "A3",
 			budget: "5-10k",
@@ -84,6 +105,7 @@ describe("customOrderMessage", () => {
 		});
 		for (const bit of [
 			"From: Asha",
+			"Contact: asha@example.com",
 			"Style: Gond",
 			"Size: A3",
 			"Budget: 5-10k",
@@ -105,5 +127,15 @@ describe("customOrderMailto", () => {
 	it("does not double-prefix an existing mailto: url", () => {
 		const url = customOrderMailto("mailto:art@kalchar.co.in", draft);
 		expect(url.startsWith("mailto:mailto:")).toBe(false);
+	});
+	it("preserves a reply contact and special characters in the email fallback", () => {
+		const url = new URL(
+			customOrderMailto("art@kalchar.co.in", {
+				contact: "asha+art@example.com",
+				briefMessage: "Blue & gold, 12 × 16",
+			}),
+		);
+		expect(url.searchParams.get("body")).toContain("Contact: asha+art@example.com");
+		expect(url.searchParams.get("body")).toContain("Blue & gold, 12 × 16");
 	});
 });

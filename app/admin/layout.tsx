@@ -1,10 +1,9 @@
 import { LogOut, Settings } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { auth, signOut } from "@/auth";
+import { signOut } from "@/auth";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { isMaintainer } from "@/lib/maintainers";
+import { requireAdminPage } from "@/lib/admin-auth";
 import { AdminNavDesktop, AdminNavMobile } from "./_components/admin-nav";
 import { ConfirmProvider } from "./_components/confirm-dialog";
 
@@ -18,9 +17,7 @@ function initials(email: string): string {
 }
 
 export default async function AdminLayout({ children }: Readonly<{ children: ReactNode }>) {
-	const session = await auth();
-	const email = session?.user?.email;
-	if (!email || !(await isMaintainer(email))) redirect("/login?callbackUrl=/admin");
+	const email = await requireAdminPage();
 
 	return (
 		<ConfirmProvider>

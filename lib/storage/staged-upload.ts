@@ -6,7 +6,7 @@
  * Kept apart from image-upload.ts so the pure validation helpers stay importable
  * without R2 credentials -- the unit suite loads them with no env configured.
  */
-import { assertStagedKey, MAX_IMAGE_BYTES, MAX_IMAGE_MB, STAGING_PREFIX } from "./image-upload";
+import { assertStagedKey, MAX_IMAGE_BYTES, MAX_IMAGE_MB } from "./image-upload";
 import { deleteObjects, getObjectBuffer, objectSize } from "./r2";
 
 /**
@@ -22,7 +22,11 @@ export async function readStagedImage(key: string): Promise<Buffer> {
 	if (size === null) throw new Error("The upload expired before it could be processed.");
 	if (size <= 0) throw new Error("An image file is required.");
 	if (size > MAX_IMAGE_BYTES) throw new Error(`Image must be ${MAX_IMAGE_MB} MB or smaller.`);
-	return getObjectBuffer(key);
+	const buffer = await getObjectBuffer(key, MAX_IMAGE_BYTES);
+	if (buffer.length !== size) {
+		throw new Error("The upload changed before it could be processed. Please upload it again.");
+	}
+	return buffer;
 }
 
 /**
@@ -30,7 +34,6 @@ export async function readStagedImage(key: string): Promise<Buffer> {
  * effort: a leftover staged object is unreferenced debris, not a broken record.
  */
 export async function discardStagedImages(keys: readonly string[]): Promise<void> {
-	const staged = keys.filter((key) => key.startsWith(STAGING_PREFIX));
-	if (staged.length === 0) return;
-	await deleteObjects(staged);
+	for (const key of keys) assertStagedKey(key);
+	await deleteObjects([...keys]);
 }

@@ -1,14 +1,14 @@
 "use client";
 
-import { GripVertical, Star, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { Star, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { cn, formatInr } from "@/lib/utils";
 import { deleteArtwork, reorderArtworks } from "../artwork-actions";
 import { useConfirm } from "./confirm-dialog";
 import { adminIconBtnDestructive } from "./controls";
 import { ReorderBar } from "./reorder-bar";
-import { SAVED_BADGE_DURATION_MS } from "./use-admin-action";
+import { ReorderHandle } from "./reorder-handle";
+import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
 
@@ -23,26 +23,27 @@ interface ArtworkItem {
 }
 
 export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkItem[] }>) {
-	const router = useRouter();
 	const confirm = useConfirm();
+	const { pending, err, run } = useAdminAction();
 	// Baseline = the last server-known order. Reset returns to it; it also
 	// shifts when we delete so a delete doesn't look like an "unsaved reorder".
 	const [baseline, setBaseline] = useState(initial);
 	// Adopt fresh server data after an upload (router.refresh), resetting the
 	// reorder baseline to match so a newly added piece appears without a reload.
 	const [items, setItems] = useServerSyncedList(initial, setBaseline);
-	const [pending, startTransition] = useTransition();
 	const [saved, setSaved] = useState(false);
-	const { dragging, over, dragProps } = useReorder(items, setItems);
+	const { dragging, over, dragProps, move } = useReorder(items, setItems, pending);
 
 	const handleSave = () => {
-		startTransition(async () => {
-			await reorderArtworks(items.map((i) => i.slug));
-			setBaseline(items);
-			setSaved(true);
-			router.refresh();
-			setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
-		});
+		setSaved(false);
+		return run(
+			() => reorderArtworks(items.map((i) => i.slug)),
+			() => {
+				setBaseline(items);
+				setSaved(true);
+				setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
+			},
+		);
 	};
 
 	const handleReset = () => setItems(baseline);
@@ -54,21 +55,24 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 			confirmLabel: "Delete",
 		});
 		if (!ok) return;
-		// Optimistically drop it from both the visible list and the baseline so
-		// the gallery order updates instantly and it doesn't read as an unsaved
-		// reorder. The server delete + refresh follow.
-		setItems((prev) => prev.filter((i) => i.slug !== art.slug));
-		setBaseline((prev) => prev.filter((i) => i.slug !== art.slug));
-		startTransition(async () => {
-			await deleteArtwork(art.slug);
-			router.refresh();
-		});
+		run(
+			() => deleteArtwork(art.slug),
+			() => {
+				setItems((prev) => prev.filter((i) => i.slug !== art.slug));
+				setBaseline((prev) => prev.filter((i) => i.slug !== art.slug));
+			},
+		);
 	};
 
 	const hasChanges = items.some((item, i) => item.slug !== baseline[i]?.slug);
 
 	return (
 		<>
+			{err ? (
+				<p role="alert" className="mb-3 text-sm text-ruby">
+					{err}
+				</p>
+			) : null}
 			<ul className="space-y-2">
 				{items.map((art, i) => (
 					<li
@@ -80,12 +84,13 @@ export function ArtworkGrid({ artworks: initial }: Readonly<{ artworks: ArtworkI
 							over === i && dragging !== i && "border-accent shadow-e1",
 						)}
 					>
-						<span
-							aria-hidden="true"
-							className="cursor-grab text-muted hover:text-ink active:cursor-grabbing"
-						>
-							<GripVertical size={16} />
-						</span>
+						<ReorderHandle
+							label={art.title}
+							index={i}
+							count={items.length}
+							disabled={pending}
+							onMove={(to) => move(i, to)}
+						/>
 						{/* biome-ignore lint/performance/noImgElement: admin-only, R2 URL */}
 						<img
 							src={art.thumb}

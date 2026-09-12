@@ -7,6 +7,7 @@
 import { Lock } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { signOut } from "@/auth";
 import { GmailIcon } from "@/components/ui/brand-icons";
 import { buttonVariants } from "@/components/ui/button";
 import { getSite } from "@/lib/data";
@@ -69,9 +70,16 @@ export default async function AccessDeniedPage({ searchParams }: Readonly<Access
 					<Link href="/" className={buttonVariants({ variant: "primary" })}>
 						Back to site
 					</Link>
-					<Link href="/login" className={buttonVariants({ variant: "ghost" })}>
-						{isConfigurationError ? "Try sign-in again" : "Try a different account"}
-					</Link>
+					<form
+						action={async () => {
+							"use server";
+							await signOut({ redirectTo: "/login" });
+						}}
+					>
+						<button type="submit" className={buttonVariants({ variant: "ghost" })}>
+							{isConfigurationError ? "Try sign-in again" : "Try a different account"}
+						</button>
+					</form>
 				</div>
 			</div>
 		</main>

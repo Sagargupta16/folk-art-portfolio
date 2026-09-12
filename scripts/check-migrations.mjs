@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { runCli } from "./cli-runner.mjs";
 import { confinedPath, operationalPath } from "./operational-paths.mjs";
 
 const INITIAL_SNAPSHOT_ID = "00000000-0000-0000-0000-000000000000";
@@ -53,7 +54,7 @@ function validateJournal(journal) {
 			`Journal index ${index} is missing or out of order.`,
 		);
 		requireValid(
-			typeof entry.tag === "string" && new RegExp(`^${prefix}_[a-zA-Z0-9_]+$`).test(entry.tag),
+			typeof entry.tag === "string" && new RegExp(String.raw`^${prefix}_\w+$`).test(entry.tag),
 			`Journal entry ${index} must have a safe ${prefix}_ migration tag.`,
 		);
 		requireValid(entry.version === journal.version, `${entry.tag}: journal version differs.`);
@@ -80,7 +81,7 @@ export async function readMigrations(directory = "drizzle") {
 	const meta = await confinedPath(root, "meta", "directory");
 	const snapshotFiles = (await readdir(meta)).filter((name) => name.endsWith("_snapshot.json"));
 	requireValid(
-		sqlFiles.every((name) => /^\d{4}_[a-zA-Z0-9_]+\.sql$/.test(name)) &&
+		sqlFiles.every((name) => /^\d{4}_\w+\.sql$/.test(name)) &&
 			snapshotFiles.every((name) => /^\d{4}_snapshot\.json$/.test(name)),
 		"Migration artifacts contain an unsafe filename.",
 	);
@@ -140,8 +141,5 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-	void main().catch((error) => {
-		console.error(error instanceof Error ? error.message : "Migration validation failed.");
-		process.exitCode = 1;
-	});
+	void runCli(main, "Migration validation failed.");
 }

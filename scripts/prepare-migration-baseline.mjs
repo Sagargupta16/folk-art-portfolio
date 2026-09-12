@@ -4,6 +4,7 @@ import { basename, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { readMigrations } from "./check-migrations.mjs";
+import { runCli } from "./cli-runner.mjs";
 import { operationalPath } from "./operational-paths.mjs";
 
 /** Ignore only pg_dump version/time headers and per-run psql restriction tokens.
@@ -121,8 +122,5 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-	void main().catch((error) => {
-		console.error(error instanceof Error ? error.message : "Baseline preparation failed.");
-		process.exitCode = 1;
-	});
+	void runCli(main, "Baseline preparation failed.");
 }

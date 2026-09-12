@@ -4,6 +4,7 @@ import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
+import { runCli } from "./cli-runner.mjs";
 import { confinedPath, operationalPath } from "./operational-paths.mjs";
 
 const WIDTHS = [400, 800, 1200, 1600];
@@ -187,8 +188,5 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-	void main().catch((error) => {
-		console.error(error instanceof Error ? error.message : "Backup verification failed.");
-		process.exitCode = 1;
-	});
+	void runCli(main, "Backup verification failed.");
 }

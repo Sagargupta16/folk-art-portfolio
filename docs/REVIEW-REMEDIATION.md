@@ -72,11 +72,11 @@ This maps the findings from the 2026-09-11 project analysis to repository change
 
 ## Verification record
 
-Current script verification on Node 26.4.0 passed TypeScript checking, Biome for all nine changed script files, all 17 Node operational cases (zero failures or skips), all four migration artifacts, and diff whitespace checks.
+Local verification on Node 26.4.0 passed Biome, application/script/browser TypeScript checks, 301 Vitest cases, 17 Node operational cases, all four migration artifacts, a fixture production build, and 171 desktop/mobile browser checks. The browser runner exited normally in 46.3 seconds. The production dependency audit reported no known vulnerabilities.
 
 The operational suite invokes the installed `tsx/cli` on `scripts/check-migrations-db.ts`, with a PostgreSQL connection blocker preloaded in every child process. Eight URLs containing query/fragment overrides are rejected before connection; one permitted local URL reaches the `OFFLINE_CONNECT_ATTEMPT` sentinel. This verifies the actual TypeScript entrypoint and its CommonJS/MJS imports without connecting to a database. It does not replace the Node 22 disposable PostgreSQL CI job.
 
-The integration owner reported the latest application build, all 301 Vitest cases, and all 171 production desktop/mobile browser checks passing. The browser runner exited normally in 46.3 seconds. Earlier application/browser TypeScript checks and the production dependency audit also passed. Record the final Node 22 PostgreSQL job, Sonar recheck, and review outcome against the final commit before closing the release gate.
+CI separately exercises Node 22 and disposable PostgreSQL. Record its completed jobs, the Sonar analysis, security checks, and independent review against the final PR commit before closing the release gate.
 
 An isolated in-memory PostgreSQL probe executed the actual generated seed statements, rejected populated settings/reseeding after deletion, preserved the persistent bootstrap marker, executed the image-reference SQL, and checked idempotent baseline history plus rejection of incompatible history. It did not connect to Neon or R2. Both QR codes were decoded offline and matched their original destinations.
 

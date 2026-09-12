@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { runCli } from "./cli-runner.mjs";
 
 const REQUEST_TIMEOUT_MS = 15_000;
 const ARTWORK_SAMPLE_SIZE = 3;
@@ -151,8 +152,5 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-	void main().catch((error) => {
-		console.error(error instanceof Error ? error.message : "Public health check failed.");
-		process.exitCode = 1;
-	});
+	void runCli(main, "Public health check failed.");
 }

@@ -7,6 +7,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ### Security
 
 - Update Next to 16.3.5 and sharp to 0.35.4, resolving the reported production dependency advisories.
+- Require Vitest 4.1.11 or newer to include the test runner security fix.
 - Check current maintainer access at private reads and every admin page, handle revoked sessions without a redirect loop, and constrain sign-in callbacks to local admin paths.
 - Bind upload signatures to content type and size, bound storage downloads, strip public image metadata, and restrict the media proxy to generated image paths.
 - Run PR builds and browser checks with read-only fixtures instead of production database, storage, or OAuth credentials.

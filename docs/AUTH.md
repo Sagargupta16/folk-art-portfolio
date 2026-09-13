@@ -47,7 +47,7 @@ The login page does not send every existing session back to admin blindly. A sig
 
 Removing a maintainer takes effect on subsequent guarded requests even when their old session cookie remains valid. Already-rendered information in an open browser cannot be recalled; authorization prevents later private reads and changes. Test this boundary with mocked or isolated accounts, never by minting sessions for real users.
 
-`KALCHAR_TEST_FIXTURES=1` supplies public content only. It makes maintainer admission fail and database-object access throw, and it rejects `VERCEL=1`. It is not an admin test bypass.
+`KALCHAR_TEST_FIXTURES=1` supplies public content only. It makes maintainer admission fail and database-object access throw, and it rejects `VERCEL=1`. It is not an admin test bypass. The explicit `KALCHAR_ADMIN_PREVIEW=1` flag (`pnpm dev:preview`) is the one local exception: it only works inside fixture mode, renders the admin as the synthetic `preview@kalchar.invalid` for design review, grants nothing to any real account, and cannot write anywhere because the database proxy and the R2 client both throw. `lib/env.ts` refuses it on Vercel.
 
 ## Maintainer roster and first root
 

@@ -122,6 +122,8 @@ Keep fixture builds separate from real-data builds. Clear the flag before a real
 
 **No Next image optimizer.** `images.unoptimized: true`. The gallery serves artwork from Cloudflare R2 through a hand-rolled `<picture>` element ([lib/image-base.ts](../lib/image-base.ts)), not `next/image`, so Next's optimizer is intentionally off. See [IMAGES.md](IMAGES.md) for how the srcset is built.
 
+**Preview the admin without signing in.** `pnpm dev:preview` ([scripts/admin-preview.mjs](../scripts/admin-preview.mjs)) starts the dev server on port 3010 with `KALCHAR_TEST_FIXTURES=1` and `KALCHAR_ADMIN_PREVIEW=1`, so every `/admin` page renders as the synthetic maintainer `preview@kalchar.invalid` over the read-only fixture catalog, leads inbox, roster and presets included. Nothing can be saved: the database proxy and the R2 client both throw in fixture mode, a banner under the header says so, and [lib/env.ts](../lib/env.ts) refuses both flags when `VERCEL=1`. Use it for design review, screenshots and responsive checks; behaviour that writes still needs Google sign-in on `pnpm dev`.
+
 **Biome 2 is the one tool.** [biome.json](../biome.json) is both formatter and linter, and it runs in CI plus on save. Key settings to write code that passes without a fix pass:
 
 | Setting | Value |

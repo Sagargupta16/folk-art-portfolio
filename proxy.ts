@@ -12,10 +12,12 @@
  */
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { serverEnv } from "@/lib/env";
 
 export default auth((req) => {
 	const isAdmin = req.nextUrl.pathname.startsWith("/admin");
-	if (isAdmin && !req.auth) {
+	// Fixture-mode preview renders the admin as a synthetic maintainer (lib/admin-auth.ts).
+	if (isAdmin && !req.auth && !serverEnv.adminPreview) {
 		const loginUrl = new URL("/login", req.nextUrl.origin);
 		loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
 		return NextResponse.redirect(loginUrl);

@@ -33,6 +33,7 @@ DNS at GoDaddy: `@` A -> `76.76.21.21`, `www` CNAME -> `cname.vercel-dns.com`.
 ```sh
 pnpm dev          # http://localhost:3000  (needs .env.local for DB/R2/auth)
 pnpm dev --port 3001  # alternate port; Google OAuth must allow its exact callback
+pnpm dev:preview  # http://localhost:3010  admin over fixtures, no sign-in, nothing saves (design review)
 pnpm build        # next build
 pnpm typecheck
 pnpm exec tsc -p tsconfig.scripts.json
@@ -43,7 +44,7 @@ pnpm test:e2e     # production-browser and accessibility checks
 # DB/images: pnpm db:migrate | db:seed | db:images
 ```
 
-Vitest and Playwright are the automated regression suites; the repository is not test-less. Operational scripts have their own TypeScript scope in `tsconfig.scripts.json`. CI public builds use `KALCHAR_TEST_FIXTURES=1` without production secrets and verify migrations separately against disposable PostgreSQL. Fixture mode does not bypass authorization and must not run on Vercel.
+Vitest and Playwright are the automated regression suites; the repository is not test-less. Operational scripts have their own TypeScript scope in `tsconfig.scripts.json`. CI public builds use `KALCHAR_TEST_FIXTURES=1` without production secrets and verify migrations separately against disposable PostgreSQL. Fixture mode does not bypass authorization and must not run on Vercel. The one local exception is `KALCHAR_ADMIN_PREVIEW=1` (`pnpm dev:preview`), which only works inside fixture mode and renders `/admin` as a synthetic maintainer for design review; see docs/DEVELOPMENT.md.
 
 Fresh databases use committed migrations. `db:seed` is a locked, one-time bootstrap that refuses populated catalog/settings tables and writes a persistent marker. Existing pushed databases require schema comparison before recording a migration baseline; see [docs/DATABASE.md](docs/DATABASE.md).
 

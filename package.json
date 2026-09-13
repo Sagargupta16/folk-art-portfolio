@@ -1,6 +1,6 @@
 {
 	"name": "kalchar-by-megha",
-	"version": "1.38.0",
+	"version": "1.38.1",
 	"private": true,
 	"description": "Portfolio site for Megha Seth, traditional folk artist.",
 	"license": "UNLICENSED",
@@ -10,6 +10,7 @@
 	},
 	"scripts": {
 		"dev": "next dev --turbopack",
+		"dev:preview": "node scripts/admin-preview.mjs",
 		"build": "next build",
 		"start": "next start",
 		"lint": "biome check",

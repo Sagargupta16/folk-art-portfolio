@@ -8,17 +8,16 @@
  */
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/action-result";
 import { runAdminAction } from "@/lib/admin-action";
 import { db } from "@/lib/db/client";
 import { testimonials } from "@/lib/db/schema";
+import { revalidateEntity } from "@/lib/revalidate";
 import { formString, nextOrderSql } from "./_helpers";
 
+/** The only entity with a row-specific route: the artwork page a testimonial belongs to. */
 function revalidateTestimonials(artworkSlug?: string | null): void {
-	revalidatePath("/");
-	revalidatePath("/admin/testimonials");
-	if (artworkSlug) revalidatePath(`/work/${artworkSlug}`);
+	revalidateEntity("testimonials", artworkSlug ? `/work/${artworkSlug}` : undefined);
 }
 
 /** Create a testimonial from form fields. */

@@ -73,7 +73,8 @@ Fresh databases use committed migrations. `db:seed` is a locked, one-time bootst
 - **Events are their own entity.** `events` rows hold an ordered `images` array of R2 key-bases (first = cover); multi-image galleries with a "+N more" lightbox. The `processImageVariants` core in `process-artwork-image.ts` is shared by artworks (`artworks/<slug>`) and events (`events/<id>/<imageId>`); don't duplicate the sharp/R2 loop.
 - **Images via `lib/image-base.ts`.** Browser surfaces use same-origin `ARTWORK_IMAGE_BASE` / `IMAGE_ORIGIN` paths that `next.config.mjs` rewrites to R2. External metadata and server operations use the absolute `R2_*` exports. `ResponsiveImage` is the generic `<picture>` primitive; `ArtImage` wraps it with a checked-in master fallback. Admin uploads go through `lib/storage/process-artwork-image.ts` (sharp -> R2).
 - **Image bytes never travel through a server action.** Vercel 413s any function body over ~4.5 MB at the edge, which is smaller than one phone photo, so the browser gets a presigned ticket (`app/admin/upload-actions.ts`), PUTs the master straight to R2, and submits only the `staging/<uuid>` key; the action reads it back via `lib/storage/staged-upload.ts`. Browser PUTs need bucket CORS: `pnpm r2:cors`. Don't reintroduce a `File` field on an upload action.
-- **Admin mutations as server actions**: catalog/roster in `app/admin/actions.ts`, events + profile settings in `app/admin/event-actions.ts`, custom-order leads in `app/admin/lead-actions.ts`, testimonials in `app/admin/testimonial-actions.ts`, shared sync helpers (incl. `requireMaintainer`) in `app/admin/_helpers.ts`. Every action re-checks the maintainer session before touching Neon/R2.
+- **Admin mutations as server actions**, one module per entity family: catalog in `app/admin/artwork-actions.ts`; workshops, presets, categories, roster in `app/admin/actions.ts`; events + profile in `app/admin/event-actions.ts`; leads in `app/admin/lead-actions.ts`; testimonials in `app/admin/testimonial-actions.ts`; presigned upload tickets in `app/admin/upload-actions.ts`. Every export goes through `runAdminAction` (`lib/admin-action.ts`): it re-checks the maintainer session (`lib/admin-auth.ts`) and returns failures as data, since Next sanitises anything thrown from an action in production.
+- **Route refresh goes through `lib/revalidate.ts`.** `REVALIDATION` maps each entity to the routes that render it; actions call `revalidateEntity(entity)` and never `revalidatePath` directly. A new public page that reads an entity is registered there once. `lib/revalidate.test.ts` locks every entity's exact sequence, and `docs/ADDING-FEATURES.md` is the step-by-step for new entities, pages, image features, and env vars.
 - **URLs from one place.** `lib/site-config.ts` exports `siteConfig.url` / `prodUrl`.
 - **500-line file ceiling.** Split before committing: extract sub-component, lift styles, pull data into JSON.
 - **Data files at repo root** (`data/`). Not under `src/`.
@@ -101,8 +102,9 @@ app/                      Next.js App Router
                           in-page "Available to buy" filter is the store surface
   events/                 community events: multi-image galleries (6 inline + "+N more")
   admin/                  dashboard + events + profile + maintainers + leads +
-                          testimonials (dynamic; actions.ts + event-actions.ts +
-                          lead-actions.ts + testimonial-actions.ts + _helpers.ts)
+                          testimonials (dynamic; artwork-actions.ts + actions.ts +
+                          event-actions.ts + lead-actions.ts + testimonial-actions.ts +
+                          upload-actions.ts + _helpers.ts)
   api/auth/[...nextauth]/ Auth.js v5 Google handler
   sitemap.ts, fonts.ts, globals.css
 auth.ts                   Auth.js config (Google, signIn gated to maintainers)
@@ -110,6 +112,7 @@ proxy.ts                  gates /admin -> sign-in (Next 16 rename of middleware.
 components/               home/ layout/ gallery/ events/ about/ forms/ motion/ decor/ ui/
 lib/
   data.ts                 the data seam (Neon via Drizzle; getSite reads site.json)
+  revalidate.ts           which routes render each entity; actions call revalidateEntity
   db/                     schema.ts (artworks/workshops/events/settings/categories/
                           order_presets/maintainers/leads/testimonials) + client.ts
   storage/                r2.ts + process-artwork-image.ts (processImageVariants shared

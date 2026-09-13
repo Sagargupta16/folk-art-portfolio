@@ -11,6 +11,7 @@ Engineering documentation for [kalchar.co.in](https://kalchar.co.in/) -- the por
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Vercel (`main` -> prod, `dev` -> preview), branch + deploy flow, CI, the env matrix, GoDaddy DNS, releases. |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Local setup, the scripts reference, dev notes, and the conventions a contributor follows. |
 | [OPERATIONS.md](OPERATIONS.md) | Backups, restores, migration discipline, lead retention, health checks, and incident response. |
+| [ADDING-FEATURES.md](ADDING-FEATURES.md) | Ordered recipes for a new entity, public page, image-bearing feature, or environment variable: the files to touch, the guardrails that fail fast, and the local checks that mirror CI. |
 | [REVIEW-REMEDIATION.md](REVIEW-REMEDIATION.md) | Findings from the September review, implementation mapping, and external verification still required. |
 | [ROADMAP.md](ROADMAP.md) | Prioritized feature roadmap from a multi-agent deep-dive: themes, phased solo-dev sequence, quick wins, big bets, RICE-scored idea pool. A decision aid, not a commitment. |
 

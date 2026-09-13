@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.36.1 (2026-09-13)
+
+Developer platform. No user-facing change; the app renders and refreshes exactly as before.
+
+### Changed
+
+- **One revalidation registry** ([lib/revalidate.ts](lib/revalidate.ts)). Seven hand-written helpers across five action files (66 call sites) each listed the routes an entity change should refresh, so a new public page had to be added to every list that should include it, and a misspelt path failed silently. `REVALIDATION` now maps each entity to its consumer routes once; actions call `revalidateEntity(entity)` and the `Entity` union turns a typo into a type error. Every list is the former helper's exact sequence, and [lib/revalidate.test.ts](lib/revalidate.test.ts) locks each one in order, plus the catalog and category consumer sets.
+- **Adding-a-feature guide** ([docs/ADDING-FEATURES.md](docs/ADDING-FEATURES.md)). Ordered recipes for a new entity, a new public page, anything that stores images, and a new environment variable: the file to touch at each step, the guardrail that fails if it is skipped, and the local checks that mirror CI.
+- **Seam docs corrected.** [CLAUDE.md](CLAUDE.md) and [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) now list all six action modules, `runAdminAction`, `lib/admin-auth.ts`, and the revalidation seam. `.env.example` documents the two local-only variables (`KALCHAR_TEST_FIXTURES`, `MIGRATION_TEST_DATABASE_URL`) and drops the stale note that the seed provisions the root maintainer.
+
 ## 1.36.0 (2026-09-12)
 
 ### Security

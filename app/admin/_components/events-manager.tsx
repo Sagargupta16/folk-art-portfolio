@@ -71,11 +71,7 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 				}}
 			/>
 
-			{notice ? (
-				<p role="status" className="text-sm text-muted">
-					{notice}
-				</p>
-			) : null}
+			{notice ? <output className="block text-sm text-muted">{notice}</output> : null}
 
 			{err ? (
 				<p role="alert" className="text-sm text-ruby">

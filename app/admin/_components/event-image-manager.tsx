@@ -180,11 +180,7 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 				</form>
 			</div>
 
-			{notice ? (
-				<p role="status" className="text-sm text-muted">
-					{notice}
-				</p>
-			) : null}
+			{notice ? <output className="block text-sm text-muted">{notice}</output> : null}
 			{err ? (
 				<p role="alert" className="text-sm text-ruby">
 					{err}

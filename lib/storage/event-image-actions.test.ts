@@ -33,19 +33,21 @@ vi.mock("./process-artwork-image", () => ({
 }));
 
 import {
-	addEventImages,
+	attachEventPhotos,
 	clearProfileImage,
 	createEvent,
 	deleteEvent,
+	processEventPhoto,
 	removeEventImage,
 	reorderEventImages,
+	reserveEventId,
 	setEventFeatured,
 	setProfileImage,
 	setShowHomeIntro,
 	updateEventMeta,
 } from "@/app/admin/event-actions";
 
-const eventId = "fixture-event";
+const eventId = "3f8a1c2e-9b4d-4f7a-8e21-5c6d7b8a9f01";
 const oldImage = `events/${eventId}/original`;
 let objects: Set<string>;
 let nextImage: number;
@@ -57,6 +59,18 @@ function imageForm(): FormData {
 	form.set("imageKey", "staging/fixture");
 	return form;
 }
+
+/** Form for createEvent: fields plus already processed key-bases under the reserved id. */
+function createForm(keyBases: readonly string[]): FormData {
+	const form = new FormData();
+	form.set("title", "Fixture event");
+	form.set("eventId", eventId);
+	for (const keyBase of keyBases) form.append("imageKeyBases", keyBase);
+	return form;
+}
+
+const suffix = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+const photoKey = (n: number) => `events/${eventId}/photo-${suffix(n)}`;
 
 function eventRow(images: string[]): unknown[] {
 	return [
@@ -210,9 +224,13 @@ describe("event image mutations", () => {
 			return { rows: [[eventId]] };
 		});
 
+		const first = photoKey(1);
+		const second = photoKey(2);
+		objects.add(first);
+		objects.add(second);
 		const results = await Promise.all([
-			addEventImages(eventId, imageForm()),
-			addEventImages(eventId, imageForm()),
+			attachEventPhotos(eventId, [first]),
+			attachEventPhotos(eventId, [second]),
 		]);
 		expect(results.filter((result) => result.ok)).toHaveLength(1);
 		expect(results.filter((result) => !result.ok)).toHaveLength(1);
@@ -221,42 +239,6 @@ describe("event image mutations", () => {
 		expect(fakes.deleteImages).toHaveBeenCalledTimes(1);
 		expect(fakes.revalidate).toHaveBeenCalledWith("/events");
 		expect(fakes.revalidate).toHaveBeenCalledWith("/");
-	});
-
-	it("does not restore a removed photo when an overlapping upload finishes later", async () => {
-		let images = [oldImage];
-		let started: () => void = () => undefined;
-		let finish: () => void = () => undefined;
-		const processing = new Promise<void>((resolve) => {
-			started = resolve;
-		});
-		const holdUpload = new Promise<void>((resolve) => {
-			finish = resolve;
-		});
-		fakes.processEvent.mockImplementationOnce(async () => {
-			started();
-			await holdUpload;
-			objects.add("events/new");
-			return "events/new";
-		});
-		fakes.query.mockImplementation(async (sql, params) => {
-			if (sql.startsWith("select")) return { rows: [eventRow(images)] };
-			if (!matchesCurrent({ sql, params, column: "images" }, images)) return { rows: [] };
-			images = JSON.parse(String(params[0]));
-			return { rows: [[eventId]] };
-		});
-
-		const upload = addEventImages(eventId, imageForm());
-		await processing;
-		await removeEventImage(eventId, oldImage);
-		finish();
-		await expect(upload).resolves.toMatchObject({
-			ok: false,
-			message: "Event photos changed. Refresh and try again.",
-		});
-		expect(images).toEqual([]);
-		expect(objects.has(oldImage)).toBe(true);
-		expect(objects.has("events/new")).toBe(false);
 	});
 
 	it.each([
@@ -282,6 +264,102 @@ describe("event image mutations", () => {
 		expect(fakes.deleteImages).not.toHaveBeenCalled();
 	});
 
+	it("does not restore a removed photo when an overlapping attach commits later", async () => {
+		let images = [oldImage];
+		const added = photoKey(1);
+		objects.add(added);
+		let selects = 0;
+		let releaseAttach: () => void = () => undefined;
+		const attachMayContinue = new Promise<void>((resolve) => {
+			releaseAttach = resolve;
+		});
+		let attachHasRead: () => void = () => undefined;
+		const attachRead = new Promise<void>((resolve) => {
+			attachHasRead = resolve;
+		});
+		fakes.query.mockImplementation(async (sql, params) => {
+			if (sql.startsWith("select")) {
+				const snapshot = [...images];
+				selects += 1;
+				if (selects === 1) {
+					// The attach read its row before the removal landed.
+					attachHasRead();
+					await attachMayContinue;
+				}
+				return { rows: [eventRow(snapshot)] };
+			}
+			if (!matchesCurrent({ sql, params, column: "images" }, images)) return { rows: [] };
+			images = JSON.parse(String(params[0]));
+			return { rows: [[eventId]] };
+		});
+
+		const attach = attachEventPhotos(eventId, [added]);
+		await attachRead;
+		await removeEventImage(eventId, oldImage);
+		releaseAttach();
+		await expect(attach).resolves.toMatchObject({
+			ok: false,
+			message: "Event photos changed. Refresh and try again.",
+		});
+		expect(images).toEqual([]);
+		expect(objects.has(oldImage)).toBe(true);
+		expect(objects.has(added)).toBe(false);
+	});
+
+	it("retains a created event's images when the database response is lost", async () => {
+		fakes.query.mockRejectedValueOnce(new Error("Response lost after commit"));
+		const photo = photoKey(1);
+		objects.add(photo);
+		await expect(createEvent(createForm([photo]))).resolves.toMatchObject({ ok: false });
+		expect(objects.has(photo)).toBe(true);
+		expect(fakes.deleteImages).not.toHaveBeenCalled();
+	});
+
+	it("processes a staged photo under the event's own prefix without touching the database", async () => {
+		await expect(processEventPhoto(eventId, "staging/fixture")).resolves.toEqual({
+			ok: true,
+			keyBase: `events/${eventId}/new-1`,
+		});
+		expect(fakes.processEvent).toHaveBeenCalledWith(eventId, Buffer.from("fixture"));
+		expect(fakes.query).not.toHaveBeenCalled();
+	});
+
+	it("reports a photo that failed to process as its own failure", async () => {
+		fakes.processEvent.mockRejectedValueOnce(new Error("Decode failure"));
+		await expect(processEventPhoto(eventId, "staging/fixture")).resolves.toEqual({
+			ok: false,
+			message: "Decode failure",
+		});
+		expect(fakes.query).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		["another event's photo", [`events/other-event/photo-${suffix(1)}`]],
+		["an arbitrary object", ["artworks/shrinathji"]],
+		["a duplicate", [photoKey(1), photoKey(1)]],
+	])("refuses to attach %s before any database write", async (_, keyBases) => {
+		await expect(attachEventPhotos(eventId, keyBases)).resolves.toMatchObject({ ok: false });
+		expect(fakes.query).not.toHaveBeenCalled();
+		expect(fakes.deleteImages).not.toHaveBeenCalled();
+	});
+
+	it("refuses to create an event without a reserved id", async () => {
+		const form = createForm([]);
+		form.delete("eventId");
+		await expect(createEvent(form)).resolves.toEqual({
+			ok: false,
+			message: "Invalid event reference.",
+		});
+		expect(fakes.query).not.toHaveBeenCalled();
+	});
+
+	it("reserves a fresh event id without touching the database", async () => {
+		const result = await reserveEventId();
+		expect(result.ok).toBe(true);
+		if (result.ok) expect(result.id).toMatch(/^[0-9a-f-]{36}$/);
+		expect(fakes.query).not.toHaveBeenCalled();
+	});
+
 	it("retains published versions when a photo or event is removed", async () => {
 		fakes.query.mockImplementation(async (sql) => ({
 			rows: sql.startsWith("select") ? [eventRow([oldImage])] : [[eventId]],
@@ -290,27 +368,6 @@ describe("event image mutations", () => {
 		await deleteEvent(eventId);
 		expect(objects.has(oldImage)).toBe(true);
 		expect(fakes.deleteImages).not.toHaveBeenCalled();
-	});
-
-	it("retains a created event's images when the database response is lost", async () => {
-		fakes.query.mockRejectedValueOnce(new Error("Response lost after commit"));
-		await expect(createEvent(imageForm())).resolves.toMatchObject({ ok: false });
-		expect(objects.has(`events/${eventId}/new-1`)).toBe(true);
-		expect(fakes.deleteImages).not.toHaveBeenCalled();
-	});
-
-	it("cleans a failed upload batch before any database write", async () => {
-		fakes.processEvent
-			.mockResolvedValueOnce("events/processed")
-			.mockRejectedValueOnce(new Error("Decode failure"));
-		const form = imageForm();
-		form.append("imageKeys", "staging/another-fixture");
-		await expect(createEvent(form)).resolves.toMatchObject({
-			ok: false,
-			message: "Decode failure",
-		});
-		expect(fakes.query).not.toHaveBeenCalled();
-		expect(fakes.deleteImages).toHaveBeenCalledWith(["events/processed"]);
 	});
 });
 
@@ -369,9 +426,11 @@ describe("profile image mutations", () => {
 
 describe("event and profile authorization", () => {
 	it.each([
-		["create", () => createEvent(imageForm())],
+		["create", () => createEvent(createForm([photoKey(1)]))],
+		["reserve", () => reserveEventId()],
 		["metadata", () => updateEventMeta(eventId, { title: "Updated" })],
-		["append", () => addEventImages(eventId, imageForm())],
+		["process", () => processEventPhoto(eventId, "staging/fixture")],
+		["append", () => attachEventPhotos(eventId, [photoKey(1)])],
 		["remove", () => removeEventImage(eventId, oldImage)],
 		["reorder", () => reorderEventImages(eventId, [oldImage])],
 		["feature", () => setEventFeatured(eventId, true)],

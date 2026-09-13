@@ -19,8 +19,13 @@ function action(name: string) {
 				actionState.release = resolve;
 			});
 		}
-		// Creates return the identifiers the real actions do (artwork slug, event id).
-		return { ok: true as const, slug: "created-piece", id: "created-event" };
+		// Return the identifiers the real actions do: artwork slug, event id, photo key-base.
+		return {
+			ok: true as const,
+			slug: "created-piece",
+			id: "created-event",
+			keyBase: "events/created-event/photo-fixture",
+		};
 	};
 }
 
@@ -56,7 +61,9 @@ export const createEvent = action("createEvent");
 export const deleteEvent = action("deleteEvent");
 export const setEventFeatured = action("setEventFeatured");
 export const updateEventMeta = action("updateEventMeta");
-export const addEventImages = action("addEventImages");
+export const reserveEventId = action("reserveEventId");
+export const processEventPhoto = action("processEventPhoto");
+export const attachEventPhotos = action("attachEventPhotos");
 export const removeEventImage = action("removeEventImage");
 export const reorderEventImages = action("reorderEventImages");
 export const setProfileImage = action("setProfileImage");

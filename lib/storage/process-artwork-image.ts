@@ -97,7 +97,9 @@ export async function extractPalette(master: Buffer, count = 5): Promise<string[
  * <picture> srcset (lib/image-base.ts) reads. Shared by artworks
  * ("artworks/<slug>") and events ("events/<id>/<imageId>").
  *
- * Returns the written keys + the source aspect ratio.
+ * Returns the written keys + the source aspect ratio. Uploads run concurrently
+ * with the remaining encodes; on any failure the first error is thrown after
+ * every started upload has settled.
  */
 export async function processImageVariants(
 	keyBase: string,
@@ -110,12 +112,28 @@ export async function processImageVariants(
 	const aspectRatio = meta.autoOrient.width / meta.autoOrient.height;
 
 	const keys: string[] = [];
-	const put = async (key: string, buf: Buffer, type: string) => {
-		await uploadObject(key, buf, type);
+	const uploads: Promise<void>[] = [];
+	let failure: unknown;
+	// Start each upload as soon as its bytes exist and keep encoding while it
+	// travels, so the 13 round trips overlap the CPU work instead of following
+	// it. Every upload settles itself: a rejection is recorded here, never left
+	// unhandled, and re-thrown once the batch has drained.
+	const put = (key: string, buf: Buffer, type: string) => {
 		keys.push(key);
+		uploads.push(
+			Promise.resolve()
+				.then(() => uploadObject(key, buf, type))
+				.then(
+					() => undefined,
+					(error: unknown) => {
+						if (failure === undefined) failure = error ?? new Error("Upload failed.");
+					},
+				),
+		);
 	};
 
 	for (const w of WIDTHS) {
+		if (failure !== undefined) break;
 		// sharp strips EXIF, XMP and IPTC by default. Auto-orient pixels without
 		// opting back into metadata retention on any public derivative.
 		const resized = sharp(master, sharpOptions)
@@ -126,16 +144,20 @@ export async function processImageVariants(
 			resized.clone().webp(WEBP_OPTS).toBuffer(),
 			resized.clone().jpeg(JPEG_OPTS).toBuffer(),
 		]);
-		await put(`${keyBase}-${w}.avif`, avif, "image/avif");
-		await put(`${keyBase}-${w}.webp`, webp, "image/webp");
-		await put(`${keyBase}-${w}.jpg`, jpg, "image/jpeg");
+		put(`${keyBase}-${w}.avif`, avif, "image/avif");
+		put(`${keyBase}-${w}.webp`, webp, "image/webp");
+		put(`${keyBase}-${w}.jpg`, jpg, "image/jpeg");
 	}
 
-	// Stable keys are also used by the seed migration. Never delete them after
-	// a failed overwrite; cleanup belongs to the owner of a new image version.
-	const masterJpg = await sharp(master, sharpOptions).autoOrient().jpeg(JPEG_OPTS).toBuffer();
-	await put(`${keyBase}.jpg`, masterJpg, "image/jpeg");
+	if (failure === undefined) {
+		// Stable keys are also used by the seed migration. Never delete them after
+		// a failed overwrite; cleanup belongs to the owner of a new image version.
+		const masterJpg = await sharp(master, sharpOptions).autoOrient().jpeg(JPEG_OPTS).toBuffer();
+		put(`${keyBase}.jpg`, masterJpg, "image/jpeg");
+	}
 
+	await Promise.all(uploads);
+	if (failure !== undefined) throw failure;
 	return { keys, aspectRatio };
 }
 

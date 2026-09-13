@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.38.0 (2026-09-13)
+
+### Added
+
+- **Upload feedback in the admin.** Choosing an image now shows it immediately: a thumbnail with the file name and size under the picker for a new piece (with a remove control), and a strip of thumbnails with the cover marked for event photos. Pressing Add shows a live progress bar: the browser reports bytes sent to R2 as they go ([app/admin/_components/stage-image.ts](app/admin/_components/stage-image.ts) now uploads with XMLHttpRequest, since fetch cannot observe upload progress), then an indeterminate sweep while the server generates variants, then "N of M photos processed" for events ([upload-progress.tsx](app/admin/_components/upload-progress.tsx), [photo-preview.tsx](app/admin/_components/photo-preview.tsx)). The sweep honours reduced motion through the existing skeleton rule.
+
 ## 1.37.1 (2026-09-13)
 
 ### Changed

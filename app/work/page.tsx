@@ -63,23 +63,7 @@ export default async function WorkPage() {
 					{/* Suspense boundary: WorkFilter reads useSearchParams (the ?style=
 					    / ?view= lens), which Next requires be wrapped on a static route. */}
 					<Suspense>
-						<WorkFilter
-							styles={styles}
-							items={all.map((a) => ({
-								slug: a.slug,
-								title: a.title,
-								style: a.style,
-								medium: a.medium,
-								image: a.image,
-								description: a.description,
-								featured: a.featured,
-								order: a.order,
-								aspectRatio: a.aspectRatio,
-								priceInr: a.priceInr,
-								status: a.status,
-								palette: a.palette,
-							}))}
-						/>
+						<WorkFilter styles={styles} items={all} />
 					</Suspense>
 				</Container>
 			</Section>

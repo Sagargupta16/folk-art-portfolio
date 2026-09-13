@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePrefersReducedMotion } from "@/lib/hooks/use-prefers-reduced-motion";
 
 /** Fallback delay before loading Lenis when requestIdleCallback is absent. */
 const IDLE_FALLBACK_DELAY_MS = 200;
 const SMOOTH_SCROLL_DURATION_SECONDS = 1.1;
 
 export function SmoothScroll() {
+	const reduceMotion = usePrefersReducedMotion();
+
 	useEffect(() => {
 		if (globalThis.window === undefined) return;
-		if (globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		if (reduceMotion || globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		if (!globalThis.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
 		let cancelled = false;
@@ -54,7 +57,7 @@ export function SmoothScroll() {
 			if (destroy) destroy();
 			cancelSchedule();
 		};
-	}, []);
+	}, [reduceMotion]);
 
 	return null;
 }

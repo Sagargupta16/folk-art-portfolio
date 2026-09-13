@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, GripVertical, Plus, Trash2, X } from "lucide-react";
+import { Check, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ import {
 	adminIconBtnPrimary,
 } from "./controls";
 import { ReorderBar } from "./reorder-bar";
+import { ReorderHandle } from "./reorder-handle";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
@@ -34,10 +35,11 @@ export function CategoryManager({
 	const [items, setItems] = useServerSyncedList(initial, setBaseline);
 	const [saved, setSaved] = useState(false);
 	const [newName, setNewName] = useState("");
-	const { dragging, over, dragProps } = useReorder(items, setItems);
+	const { dragging, over, dragProps, move } = useReorder(items, setItems, pending);
 
-	const handleSaveOrder = () =>
-		run(
+	const handleSaveOrder = () => {
+		setSaved(false);
+		return run(
 			() => reorderCategories(items.map((i) => i.id)),
 			() => {
 				setBaseline(items);
@@ -45,11 +47,16 @@ export function CategoryManager({
 				setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
 			},
 		);
+	};
 
 	const handleDelete = (id: string) => {
-		setItems((prev) => prev.filter((i) => i.id !== id));
-		setBaseline((prev) => prev.filter((i) => i.id !== id));
-		run(() => deleteCategory(id));
+		run(
+			() => deleteCategory(id),
+			() => {
+				setItems((prev) => prev.filter((i) => i.id !== id));
+				setBaseline((prev) => prev.filter((i) => i.id !== id));
+			},
+		);
 	};
 
 	const hasOrderChanges = items.some((item, i) => item.id !== baseline[i]?.id);
@@ -84,7 +91,11 @@ export function CategoryManager({
 				</div>
 			</form>
 
-			{err ? <p className="text-sm text-ruby">{err}</p> : null}
+			{err ? (
+				<p role="alert" className="text-sm text-ruby">
+					{err}
+				</p>
+			) : null}
 
 			{/* List */}
 			<ul className="space-y-2">
@@ -102,6 +113,15 @@ export function CategoryManager({
 							category={c}
 							usageCount={usage[c.name] ?? 0}
 							pending={pending}
+							reorderHandle={
+								<ReorderHandle
+									label={c.name}
+									index={i}
+									count={items.length}
+									disabled={pending}
+									onMove={(to) => move(i, to)}
+								/>
+							}
 							onSave={(name) => run(() => renameCategory(c.id, name))}
 							onDelete={async () => {
 								const ok = await confirm({
@@ -115,9 +135,9 @@ export function CategoryManager({
 					</li>
 				))}
 				{items.length === 0 ? (
-					<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
+					<li className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
 						No categories yet. Add one above.
-					</p>
+					</li>
 				) : null}
 			</ul>
 
@@ -138,13 +158,15 @@ function CategoryItem({
 	category,
 	usageCount,
 	pending,
+	reorderHandle,
 	onSave,
 	onDelete,
 }: Readonly<{
 	category: Category;
 	usageCount: number;
 	pending: boolean;
-	onSave: (name: string) => void;
+	reorderHandle: React.ReactNode;
+	onSave: (name: string) => Promise<boolean>;
 	onDelete: () => void;
 }>) {
 	const [editing, setEditing] = useState(false);
@@ -153,16 +175,18 @@ function CategoryItem({
 	if (!editing) {
 		return (
 			<div className="flex items-center gap-3 p-3">
-				<span aria-hidden="true" className="cursor-grab text-muted active:cursor-grabbing">
-					<GripVertical size={16} />
-				</span>
+				{reorderHandle}
 				<span className="flex-1 truncate text-sm font-medium">{category.name}</span>
 				<span className="t-meta shrink-0 text-[0.65rem]">
 					{usageCount} {usageCount === 1 ? "piece" : "pieces"}
 				</span>
 				<button
 					type="button"
-					onClick={() => setEditing(true)}
+					disabled={pending}
+					onClick={() => {
+						setName(category.name);
+						setEditing(true);
+					}}
 					className={`${adminBtn} min-w-11 px-2 py-1`}
 				>
 					Rename
@@ -184,6 +208,7 @@ function CategoryItem({
 	return (
 		<div className="flex items-center gap-2 p-3">
 			<input
+				disabled={pending}
 				value={name}
 				onChange={(e) => setName(e.target.value)}
 				aria-label={`Rename ${category.name}`}
@@ -194,9 +219,8 @@ function CategoryItem({
 			<button
 				type="button"
 				disabled={pending}
-				onClick={() => {
-					onSave(name.trim());
-					setEditing(false);
+				onClick={async () => {
+					if (await onSave(name.trim())) setEditing(false);
 				}}
 				aria-label={`Save ${category.name}`}
 				className={adminIconBtnPrimary}
@@ -205,6 +229,7 @@ function CategoryItem({
 			</button>
 			<button
 				type="button"
+				disabled={pending}
 				onClick={() => {
 					setName(category.name);
 					setEditing(false);

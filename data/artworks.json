@@ -1,8 +1,8 @@
 {
 	"_notes": [
-		"Single source of truth for artwork metadata. Each entry is one painting.",
-		"'image' is the filename under public/artworks/. Add the file there, then append an entry here.",
-		"Schema is the Artwork type in lib/types.ts; lib/data.ts validates each row at build and names a bad slug."
+		"Original catalog seed and isolated test fixture source. Neon is the live source of truth.",
+		"'image' names the original JPEG under public/artworks/. Runtime edits and uploads use the admin panel.",
+		"The Artwork type lives in lib/types.ts. Catalog bootstrap is one-time and refuses an initialized database."
 	],
 	"items": [
 		{

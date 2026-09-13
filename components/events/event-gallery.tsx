@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, X } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ResponsiveImage } from "@/components/gallery/responsive-image";
+import { ViewerDialog } from "@/components/gallery/viewer-dialog";
 import { cn } from "@/lib/utils";
 
 /**
@@ -20,7 +21,6 @@ import { cn } from "@/lib/utils";
 const MAX_INLINE = 6;
 /** Minimum horizontal travel (px) before a touch counts as a swipe. */
 const SWIPE_THRESHOLD_PX = 50;
-const LIGHTBOX_FADE_SECONDS = 0.2;
 const LIGHTBOX_PANEL_SPRING = { type: "spring", damping: 28, stiffness: 340 } as const;
 
 interface EventGalleryProps {
@@ -42,6 +42,10 @@ export function EventGallery({ images, title }: Readonly<EventGalleryProps>) {
 	// A single photo gets a roomier slot; multiples tile as a uniform square grid.
 	const gridClass = images.length === 1 ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3";
 	const tileAspect = images.length === 1 ? "aspect-4/3" : "aspect-square";
+	const tileSizes =
+		images.length === 1
+			? "(min-width: 1152px) 1030px, calc(100vw - 96px)"
+			: "(min-width: 1152px) 335px, (min-width: 640px) 30vw, calc((100vw - 90px) / 2)";
 
 	return (
 		<>
@@ -55,6 +59,7 @@ export function EventGallery({ images, title }: Readonly<EventGalleryProps>) {
 								title={title}
 								index={i}
 								aspect={tileAspect}
+								sizes={tileSizes}
 								priority={i === 0}
 								overflow={showOverflow ? overflow : undefined}
 								totalForLabel={showOverflow ? images.length : undefined}
@@ -81,6 +86,7 @@ interface PhotoTileProps {
 	title: string;
 	index: number;
 	aspect: string;
+	sizes: string;
 	priority?: boolean;
 	/** When set, render a "+N" overlay (the overflow entry). */
 	overflow?: number;
@@ -94,6 +100,7 @@ function PhotoTile({
 	title,
 	index,
 	aspect,
+	sizes,
 	priority = false,
 	overflow,
 	totalForLabel,
@@ -116,7 +123,7 @@ function PhotoTile({
 			<ResponsiveImage
 				keyBase={keyBase}
 				alt={`${title}, photo ${index + 1}`}
-				sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+				sizes={sizes}
 				priority={priority}
 				className="absolute inset-0 h-full w-full object-contain transition-transform duration-(--duration-base) ease-(--ease-out) group-hover:scale-[1.03]"
 			/>
@@ -138,8 +145,6 @@ interface EventLightboxProps {
 }
 
 function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<EventLightboxProps>) {
-	const dialogRef = useRef<HTMLDivElement>(null);
-	const triggerRef = useRef<HTMLElement | null>(null);
 	const isOpen = index !== null;
 
 	const go = useCallback(
@@ -149,28 +154,6 @@ function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<Even
 		},
 		[index, images.length, onIndex],
 	);
-
-	useEffect(() => {
-		if (!isOpen) return;
-		triggerRef.current = document.activeElement as HTMLElement | null;
-		dialogRef.current?.focus();
-		document.body.style.overflow = "hidden";
-		return () => {
-			document.body.style.overflow = "";
-			triggerRef.current?.focus?.();
-		};
-	}, [isOpen]);
-
-	useEffect(() => {
-		if (!isOpen) return;
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") onClose();
-			else if (e.key === "ArrowRight") go(1);
-			else if (e.key === "ArrowLeft") go(-1);
-		};
-		globalThis.addEventListener("keydown", onKey);
-		return () => globalThis.removeEventListener("keydown", onKey);
-	}, [isOpen, onClose, go]);
 
 	const touchStartX = useRef(0);
 	const onTouchStart = useCallback((e: React.TouchEvent) => {
@@ -192,33 +175,12 @@ function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<Even
 	return (
 		<AnimatePresence>
 			{isOpen && index !== null ? (
-				<motion.div
-					ref={dialogRef}
-					role="dialog"
-					aria-modal="true"
-					aria-label={`${title} photos`}
-					tabIndex={-1}
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-					transition={{ duration: LIGHTBOX_FADE_SECONDS }}
-					className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 p-4 backdrop-blur-md focus:outline-none md:p-8"
+				<ViewerDialog
+					label={`${title} photos`}
+					onClose={onClose}
+					onNext={hasMany ? () => go(1) : undefined}
+					onPrevious={hasMany ? () => go(-1) : undefined}
 				>
-					<button
-						type="button"
-						aria-label="Close"
-						onClick={onClose}
-						className="absolute inset-0 cursor-zoom-out"
-					/>
-					<button
-						type="button"
-						onClick={onClose}
-						aria-label="Close"
-						className="absolute right-4 top-4 z-[110] flex h-11 w-11 items-center justify-center rounded-full border border-line bg-bg-soft text-ink shadow-e2 transition-colors duration-(--duration-fast) hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
-					>
-						<X size={18} />
-					</button>
-
 					<motion.figure
 						initial={{ opacity: 0, scale: 0.96, y: 12 }}
 						animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -234,7 +196,7 @@ function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<Even
 							<ResponsiveImage
 								keyBase={images[index] ?? ""}
 								alt={`${title}, photo ${index + 1} of ${images.length}`}
-								sizes="(min-width: 768px) 80vw, 100vw"
+								sizes="(min-width: 1088px) 1024px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)"
 								priority
 								className="max-h-[80svh] w-auto max-w-full rounded-(--radius-lg) border border-line bg-bg-soft object-contain shadow-e5"
 							/>
@@ -254,7 +216,7 @@ function EventLightbox({ images, title, index, onClose, onIndex }: Readonly<Even
 							) : null}
 						</figcaption>
 					</motion.figure>
-				</motion.div>
+				</ViewerDialog>
 			) : null}
 		</AnimatePresence>
 	);

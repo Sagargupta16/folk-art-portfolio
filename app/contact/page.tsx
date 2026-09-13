@@ -214,8 +214,9 @@ function InstagramQrCard({ channel }: Readonly<{ channel: ContactChannel }>) {
 					<Image
 						src={`/${channel.qr}`}
 						alt={`QR code for ${channel.display} on Instagram`}
-						width={2350}
-						height={2700}
+						width={334}
+						height={384}
+						sizes="112px"
 						loading="lazy"
 						className="h-24 w-24 rounded-(--radius-sm) border border-line bg-bg object-contain p-1.5 transition-colors duration-(--duration-base) ease-(--ease-out) group-hover:border-(--section-accent) sm:h-28 sm:w-28"
 					/>

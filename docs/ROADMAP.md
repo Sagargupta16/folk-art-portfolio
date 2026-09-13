@@ -2,6 +2,8 @@
 
 > Generated 2026-07-02 from a multi-agent deep-dive: **196 agents**, **148 ideas** across 20 product domains, RICE-scored, top 22 adversarially verified. This is a decision aid, not a commitment.
 
+> Historical planning snapshot. Statements below about missing tests, absent lead persistence, direct schema pushes, or future backend work describe the July planning baseline, not the current application. Use [ARCHITECTURE.md](ARCHITECTURE.md), [DATABASE.md](DATABASE.md), and [REVIEW-REMEDIATION.md](REVIEW-REMEDIATION.md) for current implementation and operations.
+
 ## Strategic summary
 
 kalchar is a mobile-first folk-art portfolio whose entire funnel dead-ends at WhatsApp, with zero durable record of any enquiry, lead, or sale. The single highest-leverage move is to stop treating "sold to WhatsApp" as the end state and start capturing intent (lead persistence, honest trust copy, share/reach surfaces) while hardening the two things that silently rot for a solo maintainer: correctness on the live catalog and a safety net (tests + typed env + versioned migrations). Adversarial verification killed or shrank several top-RICE ideas -- the immutable-cache "quick win" is a year-long data-integrity bug, the OG/PWA/scroll-padding ideas are half-real once you account for the paper-grain filter, Lenis, Satori fonts, and iOS in-app browsers -- so this roadmap deliberately down-ranks the flashy scored winners in favor of the cheap, verifiable, actually-load-bearing work. Build for the real audience (iOS/Android in-app WhatsApp/IG browsers on phones), confirm business facts with Megha before shipping any promise, and never route the WhatsApp deep-link through anything that can be blocked.

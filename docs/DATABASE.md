@@ -1,55 +1,41 @@
 # Database
 
-The catalog, events, editable lookups, singleton settings, admin allowlist, custom-order leads, and testimonials live in Neon serverless Postgres through Drizzle ORM. This doc covers the connection, the nine-table schema, the read seam in [lib/data.ts](../lib/data.ts), the write path in `app/admin/`, and migration/seed commands. Start at [ARCHITECTURE.md](ARCHITECTURE.md) for the whole-system picture; the auth re-check on writes is in [AUTH.md](AUTH.md) and the image side of catalog writes is in [IMAGES.md](IMAGES.md).
+Neon Postgres stores the catalog, events, settings, editable lookups, maintainer allowlist, leads, and testimonials. Drizzle defines the schema and queries. Public catalog reads go through [lib/data.ts](../lib/data.ts); private reads and mutations must also check current maintainer authorization. See [ARCHITECTURE.md](ARCHITECTURE.md), [AUTH.md](AUTH.md), and [IMAGES.md](IMAGES.md) for the other boundaries.
 
-## Overview
+## Connection and environments
 
-| Concern | Choice | Where |
-| --- | --- | --- |
-| Database | Neon serverless Postgres | region set in the Neon console, encoded in `DATABASE_URL` |
-| ORM | Drizzle | [lib/db/schema.ts](../lib/db/schema.ts), [lib/db/client.ts](../lib/db/client.ts) |
-| Driver | `@neondatabase/serverless` neon-http | `lib/db/client.ts:12` |
-| Connection | module-level singleton `db` | `lib/db/client.ts:24` |
-| Credentials | `DATABASE_URL` env | `.env.example`, `.env.local` |
-| Migrations | Drizzle Kit (`postgresql` dialect) | [drizzle.config.ts](../drizzle.config.ts) |
+[lib/db/client.ts](../lib/db/client.ts) creates a module-level Drizzle client using the Neon HTTP driver. `DATABASE_URL` is read through [lib/env.ts](../lib/env.ts). Queries run over HTTP; a batch can execute atomically, but it cannot include an R2 operation in its database transaction.
 
-Postgres was chosen to match the ledger-sync app, so both repos share one DB provider and reuse the same Neon + Vercel integration (`lib/db/schema.ts:4`). Because Postgres has a native `jsonb` column, the `palette` array is stored structured rather than as a serialized string (`lib/db/schema.ts:9`).
+Public pages read catalog data during build and regeneration. Normal cached page requests do not each query Neon. A missing database connection fails those real-data builds; it does not silently turn every page into a JSON-only page.
 
-[lib/db/client.ts](../lib/db/client.ts) builds the client once at module load:
+Keep production, preview, and developer databases separate. CI builds use `KALCHAR_TEST_FIXTURES=1` to supply deterministic public rows through the data seam, without production DB, R2, or OAuth secrets. Fixtures do not bypass admin authentication. Migration application is checked separately against disposable PostgreSQL. Never deploy fixture mode as the real catalog.
 
-```ts
-const url = process.env.DATABASE_URL;
-if (!url) {
-  throw new Error("DATABASE_URL is not set. See .env.example and docs/DATABASE.md.");
-}
-const sql = neon(url);
-export const db = drizzle({ client: sql, schema });
-```
+## Nine-table schema
 
-It uses the **neon-http** driver on purpose: it is the fastest path for single, non-interactive queries, which is exactly the gallery's read pattern (one `select` per getter, no transactions, no session state). The module-level singleton is safe on serverless because each warm Lambda/edge instance reuses the one client (`lib/db/client.ts:8`). The file is imported only by [lib/data.ts](../lib/data.ts) and the server-side scripts; never from a client component, since the connection string holds credentials.
-
-## Schema
-
-Nine tables are defined in [lib/db/schema.ts](../lib/db/schema.ts): `artworks`, `workshops`, `events`, `settings`, `order_presets`, `categories`, `maintainers`, `leads`, and `testimonials`. Event rows carry an ordered `images` array of R2 key-bases. Leads hold the minimum custom-order brief needed for follow-up. Testimonials can soft-link to an artwork slug. No hard foreign keys are used; category and artwork renames are kept together by one atomic Neon batch.
+[lib/db/schema.ts](../lib/db/schema.ts) is the authoritative schema. Generated SQL and snapshots in `drizzle/` record its history.
 
 ```mermaid
-%%{init: {'theme':'dark','themeVariables':{'primaryColor':'#6366f1','primaryTextColor':'#fff','primaryBorderColor':'#818cf8','lineColor':'#94a3b8','clusterBkg':'#1e293b','clusterBorder':'#334155'}}}%%
 erDiagram
     artworks {
         text slug PK
         text title
-        text style
+        text style FK
         text medium
         integer year
         text dimensions
-        real aspect_ratio "default 0.75"
-        boolean featured "default false"
+        real aspect_ratio
+        boolean featured
         integer order
         text description
         text image
-        jsonb palette "string[]"
-        text status "default archive"
+        jsonb palette
+        text status
         integer price_inr
+    }
+    categories {
+        text id PK
+        text name UK
+        integer order
     }
     workshops {
         text slug PK
@@ -58,195 +44,155 @@ erDiagram
         real duration_hours
         integer order
     }
+    events {
+        text id PK
+        text title
+        text description
+        timestamptz event_date
+        text category
+        jsonb images
+        boolean featured
+        integer order
+        timestamptz created_at
+    }
+    settings {
+        text key PK
+        jsonb value
+    }
+    order_presets {
+        text id PK
+        text kind
+        text label
+        integer order
+    }
     maintainers {
         text email PK
         text name
-        boolean is_root "default false"
-        text added_by FK
-        timestamptz created_at "default now"
+        boolean is_root
+        text added_by
+        timestamptz created_at
     }
-    maintainers ||--o{ maintainers : "added_by -> email"
+    leads {
+        text id PK
+        text name
+        text contact
+        text style
+        text size
+        text budget
+        text timeline
+        text brief
+        text status
+        timestamptz created_at
+    }
+    testimonials {
+        text id PK
+        text quote
+        text author_name
+        text author_location
+        text artwork_slug
+        boolean featured
+        integer order
+        timestamptz created_at
+    }
+    categories ||--o{ artworks : "name to style"
 ```
 
-### artworks
+| Entity | Contract |
+| --- | --- |
+| `artworks` | `slug` identifies the page; `image` identifies the independently versioned stored image. Preserve the latter when generating URLs. Price is INR. The shared buy rule is a positive finite price and a status other than sold. |
+| `categories` | `id` identifies the editable category; unique `name` is referenced by `artworks.style`. The foreign key cascades a rename and restricts deletion while pieces reference it. It closes races that application-only usage checks cannot prevent. |
+| `workshops` | Sessions offered, ordered by `order` with a stable identity tie-breaker. These are distinct from events that already happened. |
+| `events` | `images` is an ordered JSON array of R2 key-bases. The first is the cover. Updates must detect conflicts rather than overwrite a concurrently edited array. |
+| `settings` | Singleton JSON values such as `profileImage` and the home-intro toggle. `catalogBootstrap` records successful one-time seeding and must not be removed to force reseeding. |
+| `order_presets` | `kind` is size, budget, or timeline; `label` and `order` define each dropdown option. |
+| `maintainers` | Normalized Google email allowlist. `is_root` prevents removal through the application. `added_by` is an audit label, not a foreign key. Root provisioning is separate from catalog seeding. |
+| `leads` | Optional name and return-contact text, style/size/budget/timeline, required brief, triage status, and timestamp. Contact is limited to 200 characters. Treat all fields as personal data. |
+| `testimonials` | Quote, author, optional location, featured flag, and sort order. `artwork_slug` is an optional text association, not an enforced foreign key. |
 
-The catalog. One row per piece, keyed by `slug`. Mirrors the `Artwork` interface in [lib/types.ts](../lib/types.ts).
+Database checks reject invalid lifecycle/triage/preset values, blank required text, and nonpositive prices, dimensions, and order values. Application validation supplies understandable feedback; constraints also protect writes that bypass the UI.
 
-| Column | pg type | Null / default | Meaning |
-| --- | --- | --- | --- |
-| `slug` | `text` | PK, not null | Stable id and URL segment (`/work/[slug]`). |
-| `title` | `text` | not null | Display title. |
-| `style` | `text` | not null | Art style; UI narrows to the `ArtStyle` union (Madhubani, Pichwai, Lippan, Gond, Texture, Mixed Media). |
-| `medium` | `text` | not null | Material/technique line. |
-| `year` | `integer` | nullable | Year made. |
-| `dimensions` | `text` | nullable | Free-text size, e.g. `30 x 40 cm`. |
-| `aspect_ratio` | `real` | not null, default `0.75` | width / height, used for gallery layout decisions. |
-| `featured` | `boolean` | not null, default `false` | Hero/rail inclusion. |
-| `order` | `integer` | not null | Sort key, ascending. Lower sorts earlier. |
-| `description` | `text` | nullable | Long copy for the detail page. |
-| `image` | `text` | not null | Image identifier. Phase 2: the `<slug>.jpg` key resolved against the R2 public base via [lib/image-base.ts](../lib/image-base.ts). |
-| `palette` | `jsonb` (`string[]`) | nullable | Sampled palette of 3-5 hex values for chromacard / accent UI. |
-| `status` | `text` | not null, default `archive` | Lifecycle: `archive` / `available` / `sold`. |
-| `price_inr` | `integer` | nullable | Price in INR. When set, the piece is considered for-sale. |
+Before applying the category relationship migration to an existing database, inspect duplicate category names and artwork styles without a matching category. Resolve those rows deliberately in a preview branch, preserving their intended category. Do not silently delete catalog records to make a constraint pass.
 
-### workshops
+## Data and cache boundaries
 
-The teaching offerings. One row per workshop, keyed by `slug`. Mirrors the `Workshop` interface in [lib/types.ts](../lib/types.ts).
+Catalog getters map nullable database fields to the UI types. Shared sale rules live in [lib/catalog.ts](../lib/catalog.ts). [Setting parsers](../lib/site-settings.ts) validate stored profile-image and home-intro values before returning them; callers cannot assert an arbitrary type over JSON. `getSite()` remains synchronous and reads bundled brand/nav/copy from `data/site.json`; changing that JSON requires a new build.
 
-| Column | pg type | Null / default | Meaning |
-| --- | --- | --- | --- |
-| `slug` | `text` | PK, not null | Stable id. |
-| `title` | `text` | not null | Workshop title. |
-| `blurb` | `text` | not null | Short description. |
-| `duration_hours` | `real` | nullable | Length in hours. |
-| `order` | `integer` | not null | Sort key, ascending. |
+| Read group | Consumers |
+| --- | --- |
+| Artwork collection, available/featured pieces, slug lookup | Home, gallery, detail pages, metadata, feed, sitemap |
+| Categories and style samples | Gallery filters, custom-order examples, admin options |
+| Workshops and order presets | Public offerings, inquiry form, admin editors |
+| Events and profile settings | Home, event/about pages, corresponding admin editors |
+| Testimonials | Home and artwork details |
+| Leads and maintainer roster | Authorized private admin reads only |
 
-### maintainers
+Public cache invalidation must cover these consumers, including custom-order image examples and every detail page's previous/next links after reorder or deletion. A layout-level invalidation or a complete dependency map is necessary; invalidating only `/work` does not automatically invalidate each detail path.
 
-The admin allowlist. Replaces a static `ADMIN_EMAILS` env var so a logged-in maintainer can add or remove others from the panel without a redeploy (`lib/db/schema.ts:53`). The Auth.js `signIn` callback checks an email against this table; see [AUTH.md](AUTH.md).
+## Fresh database setup
 
-| Column | pg type | Null / default | Meaning |
-| --- | --- | --- | --- |
-| `email` | `text` | PK, not null | Lowercased Google account email. |
-| `name` | `text` | nullable | Display name. |
-| `is_root` | `boolean` | not null, default `false` | True for the seeded bootstrap maintainer (`sg85207@gmail.com`); root rows cannot be removed, so the panel can never delete its way into a lockout. |
-| `added_by` | `text` | nullable | Email of the maintainer who added this one; null for the root seed. Soft self-reference into `email`. |
-| `created_at` | `timestamptz` | not null, default `now()` | Insert time, timezone-aware. |
-
-### categories
-
-Art categories, formerly a fixed "styles" enum in `site.json`, now editable from `/admin` so new traditions can be added without a code change. An artwork's `style` column stores the category `name` (free text), so renaming a category does not orphan rows -- the admin rename action updates matching artworks too (see [app/admin/actions.ts](../app/admin/actions.ts) `renameCategory`).
-
-| Column | pg type | Null / default | Meaning |
-| --- | --- | --- | --- |
-| `id` | `text` | PK, not null | Slugified category id. |
-| `name` | `text` | not null | Display name, matched against `artworks.style`. |
-| `order` | `integer` | not null | Sort key, ascending. |
-
-### order_presets
-
-The custom-order form's dropdown options. One row per option, discriminated by `kind` (`"size" | "budget" | "timeline"`), so all three dropdowns share one table and a new kind needs no schema change. Editable from `/admin/presets`.
-
-| Column | pg type | Null / default | Meaning |
-| --- | --- | --- | --- |
-| `id` | `text` | PK, not null | Stable id, derived from kind + a monotonic suffix. |
-| `kind` | `text` | not null | `"size"`, `"budget"`, or `"timeline"`. |
-| `label` | `text` | not null | The option text shown in the dropdown. |
-| `order` | `integer` | not null | Sort key within the kind. |
-
-Drizzle infers select/insert types for all nine tables at the end of `lib/db/schema.ts`.
-
-### Integrity constraints
-
-Migration `drizzle/0002_slow_sprite.sql` adds database checks for valid lifecycle values, positive prices, positive dimensions and order values, valid preset and lead kinds, and non-blank required text. Application validation remains the first line of feedback, while Postgres prevents invalid rows from bypassing the admin UI.
-
-## The data seam
-
-[lib/data.ts](../lib/data.ts) is the single read chokepoint for the catalog. Everything in `app/` and `components/` reads artworks and workshops through it; nothing else queries Neon or imports `data/*.json` directly. This seam is why moving the backend from JSON files to Postgres touched almost no UI code -- the returned `Artwork[]` / `Workshop[]` shapes never changed. See [ARCHITECTURE.md](ARCHITECTURE.md) for the seam in context.
-
-### Getters
-
-| Function | Sync/async | Source | Returns |
-| --- | --- | --- | --- |
-| `getAllArtworks()` | async | `select ... orderBy order asc` | `readonly Artwork[]` |
-| `getAvailableArtworks()` | async | filters `getAllArtworks()` | `status === "available"` only |
-| `getFeaturedArtwork()` | async | `getAllArtworks()` | first `featured`, else lowest-order fallback |
-| `getArtworkBySlug(slug)` | async | `getAllArtworks()` | one `Artwork \| undefined` |
-| `getAllArtworkSlugs()` | async | `getAllArtworks()` | `readonly string[]` for `generateStaticParams` |
-| `getAllWorkshops()` | async | `select ... orderBy order asc` | `readonly Workshop[]` |
-| `getSite()` | **sync** | `data/site.json` | `Site` (static chrome) |
-
-Only `getAllArtworks` and `getAllWorkshops` hit the DB directly (`lib/data.ts:69`, `lib/data.ts:96`); the available/featured/by-slug/slugs getters all derive from the in-memory `getAllArtworks()` result. `getSite()` stays synchronous because brand/nav/contact/section copy is static chrome read from `data/site.json`, and `app/layout.tsx` consumes it at module top-level where `await` cannot reach (`lib/data.ts:101`).
-
-### Row to UI mapping
-
-`toArtwork` and `toWorkshop` map a DB row to the UI type, collapsing nullable columns to optional fields and reading the `palette` jsonb straight into a `string[]` (`lib/data.ts:39`, `lib/data.ts:58`). For example `year: row.year ?? undefined`, `palette: row.palette ?? undefined`.
-
-`deriveStatus` is the one non-trivial mapping. The DB stores `status` explicitly (default `archive`), but the seam keeps a Phase 1 fallback so a row left at the default still flips to `available` the moment a price is set -- no extra admin step (`lib/data.ts:25`):
-
-```ts
-function deriveStatus(row: ArtworkRow): ArtworkStatus {
-  if (row.status === "available" || row.status === "sold" || row.status === "archive") {
-    if (row.status === "archive" && typeof row.priceInr === "number") return "available";
-    return row.status;
-  }
-  return typeof row.priceInr === "number" ? "available" : "archive";
-}
-```
-
-Read it as: a stored status of `available` or `sold` wins as-is; a stored `archive` with a numeric `priceInr` resolves to `available`; an `archive` with no price stays `archive`. The final branch is the legacy fallback for any unrecognized/absent status, deriving purely from price presence.
-
-### Read flow
-
-```mermaid
-%%{init: {'theme':'dark','themeVariables':{'primaryColor':'#6366f1','primaryTextColor':'#fff','primaryBorderColor':'#818cf8','lineColor':'#94a3b8','clusterBkg':'#1e293b','clusterBorder':'#334155'}}}%%
-sequenceDiagram
-    participant Page as Server component
-    participant Seam as lib/data.ts
-    participant DB as Drizzle (db)
-    participant Neon as Neon Postgres
-    Page->>Seam: await getAllArtworks()
-    Seam->>DB: select().from(artworks).orderBy(asc(order))
-    DB->>Neon: HTTP query (neon-http)
-    Neon-->>DB: ArtworkRow[]
-    DB-->>Seam: rows
-    Seam->>Seam: rows.map(toArtwork) + deriveStatus
-    Seam-->>Page: readonly Artwork[]
-```
-
-Under SSG these getters run at build time and bake into HTML; the same functions serve dynamic requests for the admin panel. No DB round-trip happens when a visitor hits a pre-rendered public page.
-
-## Writes
-
-Mutations are server actions: catalog + lookups + roster in [app/admin/actions.ts](../app/admin/actions.ts), events + profile settings in [app/admin/event-actions.ts](../app/admin/event-actions.ts), with the shared sync helpers (`requireMaintainer`, `slugify`, `nextOrderSql`, `formString`) in [app/admin/_helpers.ts](../app/admin/_helpers.ts). Each action calls `requireMaintainer()` first (defense in depth -- the proxy already gates `/admin`, but actions can be invoked directly), then mutates rows, then calls the relevant `revalidate*` helper to refresh the affected paths. The auth re-check is detailed in [AUTH.md](AUTH.md); the R2 image side in [IMAGES.md](IMAGES.md).
-
-| Action | DB effect | Notes |
-| --- | --- | --- |
-| `updateArtwork(slug, fields)` | one validated `update` | Commits metadata, price, status, and featured state atomically so a failed save cannot leave a partial edit. |
-| `createArtwork(formData)` | `insert` new row | Slugifies the title, processes the image, computes `order`. |
-| `deleteArtwork(slug)` | row delete + R2 cleanup | Removes the database row first, then attempts cleanup of the stored image variants. |
-
-`createArtwork` slugifies the title, rejects duplicates, validates the upload and numeric fields, runs `processArtworkImage`, and inserts the row. `nextOrderSql` avoids an application-side read round-trip, but concurrent inserts can still share a display order. Every catalog query therefore uses the row id or slug as a deterministic secondary sort key. Uploaded objects are removed if the row insert fails.
-
-## Migrations and commands
-
-Drizzle Kit drives schema changes. [drizzle.config.ts](../drizzle.config.ts) points at `./lib/db/schema.ts`, emits SQL to `./drizzle`, and uses the `postgresql` dialect. It loads `.env.local` explicitly via `dotenv` because drizzle-kit does not read it automatically the way Next.js does (`drizzle.config.ts:13`):
-
-```ts
-config({ path: ".env.local" }); // drizzle-kit does not auto-load .env.local
-```
+Use migrations for every database intended to survive beyond an experiment:
 
 ```sh
-pnpm db:push       # drizzle-kit push: push schema straight to the DB (rapid dev)
-pnpm db:generate   # drizzle-kit generate: emit SQL migration files under ./drizzle
-pnpm db:migrate    # drizzle-kit migrate: apply the generated migrations
-pnpm db:seed       # tsx scripts/migrate-json-to-db.ts: JSON -> Neon rows
-pnpm db:images     # tsx scripts/migrate-images-to-r2.ts: upload image variants (see IMAGES.md)
+node scripts/check-migrations.mjs
+pnpm db:migrate
+pnpm db:seed
 ```
 
-Every schema change must include a generated SQL migration under `drizzle/`. CI rejects a pull request that changes `lib/db/schema.ts` without one. Use `db:push` only for disposable local databases; use `db:generate`, review the SQL, and apply `db:migrate` for shared environments. See [OPERATIONS.md](OPERATIONS.md) for backup and rollback steps.
+`db:migrate` loads the configured environment through `drizzle.config.ts` and applies the committed journal in order. Confirm the target is the intended isolated database before running any write command. Catalog seeding is optional for an empty production catalog; it is intended for original seed/bootstrap environments.
 
-### Seeding
+`db:push` is for throwaway schema experiments only. Do not push the latest schema and then replay the complete migration history: unconditional table creation and constraints in earlier migrations can already exist. An existing pushed database needs the baseline procedure below.
 
-`pnpm db:seed` runs [scripts/migrate-json-to-db.ts](../scripts/migrate-json-to-db.ts) once the tables exist (after `db:push`). `DATABASE_URL` reaches the script via `tsx --env-file=.env.local` (`scripts/migrate-json-to-db.ts:16`). It seeds:
+For a schema change:
 
-- **artworks** from `data/artworks.json` (`items` array).
-- **workshops** from `data/site.json` (`workshops` array).
+1. Edit the schema and generate SQL with `pnpm db:generate`.
+2. Review SQL, snapshot, and journal together. Keep older migrations unchanged.
+3. Run `node scripts/check-migrations.mjs`. It rejects missing/orphaned SQL or snapshots, unsafe filenames, invalid numbering, duplicate/out-of-order timestamps, and broken snapshot ancestry. Its optional directory argument must stay inside this checkout's `drizzle/` or `.cache/operational-tests/`; symlinks and junctions are rejected.
+4. Apply the journal to fresh disposable PostgreSQL and to a representative preview branch.
+5. Verify behavior before applying the reviewed migration to production under the release procedure.
 
-It is idempotent: each insert uses `onConflictDoUpdate` keyed on `slug`, so re-running re-syncs the rows rather than duplicating them (`scripts/migrate-json-to-db.ts:51`, `scripts/migrate-json-to-db.ts:83`). The script seeds catalog metadata only; the `image` column keeps the `<slug>.jpg` filename, and uploading the actual image variants to R2 is the separate `pnpm db:images` step covered in [IMAGES.md](IMAGES.md). It carries its own local `deriveStatus` (a simpler variant: stored status wins, else price presence decides) so JSON rows without an explicit status seed correctly (`scripts/migrate-json-to-db.ts:23`).
+File validation does not execute SQL or prove data compatibility. The disposable PostgreSQL check and preview migration exercise cover those different questions.
 
-```mermaid
-%%{init: {'theme':'dark','themeVariables':{'primaryColor':'#6366f1','primaryTextColor':'#fff','primaryBorderColor':'#818cf8','lineColor':'#94a3b8','clusterBkg':'#1e293b','clusterBorder':'#334155'}}}%%
-flowchart LR
-    aj["data/artworks.json<br/>items[]"] --> seed["migrate-json-to-db.ts"]
-    sj["data/site.json<br/>workshops[]"] --> seed
-    seed -->|insert onConflictDoUpdate slug| art[("artworks")]
-    seed -->|insert onConflictDoUpdate slug| ws[("workshops")]
-    subgraph neon["Neon Postgres"]
-        art
-        ws
-    end
-    style art fill:#f59e0b,color:#000,stroke:#fbbf24
-    style ws fill:#f59e0b,color:#000,stroke:#fbbf24
-    style seed fill:#10b981,color:#fff,stroke:#34d399
+## Existing database created with db:push
+
+Baseline only the migration prefix whose resulting schema is already present. Never label pending schema changes as applied just to silence a migration error.
+
+The offline [prepare-migration-baseline.mjs](../scripts/prepare-migration-baseline.mjs) script compares two public schema dumps and generates history-only SQL. It never connects to a database or runs that SQL. Create `.cache/baseline/` in this checkout first. Inputs and output must be `.sql` files under that directory; `.cache/operational-tests/` is also accepted for synthetic tests. Use letters, digits, underscores, hyphens, and periods in filenames. The output must not exist.
+
+1. Pause schema/catalog writes and capture a coordinated backup per [OPERATIONS.md](OPERATIONS.md).
+2. Choose the last already-present migration tag. Create an empty, disposable reference database and apply only the numbered SQL files through that tag, in journal order. For example, a database matching migration `0002_slow_sprite` needs `0000`, `0001`, and `0002`, not later pending migrations.
+3. Use the same `pg_dump` executable/version to dump `public` from both the reference and target. Named libpq services below refer to externally managed credentials; no connection string belongs in this repo.
+
+```sh
+pg_dump --dbname=service=kalchar-reference --schema-only --schema=public --no-owner --no-acl --no-comments --no-security-labels --file=.cache/baseline/reference.sql
+pg_dump --dbname=service=kalchar-target --schema-only --schema=public --no-owner --no-acl --no-comments --no-security-labels --file=.cache/baseline/target.sql
+node scripts/prepare-migration-baseline.mjs --reference .cache/baseline/reference.sql --target .cache/baseline/target.sql --through 0002_slow_sprite --output .cache/baseline/plan.sql
 ```
+
+4. The script requires matching DDL and exactly the selected snapshot's public tables. It normalizes line endings and ignores only `pg_dump` version/time headers and per-run `psql` restriction tokens. Other text differences, including objects, defaults, constraints, and indexes, stop preparation. Reconcile differences explicitly and repeat the comparison. Do not remove statements from dumps to force a match.
+5. Review the generated file. While the target remains write-frozen, apply it to the exact target used for the comparison:
+
+```sh
+psql --dbname=service=kalchar-target -X --set=ON_ERROR_STOP=1 --file=.cache/baseline/plan.sql
+```
+
+6. The SQL locks migration history, requires any existing history to be an exact prefix, and inserts only missing hashes/timestamps. It does not replay application DDL or data changes. Then apply genuinely pending migrations normally.
+
+Schema equality alone does not prove historical data-transform migrations ran. Inspect every selected SQL file for data changes or side effects and prove their postconditions separately before baselining them. The currently reviewed prefix through `0002` consists of schema changes.
+
+Paths are anchored to the checkout containing the scripts, even when invoked from another working directory. Absolute paths are accepted only inside the approved directories. Parent traversal, symlinks, junctions, device names, and alternate data streams are rejected. Keep the schema dumps, chosen boundary, history SQL, and review evidence in the private operation record. This repository does not assert that a live database has been baselined.
+
+## One-time catalog seed
+
+[migrate-json-to-db.ts](../scripts/migrate-json-to-db.ts) inserts original artworks, workshops, categories, and size/budget/timeline presets. Categories are inserted before artworks so their foreign key is satisfied. It uses the same status derivation as the application.
+
+The script locks catalog/content/settings tables and checks that they are empty in the same transaction as all inserts. Existing maintainers are allowed and unchanged. Any existing artwork, category, workshop, preset, event, testimonial, lead, or setting refuses the operation. A `catalogBootstrap` setting makes later reseeding refuse even if all original catalog pieces were deleted.
+
+There are no conflict-update or conflict-do-nothing inserts. A failure rolls the transaction back. Seed data is not a synchronization system or a recovery substitute. Do not clear tables or remove the marker to repeat it on a used environment.
+
+Inspect counts without loading `.env.local` or connecting to Neon:
+
+```sh
+pnpm exec tsx scripts/migrate-json-to-db.ts --dry-run
+```
+
+`pnpm db:images` is separate and writes R2 objects. It regenerates only the checked-in original masters, not later admin uploads. See [IMAGES.md](IMAGES.md) and [OPERATIONS.md](OPERATIONS.md).

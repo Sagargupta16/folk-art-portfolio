@@ -254,8 +254,6 @@ test(
 );
 
 test.describe("reduced motion", () => {
-	test.use({ reducedMotion: "reduce" });
-
 	test("keeps static tilted hero plates and the description visible", async ({ page }) => {
 		await page.emulateMedia({ reducedMotion: "reduce" });
 		await page.goto("/");

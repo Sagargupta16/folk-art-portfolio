@@ -1,11 +1,11 @@
-import { auth } from "@/auth";
-import { listMaintainers } from "@/lib/maintainers";
+import { requireAdminPage } from "@/lib/admin-auth";
+import { getMaintainers } from "@/lib/data";
 import { AdminPageHeader } from "../_components/admin-page-header";
 import { MaintainerManager } from "../_components/maintainer-manager";
 
 export default async function MaintainersPage() {
-	const [roster, session] = await Promise.all([listMaintainers(), auth()]);
-	const me = session?.user?.email?.toLowerCase() ?? "";
+	const me = await requireAdminPage();
+	const roster = await getMaintainers();
 
 	return (
 		<div className="max-w-2xl space-y-6">

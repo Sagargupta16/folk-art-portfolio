@@ -5,9 +5,8 @@
  *
  * `submitLead` is PUBLIC (the custom-order form calls it before handing off to
  * WhatsApp), so it's hardened against abuse: a honeypot field, a coarse
- * per-instance rate limit, and length caps. It is fire-and-forget by contract
- * -- it never throws back to the form, because the form must still open
- * WhatsApp even if persistence fails (the always-works link must not regress).
+ * per-instance rate limit, and length caps. It returns persistence status so
+ * the form can report it accurately while keeping WhatsApp available.
  *
  * The status/delete actions are maintainer-gated like every other admin
  * mutation. Split into its own module (mirroring event-actions.ts) to keep each
@@ -17,11 +16,13 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import type { ActionResult } from "@/lib/action-result";
+import { runAdminAction } from "@/lib/admin-action";
 import { db } from "@/lib/db/client";
 import { leads } from "@/lib/db/schema";
 import { createFixedWindowRateLimiter } from "@/lib/fixed-window-rate-limit";
 import type { LeadStatus } from "@/lib/types";
-import { formString, requireMaintainer } from "./_helpers";
+import { formString } from "./_helpers";
 
 /** Field length caps -- generous for a real brief, tight enough to bound abuse. */
 const MAX_BRIEF = 4000;
@@ -47,8 +48,8 @@ async function clientKey(): Promise<string> {
 }
 
 /**
- * Persist a custom-order brief. Returns `{ ok }` and NEVER throws -- the form
- * ignores the result and proceeds to WhatsApp regardless. `website` is a
+ * Persist a custom-order brief. Returns `{ ok }` without blocking the form's
+ * separate WhatsApp link on failure. `website` is a
  * honeypot: real users leave it empty; a filled value is silently dropped.
  */
 export async function submitLead(formData: FormData): Promise<{ ok: boolean }> {
@@ -67,6 +68,7 @@ export async function submitLead(formData: FormData): Promise<{ ok: boolean }> {
 		await db.insert(leads).values({
 			id: randomUUID(),
 			name: short("name"),
+			contact: short("contact"),
 			style: short("style"),
 			size: short("size"),
 			budget: short("budget"),
@@ -77,8 +79,7 @@ export async function submitLead(formData: FormData): Promise<{ ok: boolean }> {
 		revalidatePath("/admin/leads");
 		return { ok: true };
 	} catch {
-		// Persistence is best-effort; swallow so the form's WhatsApp hand-off,
-		// which runs independently on the client, is never blocked.
+		// The form reports the failed save and still offers its WhatsApp link.
 		return { ok: false };
 	}
 }
@@ -86,16 +87,23 @@ export async function submitLead(formData: FormData): Promise<{ ok: boolean }> {
 const LEAD_STATUSES: readonly LeadStatus[] = ["new", "contacted", "closed"];
 
 /** Update a lead's triage status (maintainer only). */
-export async function setLeadStatus(id: string, status: LeadStatus): Promise<void> {
-	await requireMaintainer();
-	if (!LEAD_STATUSES.includes(status)) throw new Error("Invalid status.");
-	await db.update(leads).set({ status }).where(eq(leads.id, id));
-	revalidatePath("/admin/leads");
+export async function setLeadStatus(id: string, status: LeadStatus): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		if (!LEAD_STATUSES.includes(status)) throw new Error("Invalid status.");
+		const updated = await db
+			.update(leads)
+			.set({ status })
+			.where(eq(leads.id, id))
+			.returning({ id: leads.id });
+		if (updated.length === 0) throw new Error("Lead not found.");
+		revalidatePath("/admin/leads");
+	});
 }
 
 /** Delete a lead (maintainer only) -- the PII-removal path for a closed enquiry. */
-export async function deleteLead(id: string): Promise<void> {
-	await requireMaintainer();
-	await db.delete(leads).where(eq(leads.id, id));
-	revalidatePath("/admin/leads");
+export async function deleteLead(id: string): Promise<ActionResult> {
+	return runAdminAction(async () => {
+		await db.delete(leads).where(eq(leads.id, id));
+		revalidatePath("/admin/leads");
+	});
 }

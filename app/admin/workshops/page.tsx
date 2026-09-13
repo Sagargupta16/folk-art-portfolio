@@ -1,8 +1,10 @@
+import { requireAdminPage } from "@/lib/admin-auth";
 import { getAllWorkshops } from "@/lib/data";
 import { AdminPageHeader } from "../_components/admin-page-header";
 import { WorkshopManager } from "../_components/workshop-manager";
 
 export default async function AdminWorkshopsPage() {
+	await requireAdminPage();
 	const workshops = await getAllWorkshops();
 
 	return (

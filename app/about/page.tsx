@@ -30,7 +30,7 @@ interface AboutSection {
 export default async function AboutPage() {
 	const { brand, sections } = getSite();
 	const about = (sections.about ?? {}) as AboutSection;
-	const profileImage = await getSetting<string>("profileImage");
+	const profileImage = await getSetting("profileImage");
 
 	return (
 		<main>

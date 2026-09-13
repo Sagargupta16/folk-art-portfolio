@@ -25,25 +25,9 @@ import { cn } from "@/lib/utils";
  * Cards are uniform 3:4 plates -- the user picked uniform-cropped over
  * masonry to avoid the previous attempt's size inconsistency.
  */
-type GalleryItem = Pick<
-	Artwork,
-	| "slug"
-	| "title"
-	| "style"
-	| "medium"
-	| "image"
-	| "description"
-	| "featured"
-	| "order"
-	| "aspectRatio"
-	| "priceInr"
-	| "status"
-	| "palette"
->;
-
 interface WorkFilterProps {
 	styles: readonly ArtStyle[];
-	items: readonly GalleryItem[];
+	items: readonly Artwork[];
 }
 
 const ALL = "All" as const;
@@ -116,7 +100,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 		const match = items.find((i) => i.slug === pieceParam);
 		if (!match) return;
 		openedFromUrl.current = pieceParam;
-		openLightbox(match as Artwork, items as Artwork[]);
+		openLightbox(match, items);
 	}, [pieceParam, items, openLightbox]);
 
 	// Reflect the lightbox state back into the URL: the active slug while open,
@@ -210,11 +194,7 @@ export function WorkFilter({ styles, items }: Readonly<WorkFilterProps>) {
 							as="li"
 							delayMs={Math.min(i, STAGGER_MAX_INDEX) * STAGGER_STEP_MS}
 						>
-							<ArtworkCard
-								artwork={art as Artwork}
-								siblings={visible as Artwork[]}
-								priority={i < 3}
-							/>
+							<ArtworkCard artwork={art} siblings={visible} priority={i < 3} />
 						</Reveal>
 					))}
 				</ul>

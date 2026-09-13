@@ -18,6 +18,7 @@ pnpm dev          # http://localhost:3000  (needs .env.local -- see .env.example
 pnpm dev --port 3001  # alternate port; Google OAuth must allow the matching callback
 pnpm build        # next build
 pnpm typecheck
+pnpm exec tsc -p tsconfig.scripts.json
 pnpm lint
 pnpm test         # unit tests
 pnpm test:e2e     # production browser + accessibility checks on port 3001
@@ -27,10 +28,15 @@ pnpm format
 Database + image helpers:
 
 ```sh
-pnpm db:push      # apply Drizzle schema to Neon
-pnpm db:seed      # seed catalog rows from data/artworks.json
+node scripts/check-migrations.mjs  # verify journal, SQL, and snapshots offline
+pnpm db:migrate   # apply the reviewed migration history to the selected database
+pnpm db:seed      # one-time bootstrap; refuses any populated catalog/settings
 pnpm db:images    # upload public/artworks/ image variants to R2
 ```
+
+Use an isolated database and bucket for development. Follow [first-time setup](docs/DEVELOPMENT.md) before running write commands. Existing databases created with `db:push` need the [verified baseline procedure](docs/DATABASE.md#existing-database-created-with-dbpush), not a replay of already-present schema changes.
+
+CI uses public fixtures without production credentials and checks migration application against disposable PostgreSQL separately. The [operations runbook](docs/OPERATIONS.md) covers coordinated database/image recovery and explicitly distinguishes offline verification from provider restore drills.
 
 ## What's on disk
 
@@ -42,7 +48,7 @@ pnpm db:images    # upload public/artworks/ image variants to R2
 | [`auth.ts`](auth.ts), [`proxy.ts`](proxy.ts) | Auth.js config + `/admin` route protection (`proxy.ts` is the Next 16 rename of `middleware.ts`). |
 | [`data/`](data/) | `site.json` (brand/nav/copy, read at runtime) + `artworks.json` (original seed source). |
 | [`public/`](public/) | Master artwork JPGs (R2 regenerate source and final fallback), logo, `robots.txt`. |
-| [`scripts/`](scripts/) | Database/image migration helpers and the production health check. |
+| [`scripts/`](scripts/) | Guarded bootstrap, migration and baseline checks, offline backup verification, image helpers, and public catalog/media health checks. |
 | [`docs/`](docs/) | Engineering docs: [ARCHITECTURE](docs/ARCHITECTURE.md), [DATABASE](docs/DATABASE.md), [AUTH](docs/AUTH.md), [IMAGES](docs/IMAGES.md), [DEPLOYMENT](docs/DEPLOYMENT.md), [DEVELOPMENT](docs/DEVELOPMENT.md), [OPERATIONS](docs/OPERATIONS.md). Index: [docs/README.md](docs/README.md). |
 | [`.github/workflows/`](.github/workflows/) | `ci.yml` verifies code, migrations, secrets, build, and browsers. `health.yml` checks production daily. `deploy.yml` is the manual Pages recovery path. |
 

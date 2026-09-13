@@ -1,4 +1,5 @@
 import { Image, Package, ShoppingBag, Star } from "lucide-react";
+import { requireAdminPage } from "@/lib/admin-auth";
 import { getAllArtworks, getCategoryNames } from "@/lib/data";
 import { artworkBrowserImageUrl } from "@/lib/image-base";
 import { AdminPageHeader } from "./_components/admin-page-header";
@@ -14,6 +15,7 @@ import { UploadForm } from "./_components/upload-form";
 export const maxDuration = 60;
 
 export default async function AdminDashboard() {
+	await requireAdminPage();
 	const [artworks, categoryNames] = await Promise.all([getAllArtworks(), getCategoryNames()]);
 	const available = artworks.filter((a) => a.status === "available").length;
 	const sold = artworks.filter((a) => a.status === "sold").length;

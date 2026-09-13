@@ -65,6 +65,14 @@ export const clientEnv = {
 
 /** Server-only env (secrets + server config). Never import from a client component. */
 export const serverEnv = {
+	/** Explicit, read-only catalog for local/CI verification; never deploy it to Vercel. */
+	get testFixtures(): boolean {
+		const enabled = process.env.KALCHAR_TEST_FIXTURES === "1";
+		if (enabled && process.env.VERCEL === "1") {
+			throw new Error("Catalog test fixtures cannot be deployed to Vercel.");
+		}
+		return enabled;
+	},
 	get databaseUrl(): string {
 		return required("DATABASE_URL", "docs/DATABASE.md");
 	},

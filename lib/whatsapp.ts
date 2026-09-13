@@ -9,6 +9,8 @@
  * throws at build time so a typo in `data/site.json` can't ship as a
  * silently-broken CTA.
  */
+
+import { isPositivePrice } from "./catalog";
 import type { Artwork, CustomOrderDraft } from "./types";
 import { formatInr } from "./utils";
 
@@ -51,15 +53,20 @@ export function extractPhoneFromWaUrl(waUrl: string): string {
 
 /** Pre-filled "I'm interested in this piece" message. */
 export function buyArtworkMessage(art: Artwork): string {
-	const priceLine =
-		typeof art.priceInr === "number" ? `\nListed price: ${formatInr(art.priceInr)}` : "";
-	return `Hi, I'd like to buy "${art.title}" (${art.style}).${priceLine}\nIs this still available?`;
+	if (art.status === "sold") {
+		return `Hi, I saw "${art.title}" (${art.style}) has found a home. I'd like to commission a similar piece. Could we discuss the options?`;
+	}
+	if (isPositivePrice(art.priceInr)) {
+		return `Hi, I'd like to buy "${art.title}" (${art.style}).\nListed price: ${formatInr(art.priceInr)}\nIs this still available?`;
+	}
+	return `Hi, I'd like to ask about "${art.title}" (${art.style}). Could we discuss a similar piece or a commission?`;
 }
 
 /** Pre-filled custom-order brief message. */
 export function customOrderMessage(draft: CustomOrderDraft): string {
 	const lines: string[] = ["Hi, I'd like to order a custom piece."];
 	if (draft.name) lines.push(`From: ${draft.name}`);
+	if (draft.contact) lines.push(`Contact: ${draft.contact}`);
 	if (draft.style) lines.push(`Style: ${draft.style}`);
 	if (draft.size) lines.push(`Size: ${draft.size}`);
 	if (draft.budget) lines.push(`Budget: ${draft.budget}`);

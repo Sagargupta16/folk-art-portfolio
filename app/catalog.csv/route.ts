@@ -12,8 +12,8 @@ import { siteConfig } from "@/lib/site-config";
  * priced-and-not-sold filter), so the feed only ever lists buyable pieces.
  *
  * force-static: the feed is baked at build like the rest of the site, costing
- * nothing per request. It refreshes on each deploy, which is when the catalog
- * can change anyway.
+ * nothing per request. Catalog mutations revalidate it, and deployments
+ * regenerate it alongside the public pages.
  */
 export const dynamic = "force-static";
 

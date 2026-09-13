@@ -2,6 +2,34 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.36.0 (2026-09-12)
+
+### Security
+
+- Update Next to 16.3.5 and sharp to 0.35.4, resolving the reported production dependency advisories.
+- Require Vitest 4.1.11 or newer to include the test runner security fix.
+- Check current maintainer access at private reads and every admin page, handle revoked sessions without a redirect loop, and constrain sign-in callbacks to local admin paths.
+- Bind upload signatures to content type and size, bound storage downloads, strip public image metadata, and restrict the media proxy to generated image paths.
+- Run PR builds and browser checks with read-only fixtures instead of production database, storage, or OAuth credentials.
+
+### Fixed
+
+- Give each image upload its own immutable version, detect concurrent image changes, and retain published versions for database recovery.
+- Enforce unique category names and database-managed artwork references so renames and deletion remain consistent under concurrent edits.
+- Revalidate every artwork consumer, including custom-order examples and detail-page navigation.
+- Return consistent admin action results, preserve drafts on failures, and add keyboard reordering and correctly nested dialogs.
+- Correct rotated image geometry, lightbox details and sharing, sold-piece inquiry text, responsive image sizing, QR asset size, and live reduced-motion preferences.
+- Report inquiry persistence accurately, keep a direct WhatsApp handoff available, and support optional return-contact details with a paginated private lead queue.
+
+### Operations
+
+- Validate migration artifacts and exercise fresh installs, upgrades, constraints, and bootstrap concurrency against disposable PostgreSQL.
+- Refuse reseeding an initialized catalog, document a checked migration baseline, and verify coordinated database/image backup bundles.
+- Add bounded staging cleanup, dependency auditing, broader production health probes, and regression checks for the repaired failure cases.
+- Lock the media proxy allowlist to the key shapes the variant pipeline actually writes ([lib/media-rewrite.test.ts](lib/media-rewrite.test.ts)). Narrowing the proxy is a silent failure mode otherwise: a renamed prefix or a tightened filename charset would return 404 for every affected image while the build and every other test still passed.
+- Move every GitHub Actions step to a Node 24 runtime (checkout v7, setup-node v7, pnpm/action-setup v6, gitleaks-action v3, and the dormant Pages actions), pin the two remaining bare tags to digests, and run CI on Node 24 to match the Vercel runtime. GitHub removes Node 20 from hosted runners on 2026-09-16, and the grouped monthly Renovate major holding these bumps would not have landed until 2026-10-01. A repo-local Renovate rule ([renovate.json](renovate.json)) now ships action updates on their own, at any time.
+- Refresh architecture, development, deployment, image, and recovery documentation.
+
 ## 1.35.3 (2026-09-02)
 
 Security patch; no app change.

@@ -17,11 +17,14 @@ import {
 	DeleteObjectsCommand,
 	GetObjectCommand,
 	HeadObjectCommand,
+	ListObjectsV2Command,
+	type ListObjectsV2CommandOutput,
 	PutObjectCommand,
 	S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { serverEnv } from "@/lib/env";
+import { STAGING_PREFIX } from "./image-upload";
 
 /**
  * Everything below is resolved lazily, on first use, and never at module load.
@@ -45,6 +48,9 @@ function client(): S3Client {
 				accessKeyId: serverEnv.r2AccessKeyId,
 				secretAccessKey: serverEnv.r2SecretAccessKey,
 			},
+			// A presigned PUT has no body here. Do not sign a checksum of an
+			// empty body in place of the bytes the browser will upload.
+			requestChecksumCalculation: "WHEN_REQUIRED",
 		});
 	}
 	return cachedClient;
@@ -110,39 +116,105 @@ export async function presignUpload(
 			ContentType: contentType,
 			ContentLength: contentLength,
 		}),
-		{ expiresIn: UPLOAD_URL_TTL_SECONDS },
+		{
+			expiresIn: UPLOAD_URL_TTL_SECONDS,
+			signableHeaders: new Set(["content-type", "content-length"]),
+		},
 	);
+}
+
+function isMissingObject(error: unknown): boolean {
+	if (!(error instanceof Error)) return false;
+	return error.name === "NotFound" || error.name === "NoSuchKey";
 }
 
 /** Byte size of one object, or null when it does not exist. */
 export async function objectSize(key: string): Promise<number | null> {
 	try {
 		const head = await client().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));
-		return head.ContentLength ?? null;
-	} catch {
-		return null;
+		if (head.ContentLength === undefined) {
+			throw new Error("Storage returned no object size.");
+		}
+		return head.ContentLength;
+	} catch (error) {
+		if (isMissingObject(error)) return null;
+		throw new Error("Could not check the uploaded image in storage. Please try again.", {
+			cause: error,
+		});
 	}
 }
 
-/** Download one object into memory. */
-export async function getObjectBuffer(key: string): Promise<Buffer> {
-	const object = await client().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
-	if (!object.Body) throw new Error("Uploaded image could not be read back.");
-	return Buffer.from(await object.Body.transformToByteArray());
+/** Bound the GET itself; a staged object can change after its earlier HEAD. */
+export async function getObjectBuffer(key: string, maxBytes: number): Promise<Buffer> {
+	try {
+		const object = await client().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
+		if (!object.Body) throw new Error("Storage returned no object body.");
+		const reader = object.Body.transformToWebStream().getReader();
+		const chunks: Uint8Array[] = [];
+		let size = 0;
+		try {
+			for (;;) {
+				const chunk = await reader.read();
+				if (chunk.done) break;
+				size += chunk.value.byteLength;
+				if (size > maxBytes) throw new Error("Storage object exceeds the upload size limit.");
+				chunks.push(chunk.value);
+			}
+		} catch (error) {
+			await reader.cancel().catch(() => {});
+			throw error;
+		} finally {
+			reader.releaseLock();
+		}
+		return Buffer.concat(chunks);
+	} catch (error) {
+		if (isMissingObject(error)) {
+			throw new Error("The uploaded image is no longer available. Please upload it again.");
+		}
+		throw new Error("Could not read the uploaded image from storage. Please try again.", {
+			cause: error,
+		});
+	}
 }
 
 /** S3 DeleteObjects accepts at most 1000 keys per request; chunk above that. */
-const DELETE_BATCH_MAX = 1000;
+export const DELETE_BATCH_MAX = 1000;
+
+const OBJECT_LIST_PAGE_MAX = 1000;
+
+/** List only the upload staging namespace, using the existing object credentials. */
+export async function listStagedObjects(
+	continuationToken?: string,
+): Promise<ListObjectsV2CommandOutput> {
+	return client().send(
+		new ListObjectsV2Command({
+			Bucket: bucket(),
+			Prefix: STAGING_PREFIX,
+			MaxKeys: OBJECT_LIST_PAGE_MAX,
+			ContinuationToken: continuationToken,
+		}),
+	);
+}
 
 /** Delete a batch of objects by key. No-op on an empty list. */
 export async function deleteObjects(keys: string[]): Promise<void> {
-	for (let i = 0; i < keys.length; i += DELETE_BATCH_MAX) {
-		const batch = keys.slice(i, i + DELETE_BATCH_MAX);
-		await client().send(
+	const uniqueKeys = [...new Set(keys)];
+	const failures: string[] = [];
+	for (let i = 0; i < uniqueKeys.length; i += DELETE_BATCH_MAX) {
+		const batch = uniqueKeys.slice(i, i + DELETE_BATCH_MAX);
+		const result = await client().send(
 			new DeleteObjectsCommand({
 				Bucket: bucket(),
 				Delete: { Objects: batch.map((Key) => ({ Key })) },
 			}),
+		);
+		for (const error of result.Errors ?? []) {
+			failures.push(`${error.Key ?? "unknown object"} (${error.Code ?? "unknown error"})`);
+		}
+	}
+	if (failures.length > 0) {
+		throw new Error(
+			`Image cleanup failed for ${failures.length} object(s): ${failures.join(", ")}`,
 		);
 	}
 }

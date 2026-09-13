@@ -29,20 +29,23 @@ function photoPickerLabel(count: number): string {
 export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>) {
 	const confirm = useConfirm();
 	const { pending, err, run } = useAdminAction();
-	// Adopts new server data after a router.refresh() (e.g. once a create lands)
-	// without clobbering optimistic delete/pin updates.
 	const [items, setItems] = useServerSyncedList(initial);
 
 	const handleDelete = (id: string) => {
-		setItems((prev) => prev.filter((i) => i.id !== id));
-		run(() => deleteEvent(id));
+		run(
+			() => deleteEvent(id),
+			() => setItems((prev) => prev.filter((i) => i.id !== id)),
+		);
 	};
 
 	const handleTogglePin = (event: Event) => {
-		// Optimistic flip so the badge updates instantly; the route refresh
-		// re-sorts pinned-to-top on the server.
-		setItems((prev) => prev.map((e) => (e.id === event.id ? { ...e, featured: !e.featured } : e)));
-		run(() => setEventFeatured(event.id, !event.featured));
+		run(
+			() => setEventFeatured(event.id, !event.featured),
+			() =>
+				setItems((prev) =>
+					prev.map((e) => (e.id === event.id ? { ...e, featured: !event.featured } : e)),
+				),
+		);
 	};
 
 	return (
@@ -52,12 +55,16 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 				onCreate={(fd, reset) =>
 					run(async () => {
 						await stageFormImages(fd);
-						await createEvent(fd);
+						return createEvent(fd);
 					}, reset)
 				}
 			/>
 
-			{err ? <p className="text-sm text-ruby">{err}</p> : null}
+			{err ? (
+				<p role="alert" className="text-sm text-ruby">
+					{err}
+				</p>
+			) : null}
 
 			<p className="text-xs text-muted">
 				Events show newest first. Pin one to keep it at the top regardless of date.
@@ -85,9 +92,9 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 					</li>
 				))}
 				{items.length === 0 ? (
-					<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
+					<li className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
 						No events yet. Add one above.
-					</p>
+					</li>
 				) : null}
 			</ul>
 		</div>
@@ -148,10 +155,11 @@ function CreateEventForm({
 					/>
 				</div>
 				<div className="sm:col-span-2">
-					<label className="flex cursor-pointer items-center gap-3 rounded-(--radius-sm) border border-dashed border-line px-4 py-3 text-sm text-muted transition-colors hover:border-accent hover:text-accent">
+					<label className="flex cursor-pointer items-center gap-3 rounded-(--radius-sm) border border-dashed border-line px-4 py-3 text-sm text-muted transition-colors hover:border-accent hover:text-accent focus-within:ring-2 focus-within:ring-accent">
 						<Plus size={18} aria-hidden="true" />
 						<span>{photoPickerLabel(fileCount)}</span>
 						<input
+							disabled={pending}
 							name="images"
 							type="file"
 							accept="image/jpeg,image/png,image/webp"
@@ -224,6 +232,8 @@ function EventItem({
 				</button>
 				<button
 					type="button"
+					aria-expanded={expanded}
+					aria-controls={`event-editor-${event.id}`}
 					onClick={() => setExpanded((v) => !v)}
 					className={`${adminBtn} min-w-11 px-2 py-1`}
 				>
@@ -241,7 +251,7 @@ function EventItem({
 			</div>
 
 			{expanded ? (
-				<div className="space-y-5 border-t border-line p-4">
+				<div id={`event-editor-${event.id}`} className="space-y-5 border-t border-line p-4">
 					<EventMetaEditor event={event} />
 					<EventImageManager event={event} />
 				</div>

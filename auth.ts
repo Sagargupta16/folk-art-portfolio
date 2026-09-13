@@ -2,8 +2,8 @@
  * Auth.js v5 (NextAuth) config -- Google sign-in gated to the maintainer roster.
  *
  * Login is allowed only for emails in the `maintainers` DB table (see
- * lib/maintainers.ts). The roster is seeded with sg85207@gmail.com as root and
- * is editable from the /admin panel, so access can change without a redeploy.
+ * lib/maintainers.ts). A root is provisioned separately during admin setup;
+ * catalog bootstrap never changes the roster. Access is editable from /admin.
  *
  * Env vars (see .env.example):
  *   AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET

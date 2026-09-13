@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, GripVertical, Plus, Trash2, X } from "lucide-react";
+import { Check, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { Workshop } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import {
 	adminLabel,
 } from "./controls";
 import { ReorderBar } from "./reorder-bar";
+import { ReorderHandle } from "./reorder-handle";
 import { SAVED_BADGE_DURATION_MS, useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
@@ -26,10 +27,11 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 	// reorder baseline to match so a new row doesn't read as an unsaved move.
 	const [items, setItems] = useServerSyncedList(initial, setBaseline);
 	const [saved, setSaved] = useState(false);
-	const { dragging, over, dragProps } = useReorder(items, setItems);
+	const { dragging, over, dragProps, move } = useReorder(items, setItems, pending);
 
-	const handleSaveOrder = () =>
-		run(
+	const handleSaveOrder = () => {
+		setSaved(false);
+		return run(
 			() => reorderWorkshops(items.map((i) => i.slug)),
 			() => {
 				setBaseline(items);
@@ -37,11 +39,16 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 				setTimeout(() => setSaved(false), SAVED_BADGE_DURATION_MS);
 			},
 		);
+	};
 
 	const handleDelete = (slug: string) => {
-		setItems((prev) => prev.filter((i) => i.slug !== slug));
-		setBaseline((prev) => prev.filter((i) => i.slug !== slug));
-		run(() => deleteWorkshop(slug));
+		run(
+			() => deleteWorkshop(slug),
+			() => {
+				setItems((prev) => prev.filter((i) => i.slug !== slug));
+				setBaseline((prev) => prev.filter((i) => i.slug !== slug));
+			},
+		);
 	};
 
 	const hasOrderChanges = items.some((item, i) => item.slug !== baseline[i]?.slug);
@@ -51,10 +58,14 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 			{/* Create form */}
 			<CreateWorkshopForm
 				pending={pending}
-				onCreate={(fd, reset) => run(() => createWorkshop(fd).then(() => undefined), reset)}
+				onCreate={(fd, reset) => run(() => createWorkshop(fd), reset)}
 			/>
 
-			{err ? <p className="text-sm text-ruby">{err}</p> : null}
+			{err ? (
+				<p role="alert" className="text-sm text-ruby">
+					{err}
+				</p>
+			) : null}
 
 			{/* List */}
 			<ul className="space-y-2">
@@ -71,6 +82,15 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 						<WorkshopItem
 							workshop={w}
 							pending={pending}
+							reorderHandle={
+								<ReorderHandle
+									label={w.title}
+									index={i}
+									count={items.length}
+									disabled={pending}
+									onMove={(to) => move(i, to)}
+								/>
+							}
 							onSave={(fields) => run(() => updateWorkshop(w.slug, fields))}
 							onDelete={async () => {
 								const ok = await confirm({
@@ -84,9 +104,9 @@ export function WorkshopManager({ workshops: initial }: Readonly<{ workshops: Wo
 					</li>
 				))}
 				{items.length === 0 ? (
-					<p className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
+					<li className="rounded-(--radius-sm) border border-dashed border-line p-6 text-center text-sm text-muted">
 						No workshops yet. Add one above.
-					</p>
+					</li>
 				) : null}
 			</ul>
 
@@ -163,12 +183,18 @@ function CreateWorkshopForm({
 function WorkshopItem({
 	workshop,
 	pending,
+	reorderHandle,
 	onSave,
 	onDelete,
 }: Readonly<{
 	workshop: Workshop;
 	pending: boolean;
-	onSave: (fields: { title: string; blurb: string; durationHours: number | null }) => void;
+	reorderHandle: React.ReactNode;
+	onSave: (fields: {
+		title: string;
+		blurb: string;
+		durationHours: number | null;
+	}) => Promise<boolean>;
 	onDelete: () => void;
 }>) {
 	const [editing, setEditing] = useState(false);
@@ -179,9 +205,7 @@ function WorkshopItem({
 	if (!editing) {
 		return (
 			<div className="flex items-center gap-3 p-3">
-				<span aria-hidden="true" className="cursor-grab text-muted active:cursor-grabbing">
-					<GripVertical size={16} />
-				</span>
+				{reorderHandle}
 				<div className="min-w-0 flex-1">
 					<p className="truncate text-sm font-medium">{workshop.title}</p>
 					<p className="truncate text-xs text-muted">{workshop.blurb}</p>
@@ -191,7 +215,13 @@ function WorkshopItem({
 				) : null}
 				<button
 					type="button"
-					onClick={() => setEditing(true)}
+					disabled={pending}
+					onClick={() => {
+						setTitle(workshop.title);
+						setBlurb(workshop.blurb);
+						setDuration(workshop.durationHours?.toString() ?? "");
+						setEditing(true);
+					}}
 					className={`${adminBtn} min-w-11 px-2 py-1`}
 				>
 					Edit
@@ -214,6 +244,7 @@ function WorkshopItem({
 			<div className={adminLabel}>
 				<label htmlFor={`workshop-title-${workshop.slug}`}>Title</label>
 				<input
+					disabled={pending}
 					id={`workshop-title-${workshop.slug}`}
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
@@ -223,6 +254,7 @@ function WorkshopItem({
 			<div className={adminLabel}>
 				<label htmlFor={`workshop-blurb-${workshop.slug}`}>Description</label>
 				<textarea
+					disabled={pending}
 					id={`workshop-blurb-${workshop.slug}`}
 					value={blurb}
 					onChange={(e) => setBlurb(e.target.value)}
@@ -234,6 +266,7 @@ function WorkshopItem({
 				<div className={`${adminLabel} mr-auto`}>
 					<label htmlFor={`workshop-duration-${workshop.slug}`}>Hours</label>
 					<input
+						disabled={pending}
 						id={`workshop-duration-${workshop.slug}`}
 						value={duration}
 						onChange={(e) => setDuration(e.target.value)}
@@ -246,15 +279,15 @@ function WorkshopItem({
 				<button
 					type="button"
 					disabled={pending}
-					onClick={() => {
+					onClick={async () => {
 						const parsedDuration = duration ? Number(duration) : null;
-						onSave({
+						const saved = await onSave({
 							title: title.trim(),
 							blurb: blurb.trim(),
 							durationHours:
 								parsedDuration && !Number.isNaN(parsedDuration) ? parsedDuration : null,
 						});
-						setEditing(false);
+						if (saved) setEditing(false);
 					}}
 					className={`${adminBtnPrimary} px-3 py-1.5`}
 				>
@@ -263,6 +296,7 @@ function WorkshopItem({
 				</button>
 				<button
 					type="button"
+					disabled={pending}
 					onClick={() => {
 						setTitle(workshop.title);
 						setBlurb(workshop.blurb);

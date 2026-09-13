@@ -7,24 +7,13 @@
  */
 import { type SQL, sql } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
-import { auth } from "@/auth";
-import { isMaintainer } from "@/lib/maintainers";
 
+export { requireMaintainer } from "@/lib/admin-auth";
 // The pure string/number helpers (slugify, getNextOrder, formString) live in
 // lib/admin-helpers.ts so they can be unit-tested without importing this
 // module's Auth.js session. Re-exported here so the action files keep their
 // existing "./_helpers" import path.
 export { formString, getNextOrder, slugify } from "@/lib/admin-helpers";
-
-/** Re-check the session and confirm the caller is a maintainer; returns their email. */
-export async function requireMaintainer(): Promise<string> {
-	const session = await auth();
-	const email = session?.user?.email;
-	if (!email || !(await isMaintainer(email))) {
-		throw new Error("Not authorized.");
-	}
-	return email.toLowerCase();
-}
 
 /**
  * `max("order") + 1` computed inside the INSERT avoids an application-side

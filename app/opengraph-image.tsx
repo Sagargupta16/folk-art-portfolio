@@ -1,15 +1,15 @@
 import { ImageResponse } from "next/og";
 import { getSite } from "@/lib/data";
 import { SERVER_BRAND_COLORS } from "@/lib/server-brand-colors";
-import { siteConfig } from "@/lib/site-config";
 
 export const alt = "Kalchar by Megha, traditional folk art";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OpenGraphImage() {
+export default async function OpenGraphImage() {
 	const site = getSite();
-	const logoUrl = `${siteConfig.url}/logo.jpg`;
+	const logo = await readFile(join(process.cwd(), "public/logo.jpg"));
+	const logoUrl = `data:image/jpeg;base64,${logo.toString("base64")}`;
 
 	return new ImageResponse(
 		<div
@@ -75,3 +75,6 @@ export default function OpenGraphImage() {
 		size,
 	);
 }
+
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";

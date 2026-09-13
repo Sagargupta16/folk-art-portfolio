@@ -1,8 +1,10 @@
+import { requireAdminPage } from "@/lib/admin-auth";
 import { getAllArtworks, getAllCategories } from "@/lib/data";
 import { AdminPageHeader } from "../_components/admin-page-header";
 import { CategoryManager } from "../_components/category-manager";
 
 export default async function AdminCategoriesPage() {
+	await requireAdminPage();
 	const [cats, artworks] = await Promise.all([getAllCategories(), getAllArtworks()]);
 
 	// Count how many artworks use each category name (delete guard + hint).

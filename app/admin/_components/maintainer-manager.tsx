@@ -74,7 +74,11 @@ export function MaintainerManager({
 				</div>
 			</form>
 
-			{err ? <p className="text-sm text-ruby">{err}</p> : null}
+			{err ? (
+				<p role="alert" className="text-sm text-ruby">
+					{err}
+				</p>
+			) : null}
 
 			{/* Roster */}
 			<div className="divide-y divide-line rounded-(--radius-md) border border-line overflow-hidden">
@@ -100,7 +104,7 @@ export function MaintainerManager({
 								onClick={async () => {
 									const ok = await confirm({
 										title: `Remove ${m.email}?`,
-										body: "They will lose admin access on their next sign-in.",
+										body: "They will lose admin access.",
 										confirmLabel: "Remove",
 									});
 									if (ok) run(() => revokeMaintainer(m.email));

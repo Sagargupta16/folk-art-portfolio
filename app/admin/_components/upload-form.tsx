@@ -123,10 +123,11 @@ export function UploadForm({ categories }: Readonly<{ categories: readonly strin
 				/>
 			</div>
 			<div className="sm:col-span-2">
-				<label className="flex cursor-pointer items-center gap-3 rounded-(--radius-sm) border border-dashed border-line px-4 py-3 text-sm text-muted transition-colors hover:border-accent hover:text-accent">
+				<label className="flex cursor-pointer items-center gap-3 rounded-(--radius-sm) border border-dashed border-line px-4 py-3 text-sm text-muted transition-colors hover:border-accent hover:text-accent focus-within:ring-2 focus-within:ring-accent">
 					<ImagePlus size={18} aria-hidden="true" />
 					<span>Choose image (JPG, PNG, or WebP)</span>
 					<input
+						disabled={pending}
 						name="image"
 						type="file"
 						accept="image/jpeg,image/png,image/webp"
@@ -139,8 +140,12 @@ export function UploadForm({ categories }: Readonly<{ categories: readonly strin
 				<button type="submit" disabled={pending} className={`${adminBtnPrimary} w-full`}>
 					{pending ? "Processing..." : "Add piece"}
 				</button>
-				{error ? <p className="text-sm text-ruby">{error}</p> : null}
-				{ok ? <p className="text-sm text-accent">{ok}</p> : null}
+				{error ? (
+					<p role="alert" className="text-sm text-ruby">
+						{error}
+					</p>
+				) : null}
+				{ok ? <output className="block text-sm text-accent">{ok}</output> : null}
 			</div>
 		</form>
 	);

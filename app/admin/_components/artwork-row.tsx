@@ -1,9 +1,7 @@
 "use client";
 
 import { ImageUp, Palette, Pencil, Star } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { isFailure, unwrap } from "@/lib/action-result";
+import { useState } from "react";
 import type { Artwork, ArtworkStatus } from "@/lib/types";
 import { formatInr } from "@/lib/utils";
 import {
@@ -16,6 +14,7 @@ import { useConfirm } from "./confirm-dialog";
 import { adminBtn, adminBtnDestructive, adminBtnPrimary, adminField } from "./controls";
 import { Modal } from "./modal";
 import { stageImage } from "./stage-image";
+import { useAdminAction } from "./use-admin-action";
 
 export function ArtworkRow({
 	art,
@@ -80,10 +79,8 @@ function ArtworkEditModal({
 	categories,
 	onClose,
 }: Readonly<{ art: Artwork; categories: readonly string[]; onClose: () => void }>) {
-	const router = useRouter();
 	const confirm = useConfirm();
-	const [pending, startTransition] = useTransition();
-	const [err, setErr] = useState<string | null>(null);
+	const { pending, err, run: runAction } = useAdminAction();
 	const [okMsg, setOkMsg] = useState<string | null>(null);
 
 	// Editable fields
@@ -99,20 +96,11 @@ function ArtworkEditModal({
 
 	const styleOptions = categories.includes(art.style) ? categories : [art.style, ...categories];
 
-	function run(fn: () => Promise<unknown>, successMsg?: string) {
-		setErr(null);
+	function run(fn: () => Promise<unknown>, successMsg?: string, after?: () => void) {
 		setOkMsg(null);
-		startTransition(async () => {
-			try {
-				// Actions return failures as data (Next strips thrown messages in
-				// production); re-throw so `err` shows the real reason.
-				const result = await fn();
-				if (isFailure(result)) throw new Error(result.message);
-				if (successMsg) setOkMsg(successMsg);
-				router.refresh();
-			} catch (e) {
-				setErr(e instanceof Error ? e.message : "Failed.");
-			}
+		return runAction(fn, () => {
+			if (successMsg) setOkMsg(successMsg);
+			after?.();
 		});
 	}
 
@@ -143,6 +131,7 @@ function ArtworkEditModal({
 				<div className="grid gap-4 sm:grid-cols-2">
 					<Labeled label="Title">
 						<input
+							disabled={pending}
 							value={title}
 							onChange={(e) => setTitle(e.target.value)}
 							className={`${adminField} w-full`}
@@ -150,6 +139,7 @@ function ArtworkEditModal({
 					</Labeled>
 					<Labeled label="Category">
 						<select
+							disabled={pending}
 							value={style}
 							onChange={(e) => setStyle(e.target.value)}
 							className={`${adminField} w-full`}
@@ -163,6 +153,7 @@ function ArtworkEditModal({
 					</Labeled>
 					<Labeled label="Medium">
 						<input
+							disabled={pending}
 							value={medium}
 							onChange={(e) => setMedium(e.target.value)}
 							className={`${adminField} w-full`}
@@ -170,6 +161,7 @@ function ArtworkEditModal({
 					</Labeled>
 					<Labeled label="Dimensions">
 						<input
+							disabled={pending}
 							value={dimensions}
 							onChange={(e) => setDimensions(e.target.value)}
 							placeholder="e.g. 30 x 40 cm"
@@ -178,6 +170,7 @@ function ArtworkEditModal({
 					</Labeled>
 					<Labeled label="Year">
 						<input
+							disabled={pending}
 							type="number"
 							value={year}
 							onChange={(e) => setYear(e.target.value)}
@@ -186,6 +179,7 @@ function ArtworkEditModal({
 					</Labeled>
 					<Labeled label="Price (INR)">
 						<input
+							disabled={pending}
 							type="number"
 							min="0"
 							value={price}
@@ -196,6 +190,7 @@ function ArtworkEditModal({
 					</Labeled>
 					<Labeled label="Status">
 						<select
+							disabled={pending}
 							value={status}
 							onChange={(e) => setStatusInput(e.target.value as "archive" | "available" | "sold")}
 							className={`${adminField} w-full`}
@@ -208,6 +203,8 @@ function ArtworkEditModal({
 					<Labeled label="Featured">
 						<button
 							type="button"
+							disabled={pending}
+							aria-pressed={featured}
 							onClick={() => setFeaturedInput((v) => !v)}
 							className={`${adminBtn} w-full justify-start ${featured ? "border-accent text-accent" : ""}`}
 						>
@@ -219,6 +216,7 @@ function ArtworkEditModal({
 
 				<Labeled label="Description" className="mt-4">
 					<textarea
+						disabled={pending}
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
 						rows={3}
@@ -264,7 +262,7 @@ function ArtworkEditModal({
 								// receives its key, keeping the request body small.
 								data.delete("image");
 								data.set("imageKey", await stageImage(file));
-								unwrap(await replaceArtworkImage(art.slug, data));
+								return replaceArtworkImage(art.slug, data);
 							}, "Image replaced.");
 						}}
 						className="flex flex-wrap items-center gap-3"
@@ -273,6 +271,7 @@ function ArtworkEditModal({
 							<ImageUp size={14} />
 							<span>Replace image</span>
 							<input
+								disabled={pending}
 								name="image"
 								type="file"
 								accept="image/jpeg,image/png,image/webp"
@@ -286,8 +285,12 @@ function ArtworkEditModal({
 					</form>
 				</div>
 
-				{err ? <p className="mt-4 text-sm text-ruby">{err}</p> : null}
-				{okMsg ? <p className="mt-4 text-sm text-accent">{okMsg}</p> : null}
+				{err ? (
+					<p role="alert" className="mt-4 text-sm text-ruby">
+						{err}
+					</p>
+				) : null}
+				{okMsg ? <output className="mt-4 block text-sm text-accent">{okMsg}</output> : null}
 			</div>
 
 			{/* Sticky footer: Save / Delete */}
@@ -302,10 +305,7 @@ function ArtworkEditModal({
 							confirmLabel: "Delete",
 						});
 						if (confirmed) {
-							run(async () => {
-								await deleteArtwork(art.slug);
-								onClose();
-							});
+							run(() => deleteArtwork(art.slug), undefined, onClose);
 						}
 					}}
 					className={`${adminBtnDestructive} px-3 py-2`}

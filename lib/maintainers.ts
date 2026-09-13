@@ -5,12 +5,13 @@
  * "Maintainers" page lists/adds/removes via the rest. Server-only (touches the
  * DB), never imported into a client component.
  *
- * Lockout guard: root maintainers (the seeded sg85207@gmail.com) cannot be
+ * Lockout guard: explicitly provisioned root maintainers cannot be
  * removed, so the roster can never be emptied into a lockout.
  */
 import { eq } from "drizzle-orm";
 import { db } from "./db/client";
-import { type MaintainerRow, maintainers } from "./db/schema";
+import { maintainers } from "./db/schema";
+import { serverEnv } from "./env";
 
 function normalize(email: string): string {
 	return email.trim().toLowerCase();
@@ -18,7 +19,7 @@ function normalize(email: string): string {
 
 /** Is this email allowed to sign in to the admin panel? */
 export async function isMaintainer(email: string | null | undefined): Promise<boolean> {
-	if (!email) return false;
+	if (!email || serverEnv.testFixtures) return false;
 	const rows = await db
 		.select({ email: maintainers.email })
 		.from(maintainers)
@@ -29,21 +30,13 @@ export async function isMaintainer(email: string | null | undefined): Promise<bo
 
 /** The root maintainer's email, for "request access" contact links. */
 export async function getRootMaintainerEmail(): Promise<string | null> {
+	if (serverEnv.testFixtures) return null;
 	const rows = await db
 		.select({ email: maintainers.email })
 		.from(maintainers)
 		.where(eq(maintainers.isRoot, true))
 		.limit(1);
 	return rows[0]?.email ?? null;
-}
-
-/** Full roster, root first then by date added. */
-export async function listMaintainers(): Promise<readonly MaintainerRow[]> {
-	const rows = await db.select().from(maintainers);
-	return rows.slice().sort((a, b) => {
-		if (a.isRoot !== b.isRoot) return a.isRoot ? -1 : 1;
-		return a.createdAt.getTime() - b.createdAt.getTime();
-	});
 }
 
 /** Add a maintainer. Idempotent on email. `addedBy` records who invited them. */

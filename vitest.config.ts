@@ -1,12 +1,9 @@
 import { defineConfig } from "vitest/config";
 
 /**
- * Vitest runs the pure-logic unit suite in lib/*.test.ts. These are string/
- * number functions (slug minting, price/status rules, WhatsApp message + link
- * builders, formatting) with no DOM and no DB, so the config stays minimal:
- * the node environment plus Vite's native tsconfig-paths resolution for the
- * `@/*` alias. Do NOT reach for jsdom or the async data seam here -- that's out
- * of scope for this suite by design.
+ * Node tests cover domain logic, mocked authorization/storage failures, and
+ * migrations in disposable PGlite databases. No external credentials or
+ * production resources are used. Browser interaction checks use Playwright.
  */
 export default defineConfig({
 	resolve: { tsconfigPaths: true },

@@ -1,8 +1,8 @@
 /**
  * THE DATA SEAM.
  *
- * Phase 2: catalog (artworks + workshops) is read from the Neon Postgres DB
- * through Drizzle. Site config (brand, nav, contact, section copy, styles)
+ * The catalog is read from Neon Postgres through Drizzle. Site configuration
+ * (brand, nav, contact, section copy, styles)
  * stays in `data/site.json` -- it's static chrome, not catalog data, and
  * `app/layout.tsx` reads it at module top-level where async can't reach.
  *
@@ -10,15 +10,19 @@
  * unchanged from Phase 1; only the catalog source moved from JSON to DB, so
  * callers just `await` the artwork/workshop getters now.
  *
- * Catalog reads are async (DB). Under static export they run at build time and
- * bake into the HTML; once the admin panel + API routes land and the export is
- * dropped, the same functions serve dynamic requests. `getSite()` is sync.
+ * Public reads run during static generation or revalidation, and admin reads
+ * run per request. React cache deduplicates repeated reads within one render.
+ * Explicit test builds use fixture rows and cannot access the database.
  *
  * Do not import `data/site.json` (or query the DB) directly outside this file.
  */
 import { asc, desc, eq } from "drizzle-orm";
+import { cache } from "react";
+import artworkJson from "@/data/artworks.json";
 import siteJson from "@/data/site.json";
+import { requireMaintainer } from "./admin-auth";
 import { deriveStatus, isForSale } from "./catalog";
+import { createCatalogFixture } from "./catalog-fixture";
 import { db } from "./db/client";
 import {
 	type ArtworkRow,
@@ -29,6 +33,7 @@ import {
 	events,
 	type LeadRow,
 	leads,
+	maintainers,
 	type OrderPresetRow,
 	orderPresets,
 	settings,
@@ -37,6 +42,8 @@ import {
 	type WorkshopRow,
 	workshops,
 } from "./db/schema";
+import { serverEnv } from "./env";
+import { parseSetting, type SiteSettings } from "./site-settings";
 import type {
 	ArtStyle,
 	Artwork,
@@ -51,6 +58,9 @@ import type {
 	Testimonial,
 	Workshop,
 } from "./types";
+
+const fixture = serverEnv.testFixtures ? createCatalogFixture(artworkJson.items, siteJson) : null;
+export const LEADS_PAGE_SIZE = 50;
 
 /** Map a DB row (nullable columns) to the UI `Artwork` shape (optional fields). */
 function toArtwork(row: ArtworkRow): Artwork {
@@ -83,10 +93,12 @@ function toWorkshop(row: WorkshopRow): Workshop {
 }
 
 /** All artworks, sorted by `order` ascending. */
-export async function getAllArtworks(): Promise<readonly Artwork[]> {
-	const rows = await db.select().from(artworks).orderBy(asc(artworks.order), asc(artworks.slug));
+export const getAllArtworks = cache(async (): Promise<readonly Artwork[]> => {
+	const rows =
+		fixture?.artworks ??
+		(await db.select().from(artworks).orderBy(asc(artworks.order), asc(artworks.slug)));
 	return rows.map(toArtwork);
-}
+});
 
 /**
  * Currently for-sale artworks: priced (positive) and not sold. Uses the shared
@@ -141,13 +153,12 @@ function toCategory(row: CategoryRow): Category {
 }
 
 /** All categories as full rows (admin list), sorted by `order`. */
-export async function getAllCategories(): Promise<readonly Category[]> {
-	const rows = await db
-		.select()
-		.from(categories)
-		.orderBy(asc(categories.order), asc(categories.id));
+export const getAllCategories = cache(async (): Promise<readonly Category[]> => {
+	const rows =
+		fixture?.categories ??
+		(await db.select().from(categories).orderBy(asc(categories.order), asc(categories.id)));
 	return rows.map(toCategory);
-}
+});
 
 /**
  * Category names for public UI (work filter, style picker, hero chips).
@@ -161,10 +172,12 @@ export async function getCategoryNames(): Promise<ArtStyle[]> {
 }
 
 /** All workshops, sorted by `order` ascending. */
-export async function getAllWorkshops(): Promise<readonly Workshop[]> {
-	const rows = await db.select().from(workshops).orderBy(asc(workshops.order), asc(workshops.slug));
+export const getAllWorkshops = cache(async (): Promise<readonly Workshop[]> => {
+	const rows =
+		fixture?.workshops ??
+		(await db.select().from(workshops).orderBy(asc(workshops.order), asc(workshops.slug)));
 	return rows.map(toWorkshop);
-}
+});
 
 function toOrderPreset(row: OrderPresetRow): OrderPreset {
 	return {
@@ -176,13 +189,15 @@ function toOrderPreset(row: OrderPresetRow): OrderPreset {
 }
 
 /** All custom-order presets, flat, sorted by kind then order (admin list). */
-export async function getAllOrderPresets(): Promise<readonly OrderPreset[]> {
-	const rows = await db
-		.select()
-		.from(orderPresets)
-		.orderBy(asc(orderPresets.kind), asc(orderPresets.order), asc(orderPresets.id));
+export const getAllOrderPresets = cache(async (): Promise<readonly OrderPreset[]> => {
+	const rows =
+		fixture?.orderPresets ??
+		(await db
+			.select()
+			.from(orderPresets)
+			.orderBy(asc(orderPresets.kind), asc(orderPresets.order), asc(orderPresets.id)));
 	return rows.map(toOrderPreset);
-}
+});
 
 /**
  * Preset labels grouped for the custom-order form. Falls back to the
@@ -227,13 +242,15 @@ function toEvent(row: EventRow): Event {
  * So a maintainer can pin a highlight to the top, and everything else is
  * automatically latest-first.
  */
-export async function getAllEvents(): Promise<readonly Event[]> {
-	const rows = await db
-		.select()
-		.from(events)
-		.orderBy(desc(events.featured), desc(events.eventDate), asc(events.order), asc(events.id));
+export const getAllEvents = cache(async (): Promise<readonly Event[]> => {
+	const rows =
+		fixture?.events ??
+		(await db
+			.select()
+			.from(events)
+			.orderBy(desc(events.featured), desc(events.eventDate), asc(events.order), asc(events.id)));
 	return rows.map(toEvent);
-}
+});
 
 /** The most recent `limit` events, for the home preview strip. */
 export async function getRecentEvents(limit: number): Promise<readonly Event[]> {
@@ -244,6 +261,7 @@ function toLead(row: LeadRow): Lead {
 	return {
 		id: row.id,
 		name: row.name ?? undefined,
+		contact: row.contact ?? undefined,
 		style: row.style ?? undefined,
 		size: row.size ?? undefined,
 		budget: row.budget ?? undefined,
@@ -254,10 +272,29 @@ function toLead(row: LeadRow): Lead {
 	};
 }
 
-/** All captured custom-order leads, newest first, for the admin queue. */
-export async function getAllLeads(): Promise<readonly Lead[]> {
-	const rows = await db.select().from(leads).orderBy(desc(leads.createdAt), asc(leads.id));
-	return rows.map(toLead);
+/** Authorized, bounded private reads, newest first. */
+export async function getLeadsPage(page: number) {
+	await requireMaintainer();
+	const pageNumber = Number.isSafeInteger(page) && page > 0 ? page : 1;
+	const rows = await db
+		.select()
+		.from(leads)
+		.orderBy(desc(leads.createdAt), asc(leads.id))
+		.limit(LEADS_PAGE_SIZE + 1)
+		.offset((pageNumber - 1) * LEADS_PAGE_SIZE);
+	return {
+		leads: rows.slice(0, LEADS_PAGE_SIZE).map(toLead),
+		hasNextPage: rows.length > LEADS_PAGE_SIZE,
+	};
+}
+
+/** The roster is private even when accessed outside its admin page. */
+export async function getMaintainers() {
+	await requireMaintainer();
+	return db
+		.select()
+		.from(maintainers)
+		.orderBy(desc(maintainers.isRoot), asc(maintainers.createdAt), asc(maintainers.email));
 }
 
 function toTestimonial(row: TestimonialRow): Testimonial {
@@ -273,13 +310,15 @@ function toTestimonial(row: TestimonialRow): Testimonial {
 }
 
 /** All testimonials, featured first then by order, for the admin list. */
-export async function getAllTestimonials(): Promise<readonly Testimonial[]> {
-	const rows = await db
-		.select()
-		.from(testimonials)
-		.orderBy(desc(testimonials.featured), asc(testimonials.order), asc(testimonials.id));
+export const getAllTestimonials = cache(async (): Promise<readonly Testimonial[]> => {
+	const rows =
+		fixture?.testimonials ??
+		(await db
+			.select()
+			.from(testimonials)
+			.orderBy(desc(testimonials.featured), asc(testimonials.order), asc(testimonials.id)));
 	return rows.map(toTestimonial);
-}
+});
 
 /** Featured testimonials for the home page (empty array hides the section). */
 export async function getFeaturedTestimonials(): Promise<readonly Testimonial[]> {
@@ -292,13 +331,15 @@ export async function getTestimonialsForArtwork(slug: string): Promise<readonly 
 }
 
 /**
- * Read a single setting value by key, or undefined if unset. Typed by the
- * caller. Settings hold the artist profile image key + the home-intro toggle.
+ * Read a known setting, validating the stored JSON before it reaches the UI.
  */
-export async function getSetting<T>(key: string): Promise<T | undefined> {
-	const [row] = await db.select().from(settings).where(eq(settings.key, key));
-	return (row?.value as T | undefined) ?? undefined;
-}
+export const getSetting = cache(
+	async <K extends keyof SiteSettings>(key: K): Promise<SiteSettings[K] | undefined> => {
+		if (fixture) return parseSetting(key, fixture.settings.get(key));
+		const [row] = await db.select().from(settings).where(eq(settings.key, key));
+		return parseSetting(key, row?.value);
+	},
+);
 
 /** Site-wide copy: brand, nav, contact, section text, etc. Stays JSON (sync). */
 export function getSite(): Site {

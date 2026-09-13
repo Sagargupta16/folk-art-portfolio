@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useId, useState } from "react";
 import { Modal } from "./modal";
 
 /**
@@ -39,6 +39,7 @@ interface DialogState extends ConfirmOptions {
 
 export function ConfirmProvider({ children }: Readonly<{ children: React.ReactNode }>) {
 	const [state, setState] = useState<DialogState | null>(null);
+	const titleId = useId();
 
 	const confirm = useCallback<ConfirmFn>((opts) => {
 		return new Promise<boolean>((resolve) => {
@@ -58,7 +59,7 @@ export function ConfirmProvider({ children }: Readonly<{ children: React.ReactNo
 		<ConfirmContext.Provider value={confirm}>
 			{children}
 			{state ? (
-				<Modal title={state.title} onClose={() => settle(false)}>
+				<Modal title={state.title} titleId={titleId} onClose={() => settle(false)}>
 					<div className="p-5 sm:p-6">
 						<div className="flex items-start gap-3">
 							{state.destructive !== false ? (
@@ -67,7 +68,7 @@ export function ConfirmProvider({ children }: Readonly<{ children: React.ReactNo
 								</span>
 							) : null}
 							<div className="min-w-0 flex-1">
-								<h2 id="modal-title" className="t-display text-lg">
+								<h2 id={titleId} className="t-display text-lg">
 									{state.title}
 								</h2>
 								{state.body ? <p className="mt-1.5 text-sm text-muted">{state.body}</p> : null}

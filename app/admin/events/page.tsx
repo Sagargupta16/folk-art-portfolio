@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/admin-auth";
 import { getAllEvents } from "@/lib/data";
 import { AdminPageHeader } from "../_components/admin-page-header";
 import { EventsManager } from "../_components/events-manager";
@@ -6,6 +7,7 @@ import { EventsManager } from "../_components/events-manager";
 export const maxDuration = 60;
 
 export default async function AdminEventsPage() {
+	await requireAdminPage();
 	const events = await getAllEvents();
 
 	return (

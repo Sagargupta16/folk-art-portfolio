@@ -1,12 +1,13 @@
 "use client";
 
-import { GripVertical, ImagePlus, Save, X } from "lucide-react";
+import { ImagePlus, Save, X } from "lucide-react";
 import { useState } from "react";
 import { IMAGE_ORIGIN } from "@/lib/image-base";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { addEventImages, removeEventImage, reorderEventImages } from "../event-actions";
 import { adminBtn, adminBtnPrimary, adminIconBtnDestructive } from "./controls";
+import { ReorderHandle } from "./reorder-handle";
 import { stageFormImages } from "./stage-image";
 import { useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
@@ -25,7 +26,7 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 	// reorder baseline to match so new photos appear without a manual reload.
 	const [images, setImages] = useServerSyncedList(event.images, setBaseline);
 	const [fileCount, setFileCount] = useState(0);
-	const { dragging, over, dragProps } = useReorder(images, setImages);
+	const { dragging, over, dragProps, move } = useReorder(images, setImages, pending);
 
 	const orderChanged =
 		images.some((k, i) => k !== baseline[i]) || images.length !== baseline.length;
@@ -37,9 +38,13 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 		);
 
 	const handleRemove = (keyBase: string) => {
-		setImages((prev) => prev.filter((k) => k !== keyBase));
-		setBaseline((prev) => prev.filter((k) => k !== keyBase));
-		run(() => removeEventImage(event.id, keyBase));
+		run(
+			() => removeEventImage(event.id, keyBase),
+			() => {
+				setImages((prev) => prev.filter((k) => k !== keyBase));
+				setBaseline((prev) => prev.filter((k) => k !== keyBase));
+			},
+		);
 	};
 
 	const handleAdd = (form: HTMLFormElement) => {
@@ -48,7 +53,7 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 			async () => {
 				// Masters go straight to R2; the action receives only their keys.
 				await stageFormImages(fd);
-				await addEventImages(event.id, fd);
+				return addEventImages(event.id, fd);
 			},
 			() => {
 				form.reset();
@@ -60,7 +65,8 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 	return (
 		<div className="space-y-3">
 			<p className="text-xs font-medium text-muted">
-				Photos ({images.length}), drag to reorder. The first is the cover.
+				Photos ({images.length}), drag or use the grip's arrow keys to reorder. The first is the
+				cover.
 			</p>
 
 			{images.length > 0 ? (
@@ -86,12 +92,14 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 									Cover
 								</span>
 							) : null}
-							<span
-								aria-hidden="true"
-								className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-ink/60 text-bg"
-							>
-								<GripVertical size={11} />
-							</span>
+							<ReorderHandle
+								label={`photo ${i + 1}`}
+								index={i}
+								count={images.length}
+								disabled={pending}
+								onMove={(to) => move(i, to)}
+								className="absolute right-1 top-1 bg-bg/95 shadow-e1"
+							/>
 							<button
 								type="button"
 								disabled={pending}
@@ -115,15 +123,25 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 
 			<div className="flex flex-wrap items-center gap-2.5">
 				{orderChanged ? (
-					<button
-						type="button"
-						disabled={pending}
-						onClick={handleSaveOrder}
-						className={`${adminBtnPrimary} px-3 py-1.5`}
-					>
-						<Save size={14} />
-						Save photo order
-					</button>
+					<>
+						<button
+							type="button"
+							disabled={pending}
+							onClick={() => setImages(baseline)}
+							className={adminBtn}
+						>
+							Reset
+						</button>
+						<button
+							type="button"
+							disabled={pending}
+							onClick={handleSaveOrder}
+							className={`${adminBtnPrimary} px-3 py-1.5`}
+						>
+							<Save size={14} />
+							Save photo order
+						</button>
+					</>
 				) : null}
 
 				<form
@@ -133,10 +151,13 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 					}}
 					className="flex items-center gap-2"
 				>
-					<label className={`${adminBtn} cursor-pointer px-3 py-1.5`}>
+					<label
+						className={`${adminBtn} cursor-pointer px-3 py-1.5 focus-within:ring-2 focus-within:ring-accent`}
+					>
 						<ImagePlus size={14} />
 						{fileCount > 0 ? `${fileCount} selected` : "Add photos"}
 						<input
+							disabled={pending}
 							name="images"
 							type="file"
 							accept="image/jpeg,image/png,image/webp"
@@ -153,7 +174,11 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 				</form>
 			</div>
 
-			{err ? <p className="text-sm text-ruby">{err}</p> : null}
+			{err ? (
+				<p role="alert" className="text-sm text-ruby">
+					{err}
+				</p>
+			) : null}
 		</div>
 	);
 }

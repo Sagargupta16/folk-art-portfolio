@@ -1,0 +1,8 @@
+{
+	"ignoredFiles": [
+		"public/artworks/*",
+		"public/logo.jpg"
+	],
+	"schedule": "monthly",
+	"prTitle": "chore(images): ImgBot optimizations"
+}

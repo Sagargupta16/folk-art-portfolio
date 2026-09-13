@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.36.3 (2026-09-13)
+
+### Operations
+
+- **ImgBot excluded from the artwork masters** ([.imgbotconfig](.imgbotconfig)). The 21 checked-in JPGs under `public/artworks/` and `public/logo.jpg` are the regeneration source for every R2 variant, so a lossy recompression PR would quietly degrade the source of truth; three such PRs (#8, #26, #94) have now been closed. ImgBot skips those paths and runs monthly for anything else.
+
 ## 1.36.2 (2026-09-13)
 
 ### Fixed

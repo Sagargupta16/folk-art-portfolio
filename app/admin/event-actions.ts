@@ -13,47 +13,40 @@ import { runAdminAction } from "@/lib/admin-action";
 import { db } from "@/lib/db/client";
 import { events, settings } from "@/lib/db/schema";
 import { revalidateEntity } from "@/lib/revalidate";
-import {
-	cleanupFailedImageWrite,
-	discardUncommittedImages,
-	ImageConflictError,
-} from "@/lib/storage/image-mutation";
+import { cleanupFailedImageWrite, ImageConflictError } from "@/lib/storage/image-mutation";
 import { processEventImage, processNewImageVariants } from "@/lib/storage/process-artwork-image";
 import { discardStagedImages, readStagedImage } from "@/lib/storage/staged-upload";
 import { formString, nextOrderSql } from "./_helpers";
 
 // --- Event actions ---
 
-/**
- * Read the staged R2 keys the browser uploaded before submitting (the
- * multi-file picker appends one "imageKeys" entry per photo).
- */
-function formImageKeys(formData: FormData): string[] {
-	const keys = formData
-		.getAll("imageKeys")
-		.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
-		.map((v) => v.trim());
-	if (keys.length > 12) throw new Error("Upload at most 12 images at a time.");
-	return keys;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_EVENT_PHOTOS_PER_WRITE = 12;
+
+function assertEventId(id: string): void {
+	if (!UUID_PATTERN.test(id)) throw new Error("Invalid event reference.");
 }
 
-/** Process photos in selection order; failed batches have never been published. */
-async function uploadEventPhotos(eventId: string, stagedKeys: string[]): Promise<string[]> {
-	const images: string[] = [];
-	try {
-		for (const stagedKey of stagedKeys) {
-			const buffer = await readStagedImage(stagedKey);
-			images.push(await processEventImage(eventId, buffer));
-		}
-		return images;
-	} catch (error) {
-		await discardUncommittedImages(images);
-		throw error;
-	} finally {
-		await discardStagedImages(stagedKeys).catch((error) => {
-			console.error("Staged event upload cleanup failed.", error);
-		});
+/**
+ * Key-bases minted by processEventPhoto for this event, in selection order.
+ * Photos are processed in parallel calls before the row is written, so writes
+ * accept finished key-bases rather than staged uploads. Each must sit under this
+ * event's own prefix, so a caller cannot attach another event's photo or an
+ * arbitrary object.
+ */
+function parseEventPhotoKeyBases(eventId: string, values: readonly unknown[]): string[] {
+	const keyBases = values
+		.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+		.map((v) => v.trim());
+	if (keyBases.length > MAX_EVENT_PHOTOS_PER_WRITE) {
+		throw new Error(`Attach at most ${MAX_EVENT_PHOTOS_PER_WRITE} photos at a time.`);
 	}
+	if (new Set(keyBases).size !== keyBases.length) throw new Error("Duplicate photo reference.");
+	const owned = new RegExp(`^events/${eventId}/photo-[0-9a-f-]{36}$`, "i");
+	for (const keyBase of keyBases) {
+		if (!owned.test(keyBase)) throw new Error("Invalid photo reference.");
+	}
+	return keyBases;
 }
 
 /** Compare the array read before processing so concurrent edits cannot be lost. */
@@ -75,14 +68,48 @@ function parseEventDate(formData: FormData): Date {
 	return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
-/** Create an event from form fields + a batch of uploaded photos. */
+/**
+ * Mint the id a new event will use, so its photos can be processed under the
+ * right prefix before the row exists. No database write; the id is only spent
+ * when createEvent commits it.
+ */
+export async function reserveEventId(): Promise<ActionResult<{ id: string }>> {
+	return runAdminAction(async () => ({ id: randomUUID() }));
+}
+
+/**
+ * Process one staged photo into its variant set under this event's prefix.
+ * Each call is its own function invocation, so the browser runs several at
+ * once. Nothing is written to the database here: createEvent or
+ * attachEventPhotos commits the key-bases afterwards, and a version that is
+ * never committed is unreferenced debris that the pipeline's own rollback and
+ * the retention policy account for.
+ */
+export async function processEventPhoto(
+	eventId: string,
+	stagedKey: string,
+): Promise<ActionResult<{ keyBase: string }>> {
+	return runAdminAction(async () => {
+		assertEventId(eventId);
+		try {
+			const buffer = await readStagedImage(stagedKey);
+			return { keyBase: await processEventImage(eventId, buffer) };
+		} finally {
+			await discardStagedImages([stagedKey]).catch((error) => {
+				console.error("Staged event upload cleanup failed.", error);
+			});
+		}
+	});
+}
+
+/** Create an event from form fields plus the key-bases of its already processed photos. */
 export async function createEvent(formData: FormData): Promise<ActionResult<{ id: string }>> {
 	return runAdminAction(async () => {
 		const title = formString(formData, "title").trim();
 		if (!title) throw new Error("Title is required.");
-
-		const id = randomUUID();
-		const images = await uploadEventPhotos(id, formImageKeys(formData));
+		const id = formString(formData, "eventId").trim();
+		assertEventId(id);
+		const images = parseEventPhotoKeyBases(id, formData.getAll("imageKeyBases"));
 		try {
 			await db.insert(events).values({
 				id,
@@ -135,17 +162,18 @@ export async function updateEventMeta(
 	});
 }
 
-/** Add more photos to an existing event (appended after the current set). */
-export async function addEventImages(id: string, formData: FormData): Promise<ActionResult> {
+/** Append already processed photos to an existing event, after the current set. */
+export async function attachEventPhotos(id: string, keyBases: string[]): Promise<ActionResult> {
 	return runAdminAction(async () => {
+		assertEventId(id);
+		const images = parseEventPhotoKeyBases(id, keyBases);
+		if (images.length === 0) return;
 		const [row] = await db.select().from(events).where(eq(events.id, id));
 		if (!row) throw new Error("Event not found.");
-		const added = await uploadEventPhotos(id, formImageKeys(formData));
-		if (added.length === 0) return;
 		try {
-			await writeEventImages(id, row.images, [...row.images, ...added]);
+			await writeEventImages(id, row.images, [...row.images, ...images]);
 		} catch (error) {
-			await cleanupFailedImageWrite(added, error);
+			await cleanupFailedImageWrite(images, error);
 			throw error;
 		}
 		revalidateEntity("events");

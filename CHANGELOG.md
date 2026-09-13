@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.37.0 (2026-09-13)
+
+Uploads get fast. No schema change, no new environment variable.
+
+### Changed
+
+- **Event photos are processed in parallel, then committed once.** The browser stages all masters to R2 three at a time, reserves the event id, calls the new `processEventPhoto` action for up to four photos at once (each call is its own function invocation, so they truly run in parallel), and hands the finished key-bases to `createEvent` or the new `attachEventPhotos` in one ordered write. A four-photo event drops from roughly the sum of its photos to roughly the slowest one. Failed photos are named by position while the rest are saved; if all fail nothing is written and the selection is kept. The writes accept only key-bases under the event's own `events/<id>/photo-<uuid>` prefix, so a caller cannot attach another event's photo or an arbitrary object. `addEventImages` is replaced by `processEventPhoto` + `attachEventPhotos`; `reserveEventId` is new ([lib/event-photo-batch.ts](lib/event-photo-batch.ts), [app/admin/event-actions.ts](app/admin/event-actions.ts)).
+- **The 13 R2 uploads inside the variant pipeline overlap the encoding** instead of following it one round trip at a time ([lib/storage/process-artwork-image.ts](lib/storage/process-artwork-image.ts)). Every upload settles itself, so an early failure is recorded and re-thrown after the batch drains rather than surfacing as an unhandled rejection; rollback behaviour is unchanged and still covered by tests.
+- **Staged masters upload three at a time** from the browser ([app/admin/_components/stage-image.ts](app/admin/_components/stage-image.ts)), keeping selection order.
+
 ## 1.36.3 (2026-09-13)
 
 ### Operations

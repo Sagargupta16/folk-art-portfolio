@@ -70,6 +70,8 @@ That script needs an R2 API token with Admin Read and Write. The application tok
 
 `processArtworkImage` extracts a palette before writing variants. Each artwork creation attempt owns a unique image key, so a duplicate slug failure cannot remove the successful request's objects. Event image mutations compare the expected stored image array before committing a change. A conflict is reported rather than overwriting another maintainer's update.
 
+Multi-photo event uploads are sequenced by the browser. Every photo costs roughly 15 seconds of variant encoding, so a batch processed inside one server action overran the 60 second function budget by the fifth photo. The admin stages all masters first, then calls `addEventImages` once per photo (`app/admin/_components/event-photo-batch.ts`, with the sequencing in `lib/event-photo-batch.ts`). A failure on a later photo keeps the ones already saved and tells the maintainer exactly which to add again; a failure on the first saves nothing and keeps the selection for a retry. The server actions still accept up to 12 keys per call.
+
 Cleanup inspects per-object deletion errors. An ambiguous database response requires checking whether the new key was committed before deleting an attempted upload. Keep committed versions when the write outcome cannot be established safely; an orphan is preferable to deleting a referenced image.
 
 The R2 writer sets:

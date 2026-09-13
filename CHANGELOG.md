@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.36.2 (2026-09-13)
+
+### Fixed
+
+- **Event photo batches no longer race the function budget.** Each photo costs about 15 seconds of variant encoding, and a batch was processed inside one server action, so anything past four photos could exceed the 60 second limit and fail after the masters had already uploaded. The browser now stages every photo up front (fast, straight to R2) and hands the server one photo per call, showing "Saving photo 3 of 8" as it goes ([lib/event-photo-batch.ts](lib/event-photo-batch.ts), [app/admin/_components/event-photo-batch.ts](app/admin/_components/event-photo-batch.ts)). If a later photo fails, the ones already saved stay saved and a notice names exactly which to add again; if the first fails, nothing is saved and the selection is kept for a retry. The server actions are unchanged.
+
 ## 1.36.1 (2026-09-13)
 
 Developer platform. No user-facing change; the app renders and refreshes exactly as before.

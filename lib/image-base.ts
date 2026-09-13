@@ -2,7 +2,7 @@
  * Where artwork image variants are served from.
  *
  * Images live in Cloudflare R2 under `artworks/<slug>-<width>.<ext>` (AVIF /
- * WebP / JPG at 400/800/1200/1600 + a master-width JPG). The admin upload flow
+ * WebP / JPG at 400/800/1200/1600 + a JPG fallback capped at 2000 px on the long edge). The admin upload flow
  * (lib/storage/process-artwork-image.ts) writes them; the public gallery reads
  * them from the bucket's public URL.
  *

@@ -5,7 +5,7 @@
  *
  * Output keys match the ARTWORK_IMAGE_BASE contract exactly:
  *   artworks/<slug>-<w>.avif|webp|jpg  (w in 400/800/1200/1600)
- *   artworks/<slug>.jpg                (master-width mozjpeg fallback)
+ *   artworks/<slug>.jpg                (mozjpeg fallback, long edge capped at 2000 px)
  * so the gallery's <picture> srcset resolves with no per-image bookkeeping.
  *
  * Returns the natural aspect ratio (width/height) of the source so the caller
@@ -18,9 +18,20 @@ import { MAX_IMAGE_PIXELS, validateImageBuffer } from "./image-upload";
 import { deleteObjects, uploadObject } from "./r2";
 import { loadSharp } from "./sharp-loader";
 
-const AVIF_OPTS = { quality: 60, effort: 4, chromaSubsampling: "4:2:0" } as const;
+// Effort 3, not 4: on a real 1938x2400 artwork master the 1600 px variant encoded
+// in 265 ms instead of 695 ms and came out 1 percent smaller, so the extra effort
+// was buying time, not bytes. Effort 2 was marginally faster but larger.
+const AVIF_OPTS = { quality: 60, effort: 3, chromaSubsampling: "4:2:0" } as const;
 const WEBP_OPTS = { quality: 72, effort: 4 } as const;
 const JPEG_OPTS = { quality: 82, mozjpeg: true, chromaSubsampling: "4:2:0" } as const;
+
+/**
+ * Long-edge cap for the "<keyBase>.jpg" fallback. It backs the bare <img src>,
+ * the palette re-sample and the catalog feed, none of which needs more than the
+ * 1600 px top variant, while a 12 MP phone photo encodes and stores well under
+ * half the pixels.
+ */
+const MASTER_MAX_EDGE = 2000;
 
 export interface ProcessedImage {
 	/** R2 object keys written (for rollback / bookkeeping). */
@@ -93,7 +104,7 @@ export async function extractPalette(master: Buffer, count = 5): Promise<string[
 /**
  * Generate + upload the full variant set for one master image under an
  * arbitrary R2 key-base. Writes "<keyBase>-<w>.avif|webp|jpg" for each width
- * plus a master-width "<keyBase>.jpg" fallback -- the exact contract the
+ * plus a "<keyBase>.jpg" fallback capped at 2000 px on the long edge, the contract the
  * <picture> srcset (lib/image-base.ts) reads. Shared by artworks
  * ("artworks/<slug>") and events ("events/<id>/<imageId>").
  *
@@ -152,7 +163,16 @@ export async function processImageVariants(
 	if (failure === undefined) {
 		// Stable keys are also used by the seed migration. Never delete them after
 		// a failed overwrite; cleanup belongs to the owner of a new image version.
-		const masterJpg = await sharp(master, sharpOptions).autoOrient().jpeg(JPEG_OPTS).toBuffer();
+		const masterJpg = await sharp(master, sharpOptions)
+			.autoOrient()
+			.resize({
+				width: MASTER_MAX_EDGE,
+				height: MASTER_MAX_EDGE,
+				fit: "inside",
+				withoutEnlargement: true,
+			})
+			.jpeg(JPEG_OPTS)
+			.toBuffer();
 		put(`${keyBase}.jpg`, masterJpg, "image/jpeg");
 	}
 

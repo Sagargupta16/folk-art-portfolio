@@ -54,7 +54,7 @@ Keep the variable contract consistent while isolating actual credentials/resourc
 
 ### Verify and browser test
 
-1. Install the pinned pnpm and Node 22.
+1. Install the pinned pnpm and Node 24, matching the Vercel runtime.
 2. Install dependencies from the frozen lockfile.
 3. Run Biome.
 4. Validate migration SQL, snapshots, and journal, and reject a schema change without a migration.

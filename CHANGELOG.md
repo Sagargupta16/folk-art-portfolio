@@ -27,6 +27,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Refuse reseeding an initialized catalog, document a checked migration baseline, and verify coordinated database/image backup bundles.
 - Add bounded staging cleanup, dependency auditing, broader production health probes, and regression checks for the repaired failure cases.
 - Lock the media proxy allowlist to the key shapes the variant pipeline actually writes ([lib/media-rewrite.test.ts](lib/media-rewrite.test.ts)). Narrowing the proxy is a silent failure mode otherwise: a renamed prefix or a tightened filename charset would return 404 for every affected image while the build and every other test still passed.
+- Move every GitHub Actions step to a Node 24 runtime (checkout v7, setup-node v7, pnpm/action-setup v6, gitleaks-action v3, and the dormant Pages actions), pin the two remaining bare tags to digests, and run CI on Node 24 to match the Vercel runtime. GitHub removes Node 20 from hosted runners on 2026-09-16, and the grouped monthly Renovate major holding these bumps would not have landed until 2026-10-01. A repo-local Renovate rule ([renovate.json](renovate.json)) now ships action updates on their own, at any time.
 - Refresh architecture, development, deployment, image, and recovery documentation.
 
 ## 1.35.3 (2026-09-02)

@@ -1,4 +1,17 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
-	"extends": ["github>Sagargupta16/shared-workflows"]
+	"extends": ["github>Sagargupta16/shared-workflows", "helpers:pinGitHubActionDigests"],
+	"packageRules": [
+		{
+			"description": "GitHub Actions carry runtime deprecations with hard dates (Node 20 left the hosted runners on 2026-09-16). Keep them out of the shared grouped monthly major PR, which one blocked package can hold for a month, and let CI prove each bump on its own.",
+			"matchManagers": ["github-actions"],
+			"groupName": "github actions",
+			"groupSlug": "github-actions",
+			"schedule": ["at any time"],
+			"automerge": true,
+			"automergeType": "pr",
+			"automergeStrategy": "squash",
+			"labels": ["dependencies", "ci"]
+		}
+	]
 }

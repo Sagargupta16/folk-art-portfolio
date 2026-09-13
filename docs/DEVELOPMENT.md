@@ -144,7 +144,7 @@ These are the project rules from [CLAUDE.md](../CLAUDE.md) that gate every contr
 
 - **Catalog reads go through [lib/data.ts](../lib/data.ts) only.** Never query Neon or `import data/*.json` anywhere else. The async getters map DB rows to the UI types. `getSite()` stays synchronous because `app/layout.tsx` consumes it at module top-level where `await` cannot reach.
 - **Image URLs come from [lib/image-base.ts](../lib/image-base.ts).** Browser surfaces use the same-origin `ARTWORK_IMAGE_BASE`; external metadata and server operations use the absolute R2 builders.
-- **Admin mutations are server actions**: catalog/roster in `app/admin/actions.ts`, events + profile settings in `app/admin/event-actions.ts` (shared helpers in `app/admin/_helpers.ts`). Each one re-checks the maintainer session before touching Neon or R2.
+- **Admin mutations are server actions**, one module per entity family: the catalog in `app/admin/artwork-actions.ts`; workshops, presets, categories, and the maintainer roster in `app/admin/actions.ts`; events and profile settings in `app/admin/event-actions.ts`; leads in `app/admin/lead-actions.ts`; testimonials in `app/admin/testimonial-actions.ts`; presigned upload tickets in `app/admin/upload-actions.ts`. Every export runs through `runAdminAction` (`lib/admin-action.ts`), which re-checks the maintainer session (`lib/admin-auth.ts`) and returns failures as data, and ends with `revalidateEntity(...)` from `lib/revalidate.ts`, the one map of which routes render which entity.
 - **URLs come from `lib/site-config.ts`** (`siteConfig.url` / `prodUrl`). One source.
 - **500-line file ceiling.** Split before committing -- extract a sub-component, lift styles, or pull data into JSON.
 - **Data files live at repo root** (`data/`), not under `src/`.
@@ -192,5 +192,7 @@ flowchart TB
     style branch fill:#6366f1,color:#fff,stroke:#818cf8
     style pr fill:#10b981,color:#fff,stroke:#34d399
 ```
+
+Adding something new rather than changing something? [ADDING-FEATURES.md](ADDING-FEATURES.md) is the ordered checklist for a new entity, public page, image-bearing feature, or environment variable.
 
 Local verification mirrors CI: lint, application/script typechecks, unit and operational checks, migration application, build, and Playwright. The public fixture build and disposable database tests serve different purposes; neither proves production OAuth, bucket policies, or restore readiness. Run the actual changed behavior in its appropriate isolated environment. See [DEPLOYMENT.md](DEPLOYMENT.md) for release gates.

@@ -14,13 +14,13 @@
  */
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import type { ActionResult } from "@/lib/action-result";
 import { runAdminAction } from "@/lib/admin-action";
 import { db } from "@/lib/db/client";
 import { leads } from "@/lib/db/schema";
 import { createFixedWindowRateLimiter } from "@/lib/fixed-window-rate-limit";
+import { revalidateEntity } from "@/lib/revalidate";
 import type { LeadStatus } from "@/lib/types";
 import { formString } from "./_helpers";
 
@@ -76,7 +76,7 @@ export async function submitLead(formData: FormData): Promise<{ ok: boolean }> {
 			brief,
 			status: "new",
 		});
-		revalidatePath("/admin/leads");
+		revalidateEntity("leads");
 		return { ok: true };
 	} catch {
 		// The form reports the failed save and still offers its WhatsApp link.
@@ -96,7 +96,7 @@ export async function setLeadStatus(id: string, status: LeadStatus): Promise<Act
 			.where(eq(leads.id, id))
 			.returning({ id: leads.id });
 		if (updated.length === 0) throw new Error("Lead not found.");
-		revalidatePath("/admin/leads");
+		revalidateEntity("leads");
 	});
 }
 
@@ -104,6 +104,6 @@ export async function setLeadStatus(id: string, status: LeadStatus): Promise<Act
 export async function deleteLead(id: string): Promise<ActionResult> {
 	return runAdminAction(async () => {
 		await db.delete(leads).where(eq(leads.id, id));
-		revalidatePath("/admin/leads");
+		revalidateEntity("leads");
 	});
 }

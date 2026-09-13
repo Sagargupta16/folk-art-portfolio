@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.36.3 (2026-09-13)
+
+### Operations
+
+- **ImgBot excluded from the artwork masters** ([.imgbotconfig](.imgbotconfig)). The 21 checked-in JPGs under `public/artworks/` and `public/logo.jpg` are the regeneration source for every R2 variant, so a lossy recompression PR would quietly degrade the source of truth; three such PRs (#8, #26, #94) have now been closed. ImgBot skips those paths and runs monthly for anything else.
+
+## 1.36.2 (2026-09-13)
+
+### Fixed
+
+- **Event photo batches no longer race the function budget.** Each photo costs about 15 seconds of variant encoding, and a batch was processed inside one server action, so anything past four photos could exceed the 60 second limit and fail after the masters had already uploaded. The browser now stages every photo up front (fast, straight to R2) and hands the server one photo per call, showing "Saving photo 3 of 8" as it goes ([lib/event-photo-batch.ts](lib/event-photo-batch.ts), [app/admin/_components/event-photo-batch.ts](app/admin/_components/event-photo-batch.ts)). If a later photo fails, the ones already saved stay saved and a notice names exactly which to add again; if the first fails, nothing is saved and the selection is kept for a retry. The server actions are unchanged.
+- Partial-batch notices render as `<output>`, whose implicit role is `status`, instead of a `<p role="status">` (SonarCloud S6819).
+
+## 1.36.1 (2026-09-13)
+
+Developer platform. No user-facing change; the app renders and refreshes exactly as before.
+
+### Changed
+
+- **One revalidation registry** ([lib/revalidate.ts](lib/revalidate.ts)). Seven hand-written helpers across five action files (66 call sites) each listed the routes an entity change should refresh, so a new public page had to be added to every list that should include it, and a misspelt path failed silently. `REVALIDATION` now maps each entity to its consumer routes once; actions call `revalidateEntity(entity)` and the `Entity` union turns a typo into a type error. Every list is the former helper's exact sequence, and [lib/revalidate.test.ts](lib/revalidate.test.ts) locks each one in order, plus the catalog and category consumer sets.
+- **Adding-a-feature guide** ([docs/ADDING-FEATURES.md](docs/ADDING-FEATURES.md)). Ordered recipes for a new entity, a new public page, anything that stores images, and a new environment variable: the file to touch at each step, the guardrail that fails if it is skipped, and the local checks that mirror CI.
+- **Seam docs corrected.** [CLAUDE.md](CLAUDE.md) and [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) now list all six action modules, `runAdminAction`, `lib/admin-auth.ts`, and the revalidation seam. `.env.example` documents the two local-only variables (`KALCHAR_TEST_FIXTURES`, `MIGRATION_TEST_DATABASE_URL`) and drops the stale note that the seed provisions the root maintainer.
+
 ## 1.36.0 (2026-09-12)
 
 ### Security

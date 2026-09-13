@@ -11,22 +11,16 @@
  * public site and the admin lists reflect changes immediately.
  */
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/action-result";
 import { runAdminAction } from "@/lib/admin-action";
 import { db } from "@/lib/db/client";
 // The foreign key is the final guard if a concurrent save races category deletion.
 import { artworks, categories, orderPresets, workshops } from "@/lib/db/schema";
 import { addMaintainer, removeMaintainer } from "@/lib/maintainers";
+import { revalidateEntity } from "@/lib/revalidate";
 import type { OrderPresetKind } from "@/lib/types";
 import { formString, getNextOrder, nextOrderSql, requireMaintainer, slugify } from "./_helpers";
 import { saveCompleteOrder } from "./_reorder";
-
-function revalidateWorkshops() {
-	revalidatePath("/");
-	revalidatePath("/workshops");
-	revalidatePath("/admin/workshops");
-}
 
 // --- Workshop actions ---
 
@@ -60,7 +54,7 @@ export async function createWorkshop(formData: FormData): Promise<ActionResult<{
 			order: nextOrderSql(workshops),
 		});
 
-		revalidateWorkshops();
+		revalidateEntity("workshops");
 		return { slug };
 	});
 }
@@ -77,7 +71,7 @@ export async function updateWorkshop(
 			.where(eq(workshops.slug, slug))
 			.returning({ slug: workshops.slug });
 		if (updated.length === 0) throw new Error("Workshop not found.");
-		revalidateWorkshops();
+		revalidateEntity("workshops");
 	});
 }
 
@@ -90,7 +84,7 @@ export async function reorderWorkshops(slugs: string[]): Promise<ActionResult> {
 			ids: slugs,
 			label: "Workshop",
 		});
-		revalidateWorkshops();
+		revalidateEntity("workshops");
 	});
 }
 
@@ -98,16 +92,11 @@ export async function reorderWorkshops(slugs: string[]): Promise<ActionResult> {
 export async function deleteWorkshop(slug: string): Promise<ActionResult> {
 	return runAdminAction(async () => {
 		await db.delete(workshops).where(eq(workshops.slug, slug));
-		revalidateWorkshops();
+		revalidateEntity("workshops");
 	});
 }
 
 // --- Custom-order preset actions ---
-
-function revalidateOrderPresets() {
-	revalidatePath("/custom-orders");
-	revalidatePath("/admin/presets");
-}
 
 /** Add a preset option of a given kind (size / budget / timeline). */
 export async function createOrderPreset(
@@ -125,7 +114,7 @@ export async function createOrderPreset(
 			.replace(/[^a-z0-9]+/g, "-")
 			.slice(0, 24)}`;
 		await db.insert(orderPresets).values({ id, kind, label: trimmed, order: nextOrder });
-		revalidateOrderPresets();
+		revalidateEntity("orderPresets");
 	});
 }
 
@@ -140,7 +129,7 @@ export async function updateOrderPreset(id: string, label: string): Promise<Acti
 			.where(eq(orderPresets.id, id))
 			.returning({ id: orderPresets.id });
 		if (updated.length === 0) throw new Error("Preset not found.");
-		revalidateOrderPresets();
+		revalidateEntity("orderPresets");
 	});
 }
 
@@ -154,7 +143,7 @@ export async function reorderOrderPresets(ids: string[]): Promise<ActionResult> 
 			ids,
 			label: "Preset",
 		});
-		revalidateOrderPresets();
+		revalidateEntity("orderPresets");
 	});
 }
 
@@ -162,21 +151,11 @@ export async function reorderOrderPresets(ids: string[]): Promise<ActionResult> 
 export async function deleteOrderPreset(id: string): Promise<ActionResult> {
 	return runAdminAction(async () => {
 		await db.delete(orderPresets).where(eq(orderPresets.id, id));
-		revalidateOrderPresets();
+		revalidateEntity("orderPresets");
 	});
 }
 
 // --- Category actions ---
-
-function revalidateCategories() {
-	revalidatePath("/");
-	revalidatePath("/work");
-	revalidatePath("/work/[slug]", "page");
-	revalidatePath("/catalog.csv");
-	revalidatePath("/custom-orders");
-	revalidatePath("/admin");
-	revalidatePath("/admin/categories");
-}
 
 /** Add a new art category. */
 export async function createCategory(name: string): Promise<ActionResult> {
@@ -191,7 +170,7 @@ export async function createCategory(name: string): Promise<ActionResult> {
 			.where(eq(categories.id, id));
 		if (existing.length > 0) throw new Error(`A category like "${trimmed}" already exists.`);
 		await db.insert(categories).values({ id, name: trimmed, order: nextOrderSql(categories) });
-		revalidateCategories();
+		revalidateEntity("categories");
 	});
 }
 
@@ -208,7 +187,7 @@ export async function renameCategory(id: string, name: string): Promise<ActionRe
 			.where(eq(categories.id, id))
 			.returning({ id: categories.id });
 		if (updated.length === 0) throw new Error("Category not found.");
-		revalidateCategories();
+		revalidateEntity("categories");
 	});
 }
 
@@ -216,7 +195,7 @@ export async function renameCategory(id: string, name: string): Promise<ActionRe
 export async function reorderCategories(ids: string[]): Promise<ActionResult> {
 	return runAdminAction(async () => {
 		await saveCompleteOrder({ table: categories, key: categories.id, ids, label: "Category" });
-		revalidateCategories();
+		revalidateEntity("categories");
 	});
 }
 
@@ -239,7 +218,7 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
 			);
 		}
 		await db.delete(categories).where(eq(categories.id, id));
-		revalidateCategories();
+		revalidateEntity("categories");
 	});
 }
 
@@ -249,13 +228,13 @@ export async function inviteMaintainer(email: string, name?: string): Promise<Ac
 	return runAdminAction(async () => {
 		const by = await requireMaintainer();
 		await addMaintainer(email, by, name);
-		revalidatePath("/admin/maintainers");
+		revalidateEntity("maintainers");
 	});
 }
 
 export async function revokeMaintainer(email: string): Promise<ActionResult> {
 	return runAdminAction(async () => {
 		await removeMaintainer(email); // throws if root
-		revalidatePath("/admin/maintainers");
+		revalidateEntity("maintainers");
 	});
 }

@@ -2,9 +2,10 @@
 
 import { CalendarDays, Pin, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { progressLabel } from "@/lib/event-photo-batch";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { createEvent, deleteEvent, setEventFeatured } from "../event-actions";
+import { deleteEvent, setEventFeatured } from "../event-actions";
 import { useConfirm } from "./confirm-dialog";
 import {
 	adminBtn,
@@ -16,7 +17,7 @@ import {
 } from "./controls";
 import { EventImageManager } from "./event-image-manager";
 import { EventMetaEditor } from "./event-meta-editor";
-import { stageFormImages } from "./stage-image";
+import { createEventWithPhotos } from "./event-photo-batch";
 import { useAdminAction } from "./use-admin-action";
 import { useServerSyncedList } from "./use-server-synced-list";
 
@@ -30,6 +31,8 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 	const confirm = useConfirm();
 	const { pending, err, run } = useAdminAction();
 	const [items, setItems] = useServerSyncedList(initial);
+	const [progress, setProgress] = useState<string | null>(null);
+	const [notice, setNotice] = useState<string | null>(null);
 
 	const handleDelete = (id: string) => {
 		run(
@@ -52,13 +55,23 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 		<div className="space-y-6">
 			<CreateEventForm
 				pending={pending}
-				onCreate={(fd, reset) =>
-					run(async () => {
-						await stageFormImages(fd);
-						return createEvent(fd);
-					}, reset)
-				}
+				progress={progress}
+				onCreate={(fd, reset) => {
+					setNotice(null);
+					// Masters go straight to R2, then the server processes one photo per
+					// call, so a large batch never overruns the function budget.
+					run(
+						() =>
+							createEventWithPhotos(fd, {
+								onProgress: (p) => setProgress(progressLabel(p)),
+								onPartial: setNotice,
+							}),
+						reset,
+					).finally(() => setProgress(null));
+				}}
 			/>
+
+			{notice ? <output className="block text-sm text-muted">{notice}</output> : null}
 
 			{err ? (
 				<p role="alert" className="text-sm text-ruby">
@@ -103,8 +116,14 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 
 function CreateEventForm({
 	pending,
+	progress,
 	onCreate,
-}: Readonly<{ pending: boolean; onCreate: (fd: FormData, reset: () => void) => void }>) {
+}: Readonly<{
+	pending: boolean;
+	/** Batch progress shown on the button while pending, e.g. "Saving photo 2 of 8". */
+	progress: string | null;
+	onCreate: (fd: FormData, reset: () => void) => void;
+}>) {
 	const [fileCount, setFileCount] = useState(0);
 
 	return (
@@ -172,7 +191,7 @@ function CreateEventForm({
 			</div>
 			<button type="submit" disabled={pending} className={`${adminBtnPrimary} mt-4 w-full`}>
 				<Plus size={14} />
-				{pending ? "Adding..." : "Add event"}
+				{pending ? (progress ?? "Adding...") : "Add event"}
 			</button>
 		</form>
 	);

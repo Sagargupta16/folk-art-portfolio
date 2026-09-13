@@ -49,10 +49,25 @@ export async function stageImage(file: File): Promise<string> {
 	return key;
 }
 
-/** Upload a batch sequentially so a partial failure reports the file that broke. */
+/** Masters uploading at once. Direct browser-to-R2 PUTs parallelise well; more only queues in the browser. */
+const STAGING_CONCURRENCY = 3;
+
+/**
+ * Upload a batch a few at a time, keeping the keys in selection order. The
+ * first failure rejects with that file's message; any masters still in flight
+ * finish as unreferenced staging objects, which the daily cleanup removes.
+ */
 export async function stageImages(files: readonly File[]): Promise<string[]> {
-	const keys: string[] = [];
-	for (const file of files) keys.push(await stageImage(file));
+	const keys: string[] = new Array(files.length);
+	let next = 0;
+	const worker = async () => {
+		while (next < files.length) {
+			const index = next;
+			next += 1;
+			keys[index] = await stageImage(files[index] as File);
+		}
+	};
+	await Promise.all(Array.from({ length: Math.min(STAGING_CONCURRENCY, files.length) }, worker));
 	return keys;
 }
 

@@ -2,11 +2,13 @@
  * Remove abandoned upload staging objects using the existing R2 credentials.
  * Defaults to a dry run. Never reads or deletes published image namespaces.
  *
- * Preview: pnpm exec tsx scripts/cleanup-staging.ts
- * Apply:   pnpm exec tsx scripts/cleanup-staging.ts --apply
+ * Preview: pnpm r2:cleanup
+ * Apply:   pnpm r2:cleanup --apply
  *
- * Supply R2 variables through the process environment, as the scheduled job
- * does. This script does not load local credential files.
+ * The `r2:cleanup` script loads `.env.local` when it exists, so a local dry run
+ * works without exporting anything. The scheduled job has no such file and
+ * supplies the R2 variables through the process environment instead; nothing
+ * here requires a credential file to be present.
  */
 import {
 	cleanupAbandonedStaging,

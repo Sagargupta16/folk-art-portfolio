@@ -26,6 +26,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - Validate migration artifacts and exercise fresh installs, upgrades, constraints, and bootstrap concurrency against disposable PostgreSQL.
 - Refuse reseeding an initialized catalog, document a checked migration baseline, and verify coordinated database/image backup bundles.
 - Add bounded staging cleanup, dependency auditing, broader production health probes, and regression checks for the repaired failure cases.
+- Lock the media proxy allowlist to the key shapes the variant pipeline actually writes ([lib/media-rewrite.test.ts](lib/media-rewrite.test.ts)). Narrowing the proxy is a silent failure mode otherwise: a renamed prefix or a tightened filename charset would return 404 for every affected image while the build and every other test still passed.
 - Refresh architecture, development, deployment, image, and recovery documentation.
 
 ## 1.35.3 (2026-09-02)

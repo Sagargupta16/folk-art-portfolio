@@ -11,6 +11,7 @@ import { Modal } from "../../app/admin/_components/modal";
 import { PresetManager } from "../../app/admin/_components/preset-manager";
 import { ProfileManager } from "../../app/admin/_components/profile-manager";
 import { TestimonialsManager } from "../../app/admin/_components/testimonials-manager";
+import { UploadForm } from "../../app/admin/_components/upload-form";
 import { WorkshopManager } from "../../app/admin/_components/workshop-manager";
 import type { Artwork, Event } from "../../lib/types";
 import { actionState } from "./mock-actions";
@@ -127,6 +128,7 @@ const views = {
 			artworkSlugs={["alpha"]}
 		/>
 	),
+	upload: <UploadForm categories={["Gond", "Pichwai"]} />,
 	dialogs: <DialogFixture />,
 };
 

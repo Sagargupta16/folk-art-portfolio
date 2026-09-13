@@ -9,7 +9,9 @@ import { cn } from "@/lib/utils";
 import { removeEventImage, reorderEventImages } from "../event-actions";
 import { adminBtn, adminBtnPrimary, adminIconBtnDestructive } from "./controls";
 import { addEventPhotos } from "./event-photo-batch";
+import { PhotoStrip } from "./photo-preview";
 import { ReorderHandle } from "./reorder-handle";
+import { UploadProgress, type UploadProgressState } from "./upload-progress";
 import { useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
@@ -26,8 +28,8 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 	// Adopt fresh server data after an upload (router.refresh), resetting the
 	// reorder baseline to match so new photos appear without a manual reload.
 	const [images, setImages] = useServerSyncedList(event.images, setBaseline);
-	const [fileCount, setFileCount] = useState(0);
-	const [progress, setProgress] = useState<string | null>(null);
+	const [files, setFiles] = useState<File[]>([]);
+	const [progress, setProgress] = useState<UploadProgressState | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
 	const { dragging, over, dragProps, move } = useReorder(images, setImages, pending);
 
@@ -58,12 +60,13 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 			// call, so a large batch never overruns the function budget.
 			() =>
 				addEventPhotos(event.id, fd, {
-					onProgress: (p) => setProgress(progressLabel(p)),
+					onStaging: (fraction) => setProgress({ label: "Uploading photos", fraction }),
+					onProgress: (p) => setProgress({ label: progressLabel(p), fraction: p.done / p.total }),
 					onPartial: setNotice,
 				}),
 			() => {
 				form.reset();
-				setFileCount(0);
+				setFiles([]);
 			},
 		).finally(() => setProgress(null));
 	};
@@ -161,24 +164,27 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 						className={`${adminBtn} cursor-pointer px-3 py-1.5 focus-within:ring-2 focus-within:ring-accent`}
 					>
 						<ImagePlus size={14} />
-						{fileCount > 0 ? `${fileCount} selected` : "Add photos"}
+						{files.length > 0 ? `${files.length} selected` : "Add photos"}
 						<input
 							disabled={pending}
 							name="images"
 							type="file"
 							accept="image/jpeg,image/png,image/webp"
 							multiple
-							onChange={(e) => setFileCount(e.currentTarget.files?.length ?? 0)}
+							onChange={(e) => setFiles(Array.from(e.currentTarget.files ?? []))}
 							className="sr-only"
 						/>
 					</label>
-					{fileCount > 0 ? (
+					{files.length > 0 ? (
 						<button type="submit" disabled={pending} className={`${adminBtnPrimary} px-3 py-1.5`}>
-							{pending ? (progress ?? "Uploading...") : "Upload"}
+							{pending ? "Uploading..." : "Upload"}
 						</button>
 					) : null}
 				</form>
 			</div>
+
+			<PhotoStrip files={files} />
+			{pending && progress ? <UploadProgress state={progress} /> : null}
 
 			{notice ? <output className="block text-sm text-muted">{notice}</output> : null}
 			{err ? (

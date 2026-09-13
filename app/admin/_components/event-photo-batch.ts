@@ -27,6 +27,8 @@ import {
 import { stageFormImages } from "./stage-image";
 
 export interface BatchHandlers {
+	/** Called as the masters upload to R2, with the share of bytes sent. */
+	onStaging?: (fraction: number) => void;
 	/** Called each time a photo finishes processing. */
 	onProgress: (progress: BatchProgress) => void;
 	/** Called once when some photos failed but the rest were saved. */
@@ -57,7 +59,7 @@ export async function createEventWithPhotos(
 	formData: FormData,
 	handlers: BatchHandlers,
 ): Promise<ActionResult<{ id: string }>> {
-	await stageFormImages(formData);
+	await stageFormImages(formData, handlers.onStaging);
 	const keys = stagedKeys(formData);
 	const reserved = await reserveEventId();
 	if (isFailure(reserved)) return reserved;
@@ -90,7 +92,7 @@ export async function addEventPhotos(
 	formData: FormData,
 	handlers: BatchHandlers,
 ): Promise<ActionResult> {
-	await stageFormImages(formData);
+	await stageFormImages(formData, handlers.onStaging);
 	const keys = stagedKeys(formData);
 	if (keys.length === 0) return { ok: true };
 

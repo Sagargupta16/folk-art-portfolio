@@ -18,6 +18,8 @@ import {
 import { EventImageManager } from "./event-image-manager";
 import { EventMetaEditor } from "./event-meta-editor";
 import { createEventWithPhotos } from "./event-photo-batch";
+import { PhotoStrip } from "./photo-preview";
+import { UploadProgress, type UploadProgressState } from "./upload-progress";
 import { useAdminAction } from "./use-admin-action";
 import { useServerSyncedList } from "./use-server-synced-list";
 
@@ -31,7 +33,7 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 	const confirm = useConfirm();
 	const { pending, err, run } = useAdminAction();
 	const [items, setItems] = useServerSyncedList(initial);
-	const [progress, setProgress] = useState<string | null>(null);
+	const [progress, setProgress] = useState<UploadProgressState | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
 
 	const handleDelete = (id: string) => {
@@ -63,7 +65,9 @@ export function EventsManager({ events: initial }: Readonly<{ events: Event[] }>
 					run(
 						() =>
 							createEventWithPhotos(fd, {
-								onProgress: (p) => setProgress(progressLabel(p)),
+								onStaging: (fraction) => setProgress({ label: "Uploading photos", fraction }),
+								onProgress: (p) =>
+									setProgress({ label: progressLabel(p), fraction: p.done / p.total }),
 								onPartial: setNotice,
 							}),
 						reset,
@@ -120,11 +124,11 @@ function CreateEventForm({
 	onCreate,
 }: Readonly<{
 	pending: boolean;
-	/** Batch progress shown on the button while pending, e.g. "Saving photo 2 of 8". */
-	progress: string | null;
+	/** Upload and processing progress shown under the button while pending. */
+	progress: UploadProgressState | null;
 	onCreate: (fd: FormData, reset: () => void) => void;
 }>) {
-	const [fileCount, setFileCount] = useState(0);
+	const [files, setFiles] = useState<File[]>([]);
 
 	return (
 		<form
@@ -133,7 +137,7 @@ function CreateEventForm({
 				const form = e.currentTarget;
 				onCreate(new FormData(form), () => {
 					form.reset();
-					setFileCount(0);
+					setFiles([]);
 				});
 			}}
 			className="rounded-(--radius-md) border border-line bg-bg-soft p-4"
@@ -173,26 +177,32 @@ function CreateEventForm({
 						className={adminField}
 					/>
 				</div>
-				<div className="sm:col-span-2">
+				<div className="space-y-3 sm:col-span-2">
 					<label className="flex cursor-pointer items-center gap-3 rounded-(--radius-sm) border border-dashed border-line px-4 py-3 text-sm text-muted transition-colors hover:border-accent hover:text-accent focus-within:ring-2 focus-within:ring-accent">
 						<Plus size={18} aria-hidden="true" />
-						<span>{photoPickerLabel(fileCount)}</span>
+						<span>{photoPickerLabel(files.length)}</span>
 						<input
 							disabled={pending}
 							name="images"
 							type="file"
 							accept="image/jpeg,image/png,image/webp"
 							multiple
-							onChange={(e) => setFileCount(e.currentTarget.files?.length ?? 0)}
+							onChange={(e) => setFiles(Array.from(e.currentTarget.files ?? []))}
 							className="sr-only"
 						/>
 					</label>
+					<PhotoStrip files={files} />
 				</div>
 			</div>
 			<button type="submit" disabled={pending} className={`${adminBtnPrimary} mt-4 w-full`}>
 				<Plus size={14} />
-				{pending ? (progress ?? "Adding...") : "Add event"}
+				{pending ? "Adding..." : "Add event"}
 			</button>
+			{pending && progress ? (
+				<div className="mt-3">
+					<UploadProgress state={progress} />
+				</div>
+			) : null}
 		</form>
 	);
 }

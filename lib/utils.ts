@@ -32,3 +32,10 @@ export function formatEventDate(iso: string): string {
 export function formatInr(amount: number): string {
 	return `INR ${amount.toLocaleString("en-IN")}`;
 }
+
+/** Human file size for upload previews: "840 KB", "5.2 MB". Never below 1 KB for a non-empty file. */
+export function formatBytes(bytes: number): string {
+	if (!Number.isFinite(bytes) || bytes <= 0) return "0 KB";
+	if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+	return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}

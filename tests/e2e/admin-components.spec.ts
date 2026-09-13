@@ -322,3 +322,51 @@ test("dialog content stays open and only the top backdrop dismisses", async ({ p
 	await expect(page.locator("dialog[open]")).toHaveCount(0);
 	await expect(page.getByRole("button", { name: "Open editor" })).toBeFocused();
 });
+
+const fixtureImage = (name: string) => ({
+	name,
+	mimeType: "image/jpeg",
+	buffer: Buffer.from(`isolated upload fixture ${name}`),
+});
+
+test("choosing an image shows it immediately and remove clears it", async ({ page }) => {
+	await mountAdmin(page, "upload");
+	await page.locator('input[name="image"]').setInputFiles(fixtureImage("lotus.jpg"));
+	await expect(page.getByText("lotus.jpg")).toBeVisible();
+	await expect(page.getByText(/ready to upload/)).toBeVisible();
+	await expect(page.getByText("Change image")).toBeVisible();
+	await page.getByRole("button", { name: "Remove selected image" }).click();
+	await expect(page.getByText("lotus.jpg")).toHaveCount(0);
+	await expect(page.getByText("Choose image (JPG, PNG, or WebP)")).toBeVisible();
+	expect(
+		await page.locator('input[name="image"]').evaluate((input: HTMLInputElement) => input.files?.length),
+	).toBe(0);
+});
+
+for (const failure of ["failure", "throw"] as const) {
+	const message = failure === "failure" ? "Change was rejected." : "Connection interrupted.";
+	test(`adding a piece keeps the preview and reports a ${failure}`, async ({ page }) => {
+		await mountAdmin(page, "upload");
+		await outcome(page, failure);
+		await page.getByLabel("Title *", { exact: true }).fill("Lotus garden");
+		await page.getByLabel("Category *", { exact: true }).selectOption("Gond");
+		await page.getByLabel("Medium *", { exact: true }).fill("Ink");
+		await page.locator('input[name="image"]').setInputFiles(fixtureImage("lotus.jpg"));
+		await page.getByRole("button", { name: "Add piece", exact: true }).click();
+		await expect(page.getByRole("alert")).toHaveText(message);
+		await expect(page.getByText("lotus.jpg")).toBeVisible();
+		await expect(page.getByLabel("Title *", { exact: true })).toHaveValue("Lotus garden");
+	});
+}
+
+test("selecting event photos shows a thumbnail strip with the cover marked", async ({ page }) => {
+	await mountAdmin(page, "events");
+	await page
+		.locator('input[name="images"]')
+		.setInputFiles([fixtureImage("one.jpg"), fixtureImage("two.jpg")]);
+	// The picker label and the strip caption both mention the count; check each.
+	await expect(page.getByText("2 photos selected", { exact: true })).toBeVisible();
+	await expect(page.getByText(/The first is the cover\./)).toBeVisible();
+	await expect(page.getByText("Cover", { exact: true })).toHaveCount(1);
+	await expect(page.locator("form img")).toHaveCount(2);
+});

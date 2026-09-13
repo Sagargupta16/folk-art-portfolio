@@ -29,7 +29,7 @@ Catalog, event, and profile images are processed by one sharp pipeline and store
 
 Artwork key-bases start with `artworks/`. Event key-bases are `events/<event-id>/<image-id>`. Profile replacements use `profile/artist-<image-id>`. Every image has 13 objects.
 
-The R2 master fallback is a normalized mozjpeg, not the original upload. Original pre-compression bytes from older uploads cannot be recreated from these lossy outputs. Seeded source masters remain under `public/artworks/` so their variants can be regenerated and used as a final same-origin fallback if a proxied artwork request fails.
+The R2 `<key-base>.jpg` fallback is a normalized mozjpeg capped at 2000 px on its long edge, not the original upload. Original pre-compression bytes from older uploads cannot be recreated from these lossy outputs. Seeded source masters remain under `public/artworks/` so their variants can be regenerated and used as a final same-origin fallback if a proxied artwork request fails.
 
 ## Upload transport
 

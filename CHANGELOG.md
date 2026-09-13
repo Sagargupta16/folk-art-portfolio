@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.37.1 (2026-09-13)
+
+### Changed
+
+- **Cheaper encodes, same output contract.** AVIF variants use encoder effort 3 instead of 4. Measured on a real 2.0 MB artwork master: the 1600 px variant encoded in 265 ms instead of 695 ms and came out 1 percent smaller, so the higher effort was buying time, not bytes (effort 2 was marginally faster but larger, so it was not chosen). The `<key-base>.jpg` fallback is now capped at 2000 px on the long edge, still above the 1600 px top variant; on that master it encoded 18 percent faster and 28 percent smaller, and a 12 MP phone photo saves far more ([lib/storage/process-artwork-image.ts](lib/storage/process-artwork-image.ts)).
+
 ## 1.37.0 (2026-09-13)
 
 Uploads get fast. No schema change, no new environment variable.

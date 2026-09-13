@@ -8,11 +8,11 @@
  */
 import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/action-result";
 import { runAdminAction } from "@/lib/admin-action";
 import { db } from "@/lib/db/client";
 import { events, settings } from "@/lib/db/schema";
+import { revalidateEntity } from "@/lib/revalidate";
 import {
 	cleanupFailedImageWrite,
 	discardUncommittedImages,
@@ -23,12 +23,6 @@ import { discardStagedImages, readStagedImage } from "@/lib/storage/staged-uploa
 import { formString, nextOrderSql } from "./_helpers";
 
 // --- Event actions ---
-
-function revalidateEvents() {
-	revalidatePath("/");
-	revalidatePath("/events");
-	revalidatePath("/admin/events");
-}
 
 /**
  * Read the staged R2 keys the browser uploaded before submitting (the
@@ -106,7 +100,7 @@ export async function createEvent(formData: FormData): Promise<ActionResult<{ id
 			throw error;
 		}
 
-		revalidateEvents();
+		revalidateEntity("events");
 		return { id };
 	});
 }
@@ -137,7 +131,7 @@ export async function updateEventMeta(
 			.where(eq(events.id, id))
 			.returning({ id: events.id });
 		if (updated.length === 0) throw new Error("Event not found.");
-		revalidateEvents();
+		revalidateEntity("events");
 	});
 }
 
@@ -154,7 +148,7 @@ export async function addEventImages(id: string, formData: FormData): Promise<Ac
 			await cleanupFailedImageWrite(added, error);
 			throw error;
 		}
-		revalidateEvents();
+		revalidateEntity("events");
 	});
 }
 
@@ -167,7 +161,7 @@ export async function removeEventImage(id: string, keyBase: string): Promise<Act
 		if (!current.includes(keyBase)) throw new Error("Event image not found.");
 		const next = current.filter((k) => k !== keyBase);
 		await writeEventImages(id, current, next);
-		revalidateEvents();
+		revalidateEntity("events");
 	});
 }
 
@@ -185,7 +179,7 @@ export async function reorderEventImages(id: string, keyBases: string[]): Promis
 			keyBases.every((keyBase) => owned.has(keyBase));
 		if (!isExactPermutation) throw new Error("Photo list changed. Refresh and try again.");
 		await writeEventImages(id, current, keyBases);
-		revalidateEvents();
+		revalidateEntity("events");
 	});
 }
 
@@ -202,7 +196,7 @@ export async function setEventFeatured(id: string, featured: boolean): Promise<A
 			.where(eq(events.id, id))
 			.returning({ id: events.id });
 		if (updated.length === 0) throw new Error("Event not found.");
-		revalidateEvents();
+		revalidateEntity("events");
 	});
 }
 
@@ -218,17 +212,11 @@ export async function deleteEvent(id: string): Promise<ActionResult> {
 		if (deleted.length === 0) {
 			throw new ImageConflictError("Event photos changed. Refresh and try again.");
 		}
-		revalidateEvents();
+		revalidateEntity("events");
 	});
 }
 
 // --- Settings actions (artist profile) ---
-
-function revalidateProfile() {
-	revalidatePath("/");
-	revalidatePath("/about");
-	revalidatePath("/admin/profile");
-}
 
 function profileImageMatches(value: unknown) {
 	return and(
@@ -267,7 +255,7 @@ export async function setProfileImage(formData: FormData): Promise<ActionResult>
 			await cleanupFailedImageWrite([keyBase], error);
 			throw error;
 		}
-		revalidateProfile();
+		revalidateEntity("profile");
 	});
 }
 
@@ -283,7 +271,7 @@ export async function clearProfileImage(): Promise<ActionResult> {
 		if (deleted.length === 0) {
 			throw new ImageConflictError("Profile photo changed. Refresh and try again.");
 		}
-		revalidateProfile();
+		revalidateEntity("profile");
 	});
 }
 
@@ -294,6 +282,6 @@ export async function setShowHomeIntro(show: boolean): Promise<ActionResult> {
 			.insert(settings)
 			.values({ key: "showHomeIntro", value: show })
 			.onConflictDoUpdate({ target: settings.key, set: { value: show } });
-		revalidateProfile();
+		revalidateEntity("profile");
 	});
 }

@@ -12,11 +12,11 @@
  * (see lib/action-result.ts).
  */
 import { and, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import { type ActionResult, failure } from "@/lib/action-result";
 import { db } from "@/lib/db/client";
 import { artworks } from "@/lib/db/schema";
 import { artworkImageKey, R2_ARTWORK_IMAGE_BASE } from "@/lib/image-base";
+import { revalidateEntity } from "@/lib/revalidate";
 import { cleanupFailedImageWrite, ImageConflictError } from "@/lib/storage/image-mutation";
 import { extractPalette, processNewArtworkImage } from "@/lib/storage/process-artwork-image";
 import { discardStagedImages, readStagedImage } from "@/lib/storage/staged-upload";
@@ -25,19 +25,6 @@ import { formString, nextOrderSql, requireMaintainer, slugify } from "./_helpers
 import { saveCompleteOrder } from "./_reorder";
 
 const ARTWORK_STATUSES = new Set<ArtworkStatus>(["archive", "available", "sold"]);
-
-function revalidateCatalog() {
-	revalidatePath("/");
-	revalidatePath("/work");
-	// Every detail page includes catalog-derived previous/next links.
-	revalidatePath("/work/[slug]", "page");
-	revalidatePath("/custom-orders");
-	revalidatePath("/admin");
-	// The Meta Commerce feed and the sitemap both derive from the catalog, so a
-	// price/status/create/delete change must refresh them too or they go stale.
-	revalidatePath("/catalog.csv");
-	revalidatePath("/sitemap.xml");
-}
 
 /**
  * Validate and commit all editable artwork fields in one atomic update.
@@ -116,7 +103,7 @@ async function updateArtworkUnsafe(
 		.where(eq(artworks.slug, slug))
 		.returning({ slug: artworks.slug });
 	if (updated.length === 0) throw new Error("Artwork not found.");
-	revalidateCatalog();
+	revalidateEntity("artworks");
 	return { ok: true };
 }
 
@@ -168,7 +155,7 @@ async function replaceArtworkImageUnsafe(slug: string, formData: FormData): Prom
 		throw error;
 	}
 
-	revalidateCatalog();
+	revalidateEntity("artworks");
 	return { ok: true };
 }
 
@@ -255,7 +242,7 @@ async function createArtworkUnsafe(formData: FormData): Promise<ActionResult<{ s
 		throw error;
 	}
 
-	revalidateCatalog();
+	revalidateEntity("artworks");
 	return { ok: true, slug };
 }
 
@@ -288,7 +275,7 @@ async function regeneratePaletteUnsafe(slug: string): Promise<ActionResult> {
 	if (updated.length === 0) {
 		throw new ImageConflictError("Artwork image changed. Refresh and try again.");
 	}
-	revalidateCatalog();
+	revalidateEntity("artworks");
 	return { ok: true };
 }
 
@@ -310,7 +297,7 @@ async function reorderArtworksUnsafe(slugs: string[]): Promise<ActionResult> {
 		ids: slugs,
 		label: "Artwork",
 	});
-	revalidateCatalog();
+	revalidateEntity("artworks");
 	return { ok: true };
 }
 
@@ -327,6 +314,6 @@ export async function deleteArtwork(slug: string): Promise<ActionResult> {
 async function deleteArtworkUnsafe(slug: string): Promise<ActionResult> {
 	await requireMaintainer();
 	await db.delete(artworks).where(eq(artworks.slug, slug));
-	revalidateCatalog();
+	revalidateEntity("artworks");
 	return { ok: true };
 }

@@ -19,7 +19,8 @@ function action(name: string) {
 				actionState.release = resolve;
 			});
 		}
-		return { ok: true as const, slug: "created-piece" };
+		// Creates return the identifiers the real actions do (artwork slug, event id).
+		return { ok: true as const, slug: "created-piece", id: "created-event" };
 	};
 }
 

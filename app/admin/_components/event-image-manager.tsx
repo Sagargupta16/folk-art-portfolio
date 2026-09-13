@@ -2,13 +2,14 @@
 
 import { ImagePlus, Save, X } from "lucide-react";
 import { useState } from "react";
+import { progressLabel } from "@/lib/event-photo-batch";
 import { IMAGE_ORIGIN } from "@/lib/image-base";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { addEventImages, removeEventImage, reorderEventImages } from "../event-actions";
+import { removeEventImage, reorderEventImages } from "../event-actions";
 import { adminBtn, adminBtnPrimary, adminIconBtnDestructive } from "./controls";
+import { addEventPhotos } from "./event-photo-batch";
 import { ReorderHandle } from "./reorder-handle";
-import { stageFormImages } from "./stage-image";
 import { useAdminAction } from "./use-admin-action";
 import { useReorder } from "./use-reorder";
 import { useServerSyncedList } from "./use-server-synced-list";
@@ -26,6 +27,8 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 	// reorder baseline to match so new photos appear without a manual reload.
 	const [images, setImages] = useServerSyncedList(event.images, setBaseline);
 	const [fileCount, setFileCount] = useState(0);
+	const [progress, setProgress] = useState<string | null>(null);
+	const [notice, setNotice] = useState<string | null>(null);
 	const { dragging, over, dragProps, move } = useReorder(images, setImages, pending);
 
 	const orderChanged =
@@ -49,17 +52,20 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 
 	const handleAdd = (form: HTMLFormElement) => {
 		const fd = new FormData(form);
+		setNotice(null);
 		run(
-			async () => {
-				// Masters go straight to R2; the action receives only their keys.
-				await stageFormImages(fd);
-				return addEventImages(event.id, fd);
-			},
+			// Masters go straight to R2, then the server processes one photo per
+			// call, so a large batch never overruns the function budget.
+			() =>
+				addEventPhotos(event.id, fd, {
+					onProgress: (p) => setProgress(progressLabel(p)),
+					onPartial: setNotice,
+				}),
 			() => {
 				form.reset();
 				setFileCount(0);
 			},
-		);
+		).finally(() => setProgress(null));
 	};
 
 	return (
@@ -168,12 +174,17 @@ export function EventImageManager({ event }: Readonly<{ event: Event }>) {
 					</label>
 					{fileCount > 0 ? (
 						<button type="submit" disabled={pending} className={`${adminBtnPrimary} px-3 py-1.5`}>
-							{pending ? "Uploading..." : "Upload"}
+							{pending ? (progress ?? "Uploading...") : "Upload"}
 						</button>
 					) : null}
 				</form>
 			</div>
 
+			{notice ? (
+				<p role="status" className="text-sm text-muted">
+					{notice}
+				</p>
+			) : null}
 			{err ? (
 				<p role="alert" className="text-sm text-ruby">
 					{err}

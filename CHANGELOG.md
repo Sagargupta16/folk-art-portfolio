@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [SemVer](https://semver.org/). Bump rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## 1.38.1 (2026-09-13)
+
+### Added
+
+- **Admin preview without signing in.** `pnpm dev:preview` ([scripts/admin-preview.mjs](scripts/admin-preview.mjs)) runs the dev server on port 3010 with `KALCHAR_TEST_FIXTURES=1` and the new `KALCHAR_ADMIN_PREVIEW=1`, so every `/admin` page renders as the synthetic maintainer `preview@kalchar.invalid` over the fixture catalog, for design review and responsive checks. The fixture now carries leads in every triage state, a maintainer roster, order presets, a second event and a profile photo, so every admin page has rows ([lib/catalog-fixture.ts](lib/catalog-fixture.ts)). Nothing can be saved: a banner under the header says so, the database proxy already threw in fixture mode, and the R2 client now does too ([lib/storage/r2.ts](lib/storage/r2.ts)). [lib/env.ts](lib/env.ts) refuses the preview flag without the fixtures and refuses both on Vercel; unit tests cover the guard and the synthetic access path.
+
 ## 1.38.0 (2026-09-13)
 
 ### Added

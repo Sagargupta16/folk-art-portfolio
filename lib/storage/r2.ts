@@ -40,6 +40,10 @@ import { STAGING_PREFIX } from "./image-upload";
 let cachedClient: S3Client | null = null;
 
 function client(): S3Client {
+	// Fixture builds must not touch the real bucket either, even with credentials on disk.
+	if (serverEnv.testFixtures) {
+		throw new Error("Image storage is disabled in catalog fixture mode.");
+	}
 	if (!cachedClient) {
 		cachedClient = new S3Client({
 			region: "auto",

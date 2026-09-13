@@ -276,12 +276,15 @@ function toLead(row: LeadRow): Lead {
 export async function getLeadsPage(page: number) {
 	await requireMaintainer();
 	const pageNumber = Number.isSafeInteger(page) && page > 0 ? page : 1;
-	const rows = await db
-		.select()
-		.from(leads)
-		.orderBy(desc(leads.createdAt), asc(leads.id))
-		.limit(LEADS_PAGE_SIZE + 1)
-		.offset((pageNumber - 1) * LEADS_PAGE_SIZE);
+	const offset = (pageNumber - 1) * LEADS_PAGE_SIZE;
+	const rows = fixture
+		? fixture.leads.slice(offset, offset + LEADS_PAGE_SIZE + 1)
+		: await db
+				.select()
+				.from(leads)
+				.orderBy(desc(leads.createdAt), asc(leads.id))
+				.limit(LEADS_PAGE_SIZE + 1)
+				.offset(offset);
 	return {
 		leads: rows.slice(0, LEADS_PAGE_SIZE).map(toLead),
 		hasNextPage: rows.length > LEADS_PAGE_SIZE,
@@ -291,6 +294,7 @@ export async function getLeadsPage(page: number) {
 /** The roster is private even when accessed outside its admin page. */
 export async function getMaintainers() {
 	await requireMaintainer();
+	if (fixture) return fixture.maintainers;
 	return db
 		.select()
 		.from(maintainers)

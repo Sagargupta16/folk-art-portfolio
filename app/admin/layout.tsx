@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { signOut } from "@/auth";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { requireAdminPage } from "@/lib/admin-auth";
+import { serverEnv } from "@/lib/env";
 import { AdminNavDesktop, AdminNavMobile } from "./_components/admin-nav";
 import { ConfirmProvider } from "./_components/confirm-dialog";
 
@@ -67,6 +68,12 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
 						</div>
 					</div>
 				</header>
+
+				{serverEnv.adminPreview ? (
+					<p className="border-b border-line bg-bg px-(--container-px) py-2 text-center text-xs text-muted">
+						Preview mode: fixture data, nothing you change here is saved.
+					</p>
+				) : null}
 
 				<main className="mx-auto max-w-6xl px-(--container-px) pt-6 pb-28 sm:pt-8 xl:pb-10">
 					{children}

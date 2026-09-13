@@ -73,6 +73,24 @@ export const serverEnv = {
 		}
 		return enabled;
 	},
+	/**
+	 * Render /admin as a synthetic maintainer for local design review. It rides on
+	 * fixture mode, so it can never see a real database or bucket, and it is
+	 * refused on Vercel like the fixtures themselves.
+	 */
+	get adminPreview(): boolean {
+		const enabled = process.env.KALCHAR_ADMIN_PREVIEW === "1";
+		if (!enabled) return false;
+		if (process.env.VERCEL === "1") {
+			throw new Error("Admin preview cannot be deployed to Vercel.");
+		}
+		if (!this.testFixtures) {
+			throw new Error(
+				"KALCHAR_ADMIN_PREVIEW=1 requires KALCHAR_TEST_FIXTURES=1 so the preview can never reach a real database.",
+			);
+		}
+		return true;
+	},
 	get databaseUrl(): string {
 		return required("DATABASE_URL", "docs/DATABASE.md");
 	},

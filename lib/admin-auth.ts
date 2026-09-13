@@ -1,10 +1,15 @@
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { auth } from "@/auth";
+import { serverEnv } from "./env";
 import { isMaintainer } from "./maintainers";
+
+/** The synthetic identity a fixture-mode preview renders as; never a real account. */
+export const PREVIEW_MAINTAINER = "preview@kalchar.invalid";
 
 /** Request-scoped only: a later navigation or action checks the roster again. */
 export const getAdminAccess = cache(async () => {
+	if (serverEnv.adminPreview) return { email: PREVIEW_MAINTAINER, allowed: true };
 	const session = await auth();
 	const email = session?.user?.email?.trim().toLowerCase() ?? null;
 	return { email, allowed: email !== null && (await isMaintainer(email)) };
